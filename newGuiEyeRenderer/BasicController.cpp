@@ -1,4 +1,5 @@
 #include "BasicController.h"
+#include <iostream>
 
 //// The GLFW key codes are copied in here for ease of use
 /* The unknown key */
@@ -131,11 +132,13 @@
 
 #define RELEASE                0
 #define PRESS                  1
+#define REPEAT                 2
 
 bool BasicController::ingestKeyAction(int32_t key, int32_t action)
 {
   bool output = false;
-  if(action == PRESS)
+
+  if(action == PRESS || action == REPEAT)
   {
       if(key == KEY_W){
         output |= !forward;
@@ -149,10 +152,10 @@ bool BasicController::ingestKeyAction(int32_t key, int32_t action)
       }else if (key == KEY_S){
         output |= !backward;
         backward = true;
-      }else if (key == KEY_LEFT_CONTROL){
+      }else if (key == KEY_P){
         output |= !up;
         up = true;
-      }else if (key == KEY_LEFT_SHIFT){
+      }else if (key == KEY_L){
         output |= !down;
         down = true;
       }else if (key == KEY_UP){
@@ -167,39 +170,14 @@ bool BasicController::ingestKeyAction(int32_t key, int32_t action)
       }else if (key == KEY_RIGHT){
         output |= !rotRight;
         rotRight = true;
-      }
-
-  }else if(action == RELEASE){
-      if(key == KEY_W){
-        output |= forward;
-        forward = false;
-      }else if (key == KEY_A){
-        output |= left;
-        left = false;
-      }else if (key == KEY_D){
-        output |= right;
-        right = false;
-      }else if (key == KEY_S){
-        output |= backward;
-        backward = false;
-      }else if (key == KEY_LEFT_CONTROL){
-        output |= up;
-        up = false;
-      }else if (key == KEY_LEFT_SHIFT){
-        output |= down;
-        down = false;
-      }else if (key == KEY_UP){
-        output |= rotUp;
-        rotUp = false;
-      }else if (key == KEY_DOWN){
-        output |= rotDown;
-        rotDown = false;
-      }else if (key == KEY_LEFT){
-        output |= rotLeft;
-        rotLeft = false;
-      }else if (key == KEY_RIGHT){
-        output |= rotRight;
-        rotRight = false;
+      }else if (key == KEY_END){
+        speed = speed * 0.5f;
+        angularSpeed = angularSpeed * 0.5f;
+        std::cout << "Speed reduced to " << speed << std::endl;
+      }else if (key == KEY_HOME){
+        speed = speed * 2.0f;
+        angularSpeed = angularSpeed * 2.0f;
+        std::cout << "Speed increased to " << speed << std::endl;
       }
   }
   return output;
@@ -207,34 +185,29 @@ bool BasicController::ingestKeyAction(int32_t key, int32_t action)
 
 float3 BasicController::getMovementVector()
 {
-  //TODO: Could make this faster by pre-saving the multiples or something (but this is more succinct).
   float3 output = make_float3(0.0f, 0.0f, 0.0f);
-  if(up)       output += speed*UP;
-  if(down)     output += speed*DOWN;
-  if(left)     output += speed*LEFT;
-  if(right)    output += speed*RIGHT;
-  if(forward)  output += speed*FORWARD;
-  if(backward) output += speed*BACK;
+  if(up) { output += speed*UP; up = false; }
+  if(down) { output += speed*DOWN; down = false; }
+  if(left) { output += speed*LEFT; left = false; }
+  if(right) { output += speed*RIGHT; right = false; }
+  if(forward) { output += speed*FORWARD; forward = false; }
+  if(backward) { output += speed*BACK; backward = false; }
   return output;
 }
 
 float BasicController::getVerticalRotationAngle()
 {
   float out = 0.0f;
-  if(rotUp)
-    out += angularSpeed;
-  if(rotDown)
-    out -= angularSpeed;
+  if(rotUp) { out += angularSpeed; rotUp = false; }
+  if(rotDown) { out -= angularSpeed; rotDown = false; }
   return out;
 }
 
 float BasicController::getHorizontalRotationAngle()
 {
   float out = 0.0f;
-  if(rotLeft)
-    out += angularSpeed;
-  if(rotRight)
-    out -= angularSpeed;
+  if(rotLeft) { out += angularSpeed; rotLeft = false; }
+  if(rotRight) { out -= angularSpeed; rotRight = false; }
   return out;
 }
 
@@ -244,10 +217,3 @@ bool BasicController::isActivelyMoving()
          rotUp || rotDown || rotLeft || rotRight ||
          zoomIn || zoomOut;
 }
-
-//float BasicController::getFocalMultiplier()
-//{
-//  if(zoomIn)  return (1.0f + focalSpeed);
-//  if(zoomOut) return (1.0f - focalSpeed);
-//  return 1.0f;
-//}

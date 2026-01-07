@@ -5,3 +5,4 @@ build/*
 data/roth/*
 python-examples/__pycache__/*
 python-examples/test-images/*
+.gdb_history

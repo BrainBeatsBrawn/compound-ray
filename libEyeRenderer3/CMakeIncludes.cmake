@@ -26,6 +26,7 @@ macro(add_eye_renderer relative_path sources)
       ${relative_path}/cameras/CompoundEye.cpp
       ${relative_path}/cameras/DataRecordCamera.h
       ${relative_path}/shaders.cu
+      ${relative_path}/summing_kernel.cu
      )
   list(APPEND ${sources} ${eye_renderer_sources})
 endmacro()

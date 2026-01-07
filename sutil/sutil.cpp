@@ -29,16 +29,9 @@
 
 #include <sampleConfig.h>
 #include <sutil/Exception.h>
-#include <sutil/GLDisplay.h>
 #include <sutil/PPMLoader.h>
 #include <sutil/sutil.h>
 #include <sutil/vec_math.h>
-
-#include <GLFW/glfw3.h>
-#include <glad/glad.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
 
 #include <nvrtc.h>
 
@@ -60,24 +53,6 @@
 
 namespace sutil
 {
-
-static void errorCallback( int error, const char* description )
-{
-    std::cerr << "GLFW Error " << error << ": " << description << std::endl;
-}
-
-
-static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, int32_t action, int32_t /*mods*/ )
-{
-    if( action == GLFW_PRESS )
-    {
-        if( key == GLFW_KEY_Q || key == GLFW_KEY_ESCAPE )
-        {
-            glfwSetWindowShouldClose( window, true );
-        }
-    }
-}
-
 
 static void SavePPM( const unsigned char* Pix, const char* fname, int wid, int hgt, int chan )
 {
@@ -228,170 +203,15 @@ cudaTextureObject_t loadTexture( const std::string& filename, float3 default_col
     }
 }
 
-
-void initGL()
-{
-    if( !gladLoadGL() )
-        throw Exception( "Failed to initialize GL" );
-
-    GL_CHECK( glClearColor( 0.212f, 0.271f, 0.31f, 1.0f ) );
-    GL_CHECK( glClear( GL_COLOR_BUFFER_BIT ) );
-}
-
-void initGLFW()
-{
-    glfwSetErrorCallback( errorCallback );
-    if( !glfwInit() )
-        throw Exception( "Failed to initialize GLFW" );
-
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-    glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );  // To make Apple happy -- should not be needed
-    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-    glfwWindowHint( GLFW_VISIBLE, GLFW_FALSE );
-
-    GLFWwindow* window = glfwCreateWindow( 64, 64, "", nullptr, nullptr );
-    if( !window )
-        throw Exception( "Failed to create GLFW window" );
-
-    glfwMakeContextCurrent( window );
-    glfwSwapInterval( 0 );  // No vsync
-}
-
-GLFWwindow* initGLFW( const char* window_title, int width, int height )
-{
-    GLFWwindow* window = nullptr;
-    glfwSetErrorCallback( errorCallback );
-    if( !glfwInit() )
-        throw Exception( "Failed to initialize GLFW" );
-
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-    glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );  // To make Apple happy -- should not be needed
-    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-
-    window = glfwCreateWindow( width, height, window_title, nullptr, nullptr );
-    if( !window )
-        throw Exception( "Failed to create GLFW window" );
-
-    glfwMakeContextCurrent( window );
-    glfwSwapInterval( 0 );  // No vsync
-
-    return window;
-}
-
-
-void initImGui( GLFWwindow* window )
-{
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-
-    ImGui_ImplGlfw_InitForOpenGL( window, false );
-    ImGui_ImplOpenGL3_Init();
-    ImGui::StyleColorsDark();
-    io.Fonts->AddFontDefault();
-
-    ImGui::GetStyle().WindowBorderSize = 0.0f;
-}
-
-
-GLFWwindow* initUI( const char* window_title, int width, int height )
-{
-    GLFWwindow* window = initGLFW( window_title, width, height );
-    initGL();
-    initImGui( window );
-    return window;
-}
-
-
-void cleanupUI( GLFWwindow* window )
-{
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
-    glfwDestroyWindow( window );
-    glfwTerminate();
-}
-
-
-void beginFrameImGui()
-{
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-}
-
-
-void endFrameImGui()
-{
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
-}
-
-
-void displayBufferWindow( const char* title, const ImageBuffer& buffer )
-{
-    //
-    // Initialize GLFW state
-    //
-    GLFWwindow* window = nullptr;
-    glfwSetErrorCallback( errorCallback );
-    if( !glfwInit() )
-        throw Exception( "Failed to initialize GLFW" );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-    glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );  // To make Apple happy -- should not be needed
-    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-
-    window = glfwCreateWindow( buffer.width, buffer.height, title, nullptr, nullptr );
-    if( !window )
-        throw Exception( "Failed to create GLFW window" );
-    glfwMakeContextCurrent( window );
-    glfwSetKeyCallback( window, keyCallback );
-
-
-    //
-    // Initialize GL state
-    //
-    initGL();
-    GLDisplay display( buffer.pixel_format );
-
-    GLuint pbo = 0u;
-    GL_CHECK( glGenBuffers( 1, &pbo ) );
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, pbo ) );
-    GL_CHECK( glBufferData( GL_ARRAY_BUFFER, pixelFormatSize( buffer.pixel_format ) * buffer.width * buffer.height,
-                            buffer.data, GL_STREAM_DRAW ) );
-    GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
-
-    //
-    // Display loop
-    //
-    int framebuf_res_x = 0, framebuf_res_y = 0;
-    do
-    {
-        glfwPollEvents();
-
-        glfwGetFramebufferSize( window, &framebuf_res_x, &framebuf_res_y );
-        display.display( buffer.width, buffer.height, framebuf_res_x, framebuf_res_y, pbo );
-        glfwSwapBuffers( window );
-    } while( !glfwWindowShouldClose( window ) );
-
-    glfwDestroyWindow( window );
-    glfwTerminate();
-}
-
-
 void displayBufferFile( const char* filename, const ImageBuffer& buffer, bool disable_srgb_conversion )
 {
     // TODO: use stb_image_write to output PNG
-    GLsizei width, height;
+    unsigned int width = 0;
+    unsigned int height = 0;
 
-    GLvoid* imageData = buffer.data;
-    width             = static_cast<GLsizei>( buffer.width );
-    height            = static_cast<GLsizei>( buffer.height );
+    void* imageData = buffer.data;
+    width           = static_cast<unsigned int>( buffer.width );
+    height          = static_cast<unsigned int>( buffer.height );
 
     std::vector<unsigned char> pix( width * height * 3 );
 
@@ -472,87 +292,6 @@ void displayBufferFile( const char* filename, const ImageBuffer& buffer, bool di
 
     SavePPM( &pix[0], filename, width, height, 3 );
 }
-
-
-void displayFPS( unsigned int frame_count )
-{
-    constexpr std::chrono::duration<double> display_update_min_interval_time( 0.5 );
-    static double                           fps              = -1.0;
-    static unsigned                         last_frame_count = 0;
-    static auto                             last_update_time = std::chrono::steady_clock::now();
-    auto                                    cur_time         = std::chrono::steady_clock::now();
-
-    if( cur_time - last_update_time > display_update_min_interval_time )
-    {
-        fps = ( frame_count - last_frame_count ) / std::chrono::duration<double>( cur_time - last_update_time ).count();
-        last_frame_count = frame_count;
-        last_update_time = cur_time;
-    }
-    if( frame_count > 0 && fps >= 0.0 )
-    {
-        static char fps_text[32];
-        sprintf( fps_text, "fps: %7.2f", fps );
-        displayText( fps_text, 10.0f, 10.0f );
-    }
-}
-
-
-void displayStats( std::chrono::duration<double>& state_update_time,
-                          std::chrono::duration<double>& render_time,
-                          std::chrono::duration<double>& display_time )
-{
-    constexpr std::chrono::duration<double> display_update_min_interval_time( 0.5 );
-    static int32_t                          total_subframe_count = 0;
-    static int32_t                          last_update_frames   = 0;
-    static auto                             last_update_time     = std::chrono::steady_clock::now();
-    static char                             display_text[128];
-
-    const auto cur_time = std::chrono::steady_clock::now();
-
-    beginFrameImGui();
-    last_update_frames++;
-
-    typedef std::chrono::duration<double, std::milli> durationMs;
-
-    if( cur_time - last_update_time > display_update_min_interval_time || total_subframe_count == 0 )
-    {
-        sprintf( display_text,
-                 "%5.1f fps\n\n"
-                 "state update: %8.1f ms\n"
-                 "render      : %8.1f ms\n"
-                 "display     : %8.1f ms\n",
-                 last_update_frames / std::chrono::duration<double>( cur_time - last_update_time ).count(),
-                 ( durationMs( state_update_time ) / last_update_frames ).count(),
-                 ( durationMs( render_time ) / last_update_frames ).count(),
-                 ( durationMs( display_time ) / last_update_frames ).count() );
-
-        last_update_time   = cur_time;
-        last_update_frames = 0;
-        state_update_time = render_time = display_time = std::chrono::duration<double>::zero();
-    }
-    displayText( display_text, 10.0f, 10.0f );
-    endFrameImGui();
-
-    ++total_subframe_count;
-}
-
-
-void displayText( const char* text, float x, float y )
-{
-    ImGui::SetNextWindowBgAlpha( 0.0f );
-    ImGui::SetNextWindowPos( ImVec2( x, y ) );
-    ImGui::Begin( "TextOverlayFG", nullptr,
-                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-                      | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs );
-    ImGui::TextColored( ImColor( 0.7f, 0.7f, 0.7f, 1.0f ), "%s", text );
-    ImGui::End();
-}
-void displayText( const char* text, float x, float y, int winWidth, int winHeight)
-{
-    ImGui::SetNextWindowSize( ImVec2(winWidth, winHeight) );
-    displayText(text, x, y);
-}
-
 
 void parseDimensions( const char* arg, int& width, int& height )
 {

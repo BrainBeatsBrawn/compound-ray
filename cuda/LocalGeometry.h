@@ -87,7 +87,7 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
 
             // Set UV texture coordinates
             float2 UV0, UV1, UV2;
-            if( mesh_data.texcoords )
+            if( mesh_data.texcoords ) // may return false if the memory address for texcoords is not correctly aligned
             {
                 UV0 = mesh_data.texcoords[ tri.x ];
                 UV1 = mesh_data.texcoords[ tri.y ];
@@ -134,9 +134,24 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
                   Cf2 /= 65535.0f;
                   break;
                 case 5126: // FLOAT
-                  Cf0 = mesh_data.dev_colors_f4[ tri.x ];
-                  Cf1 = mesh_data.dev_colors_f4[ tri.y ];
-                  Cf2 = mesh_data.dev_colors_f4[ tri.z ];
+                  if (mesh_data.color_container == 3) {
+                    // translate from vec3 of float to vec4 of float:
+                    float3 Cf3_0 = mesh_data.dev_colors_f3[ tri.x ];
+                    float3 Cf3_1 = mesh_data.dev_colors_f3[ tri.y ];
+                    float3 Cf3_2 = mesh_data.dev_colors_f3[ tri.z ];
+                    Cf0 = make_float4( Cf3_0.x, Cf3_0.y, Cf3_0.z, 1.0f );
+                    Cf1 = make_float4( Cf3_1.x, Cf3_1.y, Cf3_1.z, 1.0f );
+                    Cf2 = make_float4( Cf3_2.x, Cf3_2.y, Cf3_2.z, 1.0f );
+                  } else if (mesh_data.color_container == 4) {
+                    Cf0 = mesh_data.dev_colors_f4[ tri.x ];
+                    Cf1 = mesh_data.dev_colors_f4[ tri.y ];
+                    Cf2 = mesh_data.dev_colors_f4[ tri.z ];
+                  } else {
+                    // unhandled color container size
+                    Cf0 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+                    Cf1 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+                    Cf2 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+                  }
                   break;
                 default:
                   Cf0 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -144,7 +159,7 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
                   Cf2 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
                   break;
               }
-              
+
               lgeom.C = ( 1.0f-barys.x-barys.y)*Cf0 + barys.x*Cf1 + barys.y*Cf2;
               //lgeom.C = make_float4(1.0f, 0.0f, 0.0f, 1.0f);
               lgeom.UC = true;
@@ -159,7 +174,7 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
             lgeom.Ng = optixTransformNormalFromObjectToWorldSpace( lgeom.Ng );
 
             float3 N0, N1, N2;
-            if( mesh_data.normals )
+            if( mesh_data.normals ) // May return false if the memory address for normals is not correctly aligned
             {
                 N0 = mesh_data.normals[ tri.x ];
                 N1 = mesh_data.normals[ tri.y ];
@@ -204,5 +219,3 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
 
     return lgeom;
 }
-
-

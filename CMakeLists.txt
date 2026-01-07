@@ -60,19 +60,29 @@
 # If you have any questions, don't feel shy about posting to the OptiX forums:
 # https://devtalk.nvidia.com/default/board/90/
 
+cmake_minimum_required(VERSION 3.5.0 FATAL_ERROR)
+cmake_policy(VERSION 3.5)
+
+set(CMAKE_CXX_STANDARD 17)
 
 # This sets up the name of our project.  For our purposes the main thing this controls is
 # the name of the VS solution file.
 project(Eye-Renderer-Three)
 
-# This enforces a particular version of CMake that we require to process the script files
-# properly.
-cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
-
-# As of CMake 2.6 policies were introduced in order to provide a mechanism for
-# adding backwards compatibility one feature at a time.  We will just specify
-# that all policies will use version 2.6 symantics.
-cmake_policy(VERSION 3.0)
+# Let's use CMAKE_INSTALL_LIBDIR, DATADIR, etc
+if(UNIX)
+  include(GNUInstallDirs)
+else()
+  if (WIN32)
+    set(${CMAKE_INSTALL_LIBDIR} "lib")
+    set(${CMAKE_INSTALL_DATADIR} "share")
+    set(${CMAKE_INSTALL_INCLUDEDIR} "include")
+    set(${CMAKE_INSTALL_BINDIR} "bin")
+    message(STATUS "Setting installation destination on Windows to: ${CMAKE_INSTALL_PREFIX}")
+  else()
+    message(FATAL_ERROR "System not UNIX nor WIN32 - not implemented yet")
+  endif()
+endif()
 
 if( POLICY CMP0072 )
   # FindOpenGL prefers GLVND by default when available
@@ -93,11 +103,11 @@ set(CMAKE_MODULE_PATH
 
 # Set the default build to Release.  Note this doesn't do anything for the VS
 # default build target which defaults to Debug when you first start it.
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE "Release" CACHE STRING
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
       "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 # Tells CMake to build all the libraries as shared libraries by default.  This can be
 # overrided by individual libraries later.
@@ -118,7 +128,7 @@ include (ConfigCompilerFlags)
 
 # Turn off the warning that NVCC issues when generating PTX from our CUDA samples.  This
 # is a custom extension to the FindCUDA code distributed by CMake.
-OPTION(CUDA_REMOVE_GLOBAL_MEMORY_SPACE_WARNING "Suppress the \"Advisory: Cannot tell what pointer points to, assuming global memory space\" warning nvcc makes." ON)
+option(CUDA_REMOVE_GLOBAL_MEMORY_SPACE_WARNING "Suppress the \"Advisory: Cannot tell what pointer points to, assuming global memory space\" warning nvcc makes." ON)
 
 # For Xcode 5, gcc is actually clang, so we have to tell CUDA to treat the compiler as
 # clang, so that it doesn't mistake it for something else.
@@ -135,63 +145,61 @@ find_package(CUDA 5.0 REQUIRED)
 # Present the CUDA_64_BIT_DEVICE_CODE on the default set of options.
 mark_as_advanced(CLEAR CUDA_64_BIT_DEVICE_CODE)
 
-SET(BUFFER_TYPE "BUFFER_TYPE_GL_INTEROP" CACHE STRING "Which type of buffer to use, can be BUFFER_TYPE_CUDA_DEVICE, BUFFER_TYPE_GL_INTEROP, BUFFER_TYPE_ZERO_COPY, BUFFER_TYPE_CUDA_P2P. Defaults to BUFFER_TYPE_GL_INTEROP. See docs/indepth-install-notes.md for further details.")
+SET(BUFFER_TYPE "BUFFER_TYPE_ZERO_COPY" CACHE STRING "Which type of buffer to use, can be BUFFER_TYPE_CUDA_DEVICE or BUFFER_TYPE_ZERO_COPY. Defaults to BUFFER_TYPE_ZERO_COPY. See docs/indepth-install-notes.md for further details but note that Seb has disabled GL_INTEROP/P2P.")
 message(STATUS "Buffer Type set to ${BUFFER_TYPE}")
 add_definitions("-D${BUFFER_TYPE}")
 
-SET(ARCH_INT "60" CACHE STRING "sm and compute architecture integer for compiling NVCC and NVRTC. Defaults to '60', which aligns with all Pascal architecture processors. See docs/indepth-install-notes.md for further details.")
+set(ARCH_INT "60" CACHE STRING "sm and compute architecture integer for compiling NVCC and NVRTC. Defaults to '60', which aligns with all Pascal architecture processors. See docs/indepth-install-notes.md for further details.")
 
 # Add some useful default arguments to the NVCC and NVRTC flags. This is an example of
 # how we use PASSED_FIRST_CONFIGURE.  Once you have configured, this variable is TRUE
 # and following block of code will not be executed leaving you free to edit the values
 # as much as you wish from the GUI or from ccmake.
-#if(NOT PASSED_FIRST_CONFIGURE)
-  list(FIND CUDA_NVCC_FLAGS "-arch" index)
-  if(index EQUAL -1)
-    list(APPEND CUDA_NVCC_FLAGS "-arch sm_${ARCH_INT}")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-  endif()
-  set(flag "--use_fast_math")
+list(FIND CUDA_NVCC_FLAGS "-arch" index)
+if(index EQUAL -1)
+  list(APPEND CUDA_NVCC_FLAGS "-arch sm_${ARCH_INT}")
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
+endif()
+set(flag "--use_fast_math")
+list(FIND CUDA_NVCC_FLAGS ${flag} index)
+if(index EQUAL -1)
+  list(APPEND CUDA_NVCC_FLAGS ${flag})
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
+endif()
+
+set(flag "-lineinfo")
+list(FIND CUDA_NVCC_FLAGS ${flag} index)
+if(index EQUAL -1)
+  list(APPEND CUDA_NVCC_FLAGS ${flag})
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
+endif()
+
+if (CUDA_VERSION VERSION_LESS "3.0")
+  set(flag "--keep")
   list(FIND CUDA_NVCC_FLAGS ${flag} index)
   if(index EQUAL -1)
     list(APPEND CUDA_NVCC_FLAGS ${flag})
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
   endif()
+endif()
 
-  set(flag "-lineinfo")
+if( APPLE )
+  # Undef'ing __BLOCKS__ for OSX builds.  This is due to a name clash between OSX 10.6
+  # C headers and CUDA headers
+  set(flag "-U__BLOCKS__")
   list(FIND CUDA_NVCC_FLAGS ${flag} index)
   if(index EQUAL -1)
     list(APPEND CUDA_NVCC_FLAGS ${flag})
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
   endif()
+endif()
 
-  if (CUDA_VERSION VERSION_LESS "3.0")
-    set(flag "--keep")
-    list(FIND CUDA_NVCC_FLAGS ${flag} index)
-    if(index EQUAL -1)
-      list(APPEND CUDA_NVCC_FLAGS ${flag})
-      set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-    endif()
-  endif()
-
-  if( APPLE )
-    # Undef'ing __BLOCKS__ for OSX builds.  This is due to a name clash between OSX 10.6
-    # C headers and CUDA headers
-    set(flag "-U__BLOCKS__")
-    list(FIND CUDA_NVCC_FLAGS ${flag} index)
-    if(index EQUAL -1)
-      list(APPEND CUDA_NVCC_FLAGS ${flag})
-      set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-    endif()
-  endif()
-
-  if(CMAKE_CXX_STANDARD EQUAL 11)
-    set(EYE_RENDERER_NVRTC_CXX "-std=c++11")
-  else()
-    set(EYE_RENDERER_NVRTC_CXX "")
-  endif()
-  set(CUDA_NVRTC_FLAGS ${EYE_RENDERER_NVRTC_CXX} "-arch compute_${ARCH_INT} -use_fast_math -lineinfo -default-device -rdc true -D__x86_64" CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-#endif(NOT PASSED_FIRST_CONFIGURE)
+if(CMAKE_CXX_STANDARD EQUAL 11)
+  set(EYE_RENDERER_NVRTC_CXX "-std=c++11")
+else()
+  set(EYE_RENDERER_NVRTC_CXX "")
+endif()
+set(CUDA_NVRTC_FLAGS ${EYE_RENDERER_NVRTC_CXX} "-arch compute_${ARCH_INT} -use_fast_math -lineinfo -default-device -rdc true -D__x86_64" CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
 
 mark_as_advanced(CUDA_NVRTC_FLAGS)
 
@@ -213,6 +221,16 @@ if( APPLE )
   set( CUDA_TOOLKIT_RPATH_FLAG "-Wl,-rpath,${CUDA_TOOLKIT_ROOT_DIR}/lib" )
 endif()
 
+
+# Use a packaged GLFW. Only used by newGuiEyeRenderer, and not by the lib.
+find_package(glfw3 3.2...3.4 REQUIRED)
+# find_package(glfw3...) does not set any 'GLFW_LIBS' variable, so set one manually
+if(UNIX)
+  set(GLFW_LIB_NAME glfw)
+else()
+  set(GLFW_LIB_NAME glfw3)
+endif()
+
 # Locate the NVRT distribution.  Search the SDK first, then look in the system.
 set(OptiX_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../" CACHE PATH "Path to OptiX installed location.")
 
@@ -231,6 +249,11 @@ include_directories(
 
 # Select whether to use NVRTC or NVCC to generate PTX
 set(CUDA_NVRTC_ENABLED OFF CACHE BOOL "Use NVRTC to compile PTX at run-time instead of NVCC at build-time")
+
+# The Optix 8 CMakeLists.txt supports OptixIR, an alternative to PTX,
+# but these scripts don't, so these variables are set and not optional.
+set(SAMPLES_INPUT_GENERATE_OPTIXIR OFF)
+set(SAMPLES_INPUT_GENERATE_PTX ON)
 
 ##################################################################
 # SUtil compilation
@@ -281,10 +304,24 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}
 
 set(SAMPLES_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
 
+# These calls will group PTX and CUDA files into their own directories in the Visual
+# Studio projects.
+macro(OPTIX_add_source_groups)
+  if( NOT CUDA_NVRTC_ENABLED )
+    if( SAMPLES_INPUT_GENERATE_PTX )
+      source_group("PTX Files"  REGULAR_EXPRESSION ".+\\.ptx$")
+    endif()
+    if( SAMPLES_INPUT_GENERATE_OPTIXIR )
+      source_group("OptixIR Files"  REGULAR_EXPRESSION ".+\\.optixir$")
+    endif()
+  endif()
+  source_group("CUDA Files" REGULAR_EXPRESSION ".+\\.cu$")
+endmacro()
+
 #########################################################
-# OPTIX_add_sample_executable
+# OPTIX_add_sample_executable (newer from NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/SDK/)
 #
-# Convience function for adding samples to the code.  You can copy the contents of this
+# Convenience function for adding samples to the code.  You can copy the contents of this
 # funtion into your individual project if you wish to customize the behavior.  Note that
 # in CMake, functions have their own scope, whereas macros use the scope of the caller.
 function(OPTIX_add_sample_executable target_name_base target_name_var)
@@ -292,12 +329,7 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   set( target_name ${target_name_base} )
   set( ${target_name_var} ${target_name} PARENT_SCOPE )
 
-  # These calls will group PTX and CUDA files into their own directories in the Visual
-  # Studio projects.
-  if (NOT CUDA_NVRTC_ENABLED)
-    source_group("PTX Files"  REGULAR_EXPRESSION ".+\\.ptx$")
-  endif()
-  source_group("CUDA Files" REGULAR_EXPRESSION ".+\\.cu$")
+  OPTIX_add_source_groups()
 
   # Separate the sources from the CMake and CUDA options fed to the macro.  This code
   # comes from the CUDA_COMPILE_PTX macro found in FindCUDA.cmake.  We are copying the
@@ -306,31 +338,30 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   # the SDK.
   CUDA_GET_SOURCES_AND_OPTIONS(source_files cmake_options options ${ARGN})
 
-  if (CUDA_NVRTC_ENABLED)
+  # Isolate OBJ target files. NVCC should only process these files and leave PTX targets for NVRTC
+  set(cu_obj_source_files)
+  set(cu_optix_source_files)
+  foreach(file ${source_files})
+    get_source_file_property(_cuda_source_format ${file} CUDA_SOURCE_PROPERTY_FORMAT)
+    if(${_cuda_source_format} MATCHES "OBJ")
+      list(APPEND cu_obj_source_files ${file})
+    else()
+      list(APPEND cu_optix_source_files ${file})
+    endif()
+  endforeach()
 
-    # Isolate OBJ target files. NVCC should only process these files and leave PTX targets for NVRTC
-    set(cu_obj_source_files)
-    foreach(file ${source_files})
-      get_source_file_property(_cuda_source_format ${file} CUDA_SOURCE_PROPERTY_FORMAT)
-      if(${_cuda_source_format} MATCHES "OBJ")
-        list(APPEND cu_obj_source_files ${file})
-      endif()
-    endforeach()
+  # Create the rules to build the OBJ from the CUDA files.
+  CUDA_WRAP_SRCS( ${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS "" ) # ${options}
 
-    # Create the rules to build the OBJ from the CUDA files.
-    CUDA_WRAP_SRCS( ${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS ${options} )
-  else()
-
-    # Create the rules to build the PTX and OBJ from the CUDA files.
-    CUDA_WRAP_SRCS( ${target_name} PTX generated_files ${source_files} ${cmake_options} OPTIONS ${options} )
+  # Create the rules to build the PTX and/or OPTIX files.
+  if( SAMPLES_INPUT_GENERATE_OPTIXIR )
+    CUDA_WRAP_SRCS( ${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+    list(APPEND generated_files ${generated_files2})
   endif()
-
-
-  # Here is where we create the rule to make the executable.  We define a target name and
-  # list all the source files used to create the target.  In addition we also pass along
-  # the cmake_options parsed out of the arguments.
-  #
-  # If the target is the EyeRenderer library, then that library is added via `add_library` instead.
+  if( SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
+    CUDA_WRAP_SRCS( ${target_name} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+    list(APPEND generated_files ${generated_files3})
+  endif()
 
   message("-- Parsing ${target_name}...")
   if (${target_name} STREQUAL "EyeRenderer3")
@@ -342,27 +373,28 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
       ${source_files}
       ${generated_files}
       ${cmake_options}
-      )
+    )
   else()
+    # Here is where we create the rule to make the executable.  We define a target name and
+    # list all the source files used to create the target.  In addition we also pass along
+    # the cmake_options parsed out of the arguments.
     add_executable(${target_name}
       ${source_files}
       ${generated_files}
       ${cmake_options}
-      )
+    )
   endif()
-
 
   # Most of the samples link against the sutil library and the optix library.  Here is the
   # rule that specifies this linkage.
   target_link_libraries( ${target_name}
-    Threads::Threads
     ${GLFW_LIB_NAME}
-    imgui
     sutil_7_sdk
-    )
+  )
 
   set_target_properties( ${target_name} PROPERTIES
-    COMPILE_DEFINITIONS OPTIX_SAMPLE_NAME_DEFINE=${target_name})
+    COMPILE_DEFINITIONS
+    "OPTIX_SAMPLE_NAME_DEFINE=${target_name};OPTIX_SAMPLE_DIR_DEFINE=${target_name}" )
 
   if( UNIX AND NOT APPLE )
     # Force using RPATH instead of RUNPATH on Debian
@@ -377,20 +409,39 @@ endfunction()
 #########################################################
 #  List of subprojects (usually executables) in this project.
 #
-# Insect Eye related directories:
-#add_subdirectory( eyeGenerator )
-add_subdirectory( libEyeRenderer3 )
 
-add_subdirectory( newGuiEyeRenderer )
+set (glad_target glad) # Used by newGuiEyeRenderer
 
-# NVidia's sutil library.  The rules to build it are found in the subdirectory.
-add_subdirectory(sutil)
+set (sutil_target sutil_7_sdk)
+
+# Extra link for your cuda toolkit in /usr/local
+link_directories(/usr/local/cuda/lib64)
+
+# add_subdirectory() for sutil, support and cuda should come before libEyeRenderer3
+#
 # Third-party support libraries.
 add_subdirectory(support)
+# We'll install cuda headers in (e.g.) /usr/local/include/compound-ray/cuda
+add_subdirectory(cuda)
+# NVidia's sutil library.  The rules to build it are found in the subdirectory.
+# Its headers will install to (e.g.) /usr/local/include/compound-ray/sutil
+add_subdirectory(sutil)
+
+# Insect Eye related directories:
+
+# The installable library
+add_subdirectory( libEyeRenderer3 )
+
+# An example eye renderer gui program
+add_subdirectory( newGuiEyeRenderer )
 
 #################################################################
 
-# Now that everything is done, indicate that we have finished configuring at least once.
-# We use this variable to set certain defaults only on the first pass, so that we don't
-# continually set them over and over again.
-set(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "Already Configured once?")
+# For debugging of variables:
+option(DEBUG_VARIABLES OFF)
+if(DEBUG_VARIABLES)
+  get_cmake_property(_variableNames VARIABLES)
+  foreach(_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+  endforeach()
+endif(DEBUG_VARIABLES)

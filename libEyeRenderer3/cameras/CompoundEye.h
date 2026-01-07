@@ -31,27 +31,44 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     void setShaderName(const std::string shaderName);
 
     // Sets this eye's randomsConfigured to true. TODO(RANDOMS): Will not be required when randoms are ensured configured on creation. Literally only used in libEyeRenderer's renderFrame function:
-    void setRandomsAsConfigured() { specializedData.randomsConfigured = true; } 
+    void setRandomsAsConfigured() { specializedData.randomsConfigured = true; }
 
     std::string eyeDataPath; // A string containing the path to the eye data (note: easily mutable)
 
+    // Copy data from GPU to host, then average across samples to get data in ommatidial_average.
+    void copyOmmatidialDataToHost();
+
+    // Return the pointer ommatidial_average if it is allocated. Call copyOmmatidialDataToHost first.
+    float3* getRecordFrame();
+    void zeroRecordFrame();
+    void averageRecordFrame();
+
   private:
+
+    // Run through h_ommatidial_samples and compute ommatidial_average.
+    void computeOmmatidialSampleAverage();
+
     // Static consts for configuration
     static constexpr const char* NAME_PREFIX = "__raygen__compound_projection_";
 
     // Static variables for management of the compound pipeline's single redirecting record
-    static RecordPointerRecord s_compoundRecordPtrRecord;
-    static CUdeviceptr s_d_compoundRecordPtrRecord;
+    static RaygenRecord<RecordPointer> s_compoundRecordPtrRecord;
+    static CUdeviceptr                 s_d_compoundRecordPtrRecord;
 
     // Changes the ommatidial count, resetting ommatidial, random
     // and compound rendering buffers if the count has changed
     void reconfigureOmmatidialCount(size_t count);
 
+    // A pointer to (number of ommatidia) float3 values, copied from CUDA device
+    float3* ommatidial_average = nullptr;
+
     std::string shaderName;
     void allocateOmmatidialMemory();
     void allocateOmmatidialRandomStates();
     void allocateCompoundRenderingBuffer();
+    void allocateCompoundRenderingAvgBuffer();
     void freeOmmatidialMemory();
     void freeOmmatidialRandomStates();
     void freeCompoundRenderingBuffer();
+    void freeCompoundRenderingAvgBuffer();
 };

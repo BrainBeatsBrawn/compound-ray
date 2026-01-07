@@ -40,16 +40,12 @@ set(sources
     Camera.h
     CUDAOutputBuffer.h
     Exception.h
-    GLDisplay.cpp
-    GLDisplay.h
     Matrix.h
     PPMLoader.cpp
     PPMLoader.h
     Preprocessor.h
     Quaternion.h
     Record.h
-    Scene.cpp
-    Scene.h
     sutilapi.h
     sutil.cpp
     sutil.h
@@ -69,18 +65,17 @@ if(NOT CUDA_NVRTC_ENABLED)
 endif()
 
 # Make the library.
-set(sutil_target "sutil_7_sdk")
 add_library(${sutil_target} ${sources})
+
 if( WIN32 )
   target_compile_definitions( ${sutil_target} PUBLIC GLAD_GLAPI_EXPORT )
 endif()
 
-target_link_libraries(${sutil_target} LINK_PRIVATE
-  ${GLFW_LIB_NAME}
-  glad
-  imgui
-  ${CUDA_LIBRARIES}
-  )
+target_link_libraries(${sutil_target} LINK_PRIVATE ${GLFW_LIB_NAME} ${CUDA_LIBRARIES})
+
+target_include_directories( ${sutil_target} PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>" )
 
 # Use gcc rather than g++ to link if we are linking statically against libgcc_s and libstdc++
 if(USING_GNU_C OR USING_GNU_CXX)
@@ -103,17 +98,13 @@ set(sutil_sources "${sources}" PARENT_SCOPE)
 
 set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 
-# Disable until we get binary samples
-if(0 AND RELEASE_INSTALL_BINARY_SAMPLES AND NOT RELEASE_STATIC_BUILD)
-  # If performing a release install, we want to use rpath for our install name.
-  # The executables' rpaths will then be set to @executable_path so we can invoke
-  # the samples from an arbitrary location and it will still find this library.
-  set_target_properties(${sutil_target} PROPERTIES
-    INSTALL_NAME_DIR "@rpath"
-    BUILD_WITH_INSTALL_RPATH ON
-    )
-  install(TARGETS ${sutil_target}
-    RUNTIME DESTINATION ${SDK_BINARY_INSTALL_DIR}
-    LIBRARY DESTINATION ${SDK_BINARY_INSTALL_DIR}
-    )
-endif()
+# NB: install() of libsutil_7_sdk.so is carried out in
+# libEyeRenderer/CMakeLists.txt as libEyeRender.so is exported along
+# with glad and sutil_7_sdk
+
+# Install headers
+install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h
+        hitscanprocessing.h Matrix.h PPMLoader.h Preprocessor.h
+        Quaternion.h Record.h sutilapi.h sutil.h Trackball.h vec_math.h
+        WorkDistribution.h
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray/sutil)

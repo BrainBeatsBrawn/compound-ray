@@ -68,7 +68,7 @@ struct LaunchParams
     float3                   V;
     float3                   W;
 
-    BufferView<Light::Point> lights;
+    cuda::BufferView<Light::Point> lights;
     float3                   miss_color;
     OptixTraversableHandle   handle;
 };

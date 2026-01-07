@@ -39,9 +39,6 @@
 
 #include "sutilapi.h"
 
-
-struct GLFWwindow;
-
 // Some helper macros to stringify the sample's name that comes in as a define
 #define OPTIX_SAMPLE_NAME_STRINGIFY2(name) #name
 #define OPTIX_SAMPLE_NAME_STRINGIFY(name) OPTIX_SAMPLE_NAME_STRINGIFY2(name)
@@ -50,72 +47,48 @@ struct GLFWwindow;
 namespace sutil
 {
 
-enum BufferImageFormat
-{
-    UNSIGNED_BYTE4,
-    FLOAT4,
-    FLOAT3
-};
+    static constexpr bool debug_sutil = false;
 
-struct ImageBuffer
-{
-    void* data =      nullptr;
-    unsigned int      width = 0;
-    unsigned int      height = 0;
-    BufferImageFormat pixel_format;
-};
+    enum BufferImageFormat
+    {
+        UNSIGNED_BYTE4,
+        FLOAT4,
+        FLOAT3
+    };
 
-// Return a path to a sample data file, or NULL if the file cannot be located.
-// The pointer returned may point to a static array.
-SUTILAPI const char* sampleDataFilePath( const char* relativeFilePath );
+    struct ImageBuffer
+    {
+        void* data =      nullptr;
+        unsigned int      width = 0;
+        unsigned int      height = 0;
+        BufferImageFormat pixel_format;
+    };
 
-SUTILAPI size_t pixelFormatSize( BufferImageFormat format );
+    // Return a path to a sample data file, or NULL if the file cannot be located.  The pointer
+    // returned may point to a static array.
+    SUTILAPI const char* sampleDataFilePath( const char* relativeFilePath );
 
-// Create a cudaTextureObject_t for the given image file.  If the filename is
-// empty or if loading the file fails, return 1x1 texture with default color.
-SUTILAPI cudaTextureObject_t loadTexture( const std::string& filename, float3 default_color, cudaTextureDesc* tex_desc = nullptr );
+    SUTILAPI size_t pixelFormatSize( BufferImageFormat format );
 
-SUTILAPI void displayBufferWindow( const char* argv, const ImageBuffer& buffer );
+    // Create a cudaTextureObject_t for the given image file.  If the filename is empty or if
+    // loading the file fails, return 1x1 texture with default color.
+    SUTILAPI cudaTextureObject_t loadTexture( const std::string& filename, float3 default_color, cudaTextureDesc* tex_desc = nullptr );
 
-SUTILAPI void displayBufferFile( const char* filename, const ImageBuffer& buffer, bool disable_srgb );
+    // Why is this not visible?
+    SUTILAPI void displayBufferFile (const char* filename, const ImageBuffer& buffer, bool disable_srgb);
 
-SUTILAPI void        initGL();
-SUTILAPI void        initGLFW();
-SUTILAPI GLFWwindow* initGLFW( const char* window_title, int width, int height );
-SUTILAPI void        initImGui( GLFWwindow* window );
-SUTILAPI GLFWwindow* initUI( const char* window_title, int width, int height );
-SUTILAPI void        cleanupUI( GLFWwindow* window );
+    // Blocking sleep call
+    // seconds: Number of seconds to sleep
+    SUTILAPI void sleep (int seconds );
 
-SUTILAPI void        beginFrameImGui();
-SUTILAPI void        endFrameImGui();
-
-// Display frames per second, where the OpenGL context
-// is managed by the caller.
-SUTILAPI void displayFPS( unsigned total_frame_count );
-
-SUTILAPI void displayStats( std::chrono::duration<double>& state_update_time,
-                            std::chrono::duration<double>& render_time,
-                            std::chrono::duration<double>& display_time );
-
-// Display a short string starting at x,y.
-SUTILAPI void displayText( const char* text, float x, float y );
-
-// Same as above, but the ImGui box size can be manually overridden
-SUTILAPI void displayText( const char* text, float x, float y, int winWidth, int winHeight);
-
-// Blocking sleep call
-SUTILAPI void sleep(
-        int seconds );                      // Number of seconds to sleep
-
-
-// Parse the string of the form <width>x<height> and return numeric values.
-SUTILAPI void parseDimensions(
+    // Parse the string of the form <width>x<height> and return numeric values.
+    SUTILAPI void parseDimensions(
         const char* arg,                    // String of form <width>x<height>
         int& width,                         // [out] width
         int& height );                      // [in]  height
 
 
-SUTILAPI void calculateCameraVariables(
+    SUTILAPI void calculateCameraVariables(
         float3 eye,
         float3 lookat,
         float3 up,
@@ -126,23 +99,25 @@ SUTILAPI void calculateCameraVariables(
         float3& W,
         bool fov_is_vertical );
 
-// Get PTX, either pre-compiled with NVCC or JIT compiled by NVRTC.
-SUTILAPI const char* getPtxString(
-        const char* sample,                 // Name of the sample, used to locate the input file. NULL = only search the common /cuda dir
+    // Get PTX, either pre-compiled with NVCC or JIT compiled by NVRTC.
+    SUTILAPI const char* getPtxString(
+        const char* sample,                 // Name of the sample, used to locate the input
+                                            // file. NULL = only search the common /cuda dir
         const char* filename,               // Cuda C input file name
-        const char** log = NULL );          // (Optional) pointer to compiler log string. If *log == NULL there is no output. Only valid until the next getPtxString call
+        const char** log = NULL );          // (Optional) pointer to compiler log string. If *log ==
+                                            // NULL there is no output. Only valid until the next
+                                            // getPtxString call
 
-// Ensures that width and height have the minimum size to prevent launch errors.
-SUTILAPI void ensureMinimumSize(
-    int& width,                             // Will be assigned the minimum suitable width if too small.
-    int& height);                           // Will be assigned the minimum suitable height if too small.
+    // Ensures that width and height have the minimum size to prevent launch errors.
+    SUTILAPI void ensureMinimumSize(
+        int& width,                             // Will be assigned the minimum suitable width if too small.
+        int& height);                           // Will be assigned the minimum suitable height if too small.
 
-// Ensures that width and height have the minimum size to prevent launch errors.
-SUTILAPI void ensureMinimumSize(
-    unsigned& width,                        // Will be assigned the minimum suitable width if too small.
-    unsigned& height);                      // Will be assigned the minimum suitable height if too small.
+    // Ensures that width and height have the minimum size to prevent launch errors.
+    SUTILAPI void ensureMinimumSize(
+        unsigned& width,                        // Will be assigned the minimum suitable width if too small.
+        unsigned& height);                      // Will be assigned the minimum suitable height if too small.
 
-SUTILAPI void reportErrorMessage( const char* message );
+    SUTILAPI void reportErrorMessage( const char* message );
 
 } // end namespace sutil
-

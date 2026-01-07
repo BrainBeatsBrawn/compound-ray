@@ -22,6 +22,8 @@ class GenericCamera {
     virtual const float3& getPosition() const = 0;
     virtual void setPosition(const float3 pos) = 0;
     virtual void setLocalSpace(const float3 xAxis, const float3 yAxis, const float3 zAxis) = 0;
+    virtual void setLocalSpace(const sutil::Matrix4x4& camera_localspace) = 0;
+    virtual void getLocalSpace(float3& xAxis, float3& yAxis, float3& zAxis) = 0;
     virtual void lookAt(const float3& pos, const float3& upVector) = 0;
     // Rotates the camera 'angle' around the given axis
     virtual void rotateAround(const float angle, const float3& axis) = 0;
@@ -42,6 +44,9 @@ class GenericCamera {
     // Gets a pointer to the data on the device.
     virtual const CUdeviceptr& getRecordPtr() const = 0;
     virtual const char* getEntryFunctionName() const { return DEFAULT_RAYGEN_PROGRAM; }
+
+    // Gets a pointer to host-readable data
+    virtual float3* getRecordFrame() { return nullptr; }
 
     const char* getCameraName() const { return camName.c_str(); }
 

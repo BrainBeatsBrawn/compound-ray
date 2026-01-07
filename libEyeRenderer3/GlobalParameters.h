@@ -58,7 +58,7 @@ enum RayType
 
 struct LaunchParams
 {
-    uchar4*                  frame_buffer;
+    uchar4*                  frame_buffer; // An output buffer for non-compound eye cameras
     int32_t                  max_depth;
 
     CUdeviceptr              compoundBufferPtr;// Pointer to an on-device buffer for compound eye handling
@@ -68,7 +68,7 @@ struct LaunchParams
     uint32_t                 frame;// The current frame
 
     bool                     lighting;
-    BufferView<Light::Point> lights;
+    cuda::BufferView<Light::Point> lights;
     float3                   miss_color;
     OptixTraversableHandle   handle;
 };

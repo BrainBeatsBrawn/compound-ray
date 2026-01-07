@@ -50,7 +50,7 @@
 // cuRand
 #include <curand_kernel.h>
 
-__constant__ float FWHM_SD_RATIO = 2.35482004503094938202313865291f;//939927549477137877164107704505151300005317709396985361683627673754162213494315716402473805711790020883378678441772367335067327119300654086099581027060701147250592490674309776452246690206347679431657862550790224141333488894447689644236226579600412626548283966926341892712473657396439184227529340027195703289818425375703612253952994171698822696215836693931109079884506177990740279369004153115665698570697083992256
+__constant__ float FWHM_SD_RATIO = 2.35482004503094938202313865291f;
 
 extern "C"
 {
@@ -353,7 +353,7 @@ __device__ float3 getSummedOmmatidiumData(const uint32_t ommatidiumIndex, Compou
  */
 extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3 launch_idx          = optixGetLaunchIndex();
   const uint3 launch_dims         = optixGetLaunchDimensions();
   const CompoundEyeData& eyeData  = posedData->specializedData;
@@ -361,7 +361,7 @@ extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples(
   // Break if this is not a pixel to render:
   if(launch_idx.y >= eyeData.samplesPerOmmatidium || launch_idx.x >= eyeData.ommatidialCount)
     return;
-  
+
   // Set the colour based on the ommatidia this pixel represents
   const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
   float3 pixel = ((float3*)eyeData.d_compoundBuffer)[eyeData.ommatidialCount*launch_idx.y + launch_idx.x];
@@ -374,7 +374,7 @@ extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples(
  */
 extern "C" __global__ void __raygen__compound_projection_single_dimension()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -386,7 +386,8 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension()
   // Update results
   //
   const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(ommatidiumIndex, posedData->specializedData));
+  float3 summedpixel = getSummedOmmatidiumData(ommatidiumIndex, posedData->specializedData);
+  params.frame_buffer[image_index] = make_color(summedpixel);
 }
 
 /*
@@ -395,12 +396,12 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension()
  */
 extern "C" __global__ void __raygen__compound_projection_single_dimension_fast()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3 launch_idx = optixGetLaunchIndex();
 
   // Break if this is not a pixel to render:
   if(launch_idx.y > 0 || launch_idx.x >= posedData->specializedData.ommatidialCount) return;
-  
+
   // Set the colour based on the ommatidia this pixel represents
   params.frame_buffer[(uint32_t)launch_idx.x] = make_color(getSummedOmmatidiumData(launch_idx.x, posedData->specializedData));
 }
@@ -411,7 +412,7 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension_fast()
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_positionwise()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -453,7 +454,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_positionwise(
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_orientationwise()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -486,6 +487,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
   // Update results
   //
   const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+  // This is summing into the frame buffer. I want to do this just for data, with index as per ommatidial indices
   params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
 }
 
@@ -495,13 +497,13 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_split_orientationwise()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
   //// Project the 2D coordinates of the display window to two sets of spherical coordinates
-  // Get the 2D coordinates of the pixel 
+  // Get the 2D coordinates of the pixel
   const float2 uv = make_float2(
           static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
           static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
@@ -547,7 +549,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_split_orienta
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_orientationwise_ids()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -599,7 +601,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_positionwise_ids()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -667,8 +669,10 @@ extern "C" __global__ void __raygen__ommatidium()
   const uint3 launch_dims = optixGetLaunchDimensions();
   const uint32_t ommatidialIndex = launch_idx.x;
   const int id = launch_dims.x * launch_idx.y + launch_idx.x;
+
   const RecordPointer* recordPointer = (RecordPointer*)optixGetSbtDataPointer();// Gets the compound record, which points to the current camera's record.
-  const CompoundEyePosedData posedData = ((CompoundEyePosedDataRecord*)(recordPointer->d_record))->data; // Contains the actual posed eye data
+
+  const RaygenPosedContainer<CompoundEyeData> posedData = ((RaygenRecord<RaygenPosedContainer<CompoundEyeData>>*)(recordPointer->d_record))->data; // Contains the actual posed eye data
 
   Ommatidium* allOmmatidia = (Ommatidium*)(posedData.specializedData.d_ommatidialArray);// List of all ommatidia
   Ommatidium ommatidium = *(allOmmatidia + ommatidialIndex);// This ommatidium
@@ -727,7 +731,8 @@ extern "C" __global__ void __raygen__ommatidium()
   // This mixes in the feedback from each sample ray with respect to the it's position in the rendering volume.
   // For instance, if each ommatidium is to make 20 samples then each launch of this shader is one sample and only
   // contributes 0.05/1 to the final colour in the compound buffer.
-  ((float3*)posedData.specializedData.d_compoundBuffer)[id] = payload.result*(1.0f/posedData.specializedData.samplesPerOmmatidium); // Scale it down as these will be summed in the projection shader
+  ((float3*)posedData.specializedData.d_compoundBuffer)[id] = payload.result * (1.0f/posedData.specializedData.samplesPerOmmatidium); // Scale it down as these will be summed in the projection shader
+  // end atomic stuff
 }
 
 
@@ -746,6 +751,9 @@ extern "C" __global__ void __miss__default_background()
       setPayloadResult(make_float3(0.0f));
 }
 
+extern "C" __global__ void __miss__white() { setPayloadResult(make_float3(1.0f)); }
+extern "C" __global__ void __miss__black() { setPayloadResult(make_float3(0.0f)); }
+
 extern "C" __global__ void __miss__simple_sky()
 {
     const float3 dir = normalize(optixGetWorldRayDirection());
@@ -753,6 +761,48 @@ extern "C" __global__ void __miss__simple_sky()
     const float3 upper = make_float3(1.0f, 31.0f, 117.0f)/255.0f;
     const float3 lower = make_float3(143.0f, 179.0f, 203.0f)/255.0f * 0.8f;
     setPayloadResult( lower*(1.0f-mix) + upper*mix );
+}
+
+// Simple sky unless your ommatidium direction is (0,0,0) (which appears to guarantee that the ray
+// direction is either (0,0,0) or contains a NaN, then set black
+extern "C" __global__ void __miss__simple_sky_black_down()
+{
+    const float3 p = optixGetWorldRayDirection();
+
+    if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)) {
+        setPayloadResult(make_float3(0.0f));
+    } else if (p.x == 0.0f && p.y == 0.0f && p.z == 0.0f) {
+        setPayloadResult(make_float3(0.0f));
+    } else {
+        const float3 dir = normalize(p);
+        const float mix = min(max(0.0f, (asin(dir.y)*2.0f)/M_PIf), 1.0f);
+        const float3 upper = make_float3(1.0f, 31.0f, 117.0f)/255.0f;
+        const float3 lower = make_float3(143.0f, 179.0f, 203.0f)/255.0f * 0.8f;
+        setPayloadResult( lower*(1.0f-mix) + upper*mix );
+    }
+}
+
+// Show a single colour for a miss, or another colour for a special ray direction of 000/contains NaN
+__device__ void coloured_miss_coloured_down (const float3& clr_miss, const float3& clr_down)
+{
+    const float3 p = optixGetWorldRayDirection();
+    if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)) {
+        setPayloadResult(clr_down);
+    } else if (p.x == 0.0f && p.y == 0.0f && p.z == 0.0f) {
+        setPayloadResult(clr_down);
+    } else {
+        setPayloadResult(clr_miss);
+    }
+}
+
+extern "C" __global__ void __miss__white_but_black_down()
+{
+    coloured_miss_coloured_down (make_float3(1.0f), make_float3(0.0f));
+}
+
+extern "C" __global__ void __miss__lightgrey_but_black_down()
+{
+    coloured_miss_coloured_down (make_float3(0.95f), make_float3(0.0f));
 }
 
 //extern "C" __global__ void __miss__sky_and_grass()
@@ -766,7 +816,7 @@ extern "C" __global__ void __miss__simple_sky()
 
 //------------------------------------------------------------------------------
 //
-//  Old Hit Programs
+//  Older Hit Programs (still in use)
 //
 //------------------------------------------------------------------------------
 
@@ -775,107 +825,100 @@ extern "C" __global__ void __closesthit__occlusion()
     setPayloadOcclusion( true );
 }
 
-
 extern "C" __global__ void __closesthit__radiance()
 {
-    //setPayloadResult( make_float3(1.0f));
-    const globalParameters::HitGroupData* hit_group_data = reinterpret_cast<globalParameters::HitGroupData*>( optixGetSbtDataPointer() );
-    const LocalGeometry          geom           = getLocalGeometry( hit_group_data->geometry_data );
+    float3 result = make_float3( 0.0f );
+    const globalParameters::HitGroupData* hit_group_data = reinterpret_cast<globalParameters::HitGroupData*>(optixGetSbtDataPointer());
+    const LocalGeometry geom = getLocalGeometry (hit_group_data->geometry_data);
 
     //
     // Retrieve material data
     //
-    float3 base_color = make_float3( hit_group_data->material_data.pbr.base_color );
+    float3 base_color = make_float3 (0.0f, 0.0f, 1.0f); // initialize to fully blue
 
-    if(geom.UC)   // TODO: UNFIX
-    {
-//      //base_color *= linearize(make_float3(geom.C.x, geom.C.y, geom.C.z));
-//      //base_color = geom.C;//make_float3(geom.C.x, geom.C.y, geom.C.z);
-//      //base_color *= linearize(geom.C);
-//      //base_color = linearize(geom.C);
-      base_color = linearize(make_float3(geom.C.x, geom.C.y, geom.C.z));
-//      //base_color = make_float3(1.0f, 0.0f, 0.0f);//make_float3(geom.C.x, geom.C.y, geom.C.z);
-//        base_color *= linearize( make_float3(
-//                    tex2D<float4>( hit_group_data->material_data.pbr.base_color_tex, geom.UV.x, geom.UV.y )
-//                    ) );
-    }else if( hit_group_data->material_data.pbr.base_color_tex ){
-        base_color = linearize( make_float3(
-                    tex2D<float4>( hit_group_data->material_data.pbr.base_color_tex, geom.UV.x, geom.UV.y )
-                    ) );
+    if (geom.UC) {
+        // If we must 'use color' then we just convert the color specified in geom.C
+        base_color = linearize (make_float3 (geom.C.x, geom.C.y, geom.C.z));
+
+    } else if (hit_group_data != nullptr) {
+        // No 'use color' commandment, but we have hit_group_data
+        base_color = make_float3 (1.0f, 0.0f, 0.0f); // re-initialize to fully red
+
+        cudaTextureObject_t mbc = hit_group_data->material_data.pbr.base_color_tex;
+        if (mbc) {
+            float4 my_tex = tex2D<float4> (mbc, geom.UV.x, geom.UV.y);
+            float3 my_tex3 = make_float3 (my_tex);
+            base_color = my_tex3;
+        } else {
+            // This obtains the colour we want when there is no base_color_tex
+            base_color = make_float3 (hit_group_data->material_data.pbr.base_color);
+        }
+
+    } else {
+        // No geom.C and no hit_group_data. Set pure green base_color to assist debug
+        base_color = make_float3 (0.0f, 1.0f, 0.0f);
+        setPayloadResult (base_color);
+        return;
+    }
+    if (!params.lighting) {
+        setPayloadResult (base_color);
+        return;
     }
 
-    if(!params.lighting)
-    {
-      setPayloadResult( base_color);
-      return;
-    }
+    result = base_color;
 
     float metallic  = hit_group_data->material_data.pbr.metallic;
     float roughness = hit_group_data->material_data.pbr.roughness;
-    float4 mr_tex = make_float4( 1.0f );
-    if( hit_group_data->material_data.pbr.metallic_roughness_tex )
+    float4 mr_tex = make_float4 (1.0f);
+    if (hit_group_data->material_data.pbr.metallic_roughness_tex) {
         // MR tex is (occlusion, roughness, metallic )
-        mr_tex = tex2D<float4>( hit_group_data->material_data.pbr.metallic_roughness_tex, geom.UV.x, geom.UV.y );
+        mr_tex = tex2D<float4> (hit_group_data->material_data.pbr.metallic_roughness_tex, geom.UV.x, geom.UV.y);
+    }
     roughness *= mr_tex.y;
     metallic  *= mr_tex.z;
-
-
     //
     // Convert to material params
     //
     const float  F0         = 0.04f;
-    const float3 diff_color = base_color*( 1.0f - F0 )*( 1.0f - metallic );
-    const float3 spec_color = lerp( make_float3( F0 ), base_color, metallic );
-    const float  alpha      = roughness*roughness;
-
+    const float3 diff_color = base_color * (1.0f - F0) * (1.0f - metallic);
+    const float3 spec_color = lerp (make_float3 (F0), base_color, metallic);
+    const float  alpha      = roughness * roughness;
     //
     // compute direct lighting
     //
-
     float3 N = geom.N;
-    if( hit_group_data->material_data.pbr.normal_tex )
-    {
-        const float4 NN = 2.0f*tex2D<float4>( hit_group_data->material_data.pbr.normal_tex, geom.UV.x, geom.UV.y ) - make_float4(1.0f);
-        N = normalize( NN.x*normalize( geom.dpdu ) + NN.y*normalize( geom.dpdv ) + NN.z*geom.N );
+    if (hit_group_data->material_data.pbr.normal_tex) {
+        const float4 NN = 2.0f * tex2D<float4> (hit_group_data->material_data.pbr.normal_tex, geom.UV.x, geom.UV.y) - make_float4 (1.0f);
+        N = normalize (NN.x * normalize (geom.dpdu) + NN.y * normalize (geom.dpdv) + NN.z * geom.N);
     }
 
-    float3 result = make_float3( 0.0f );
+    // There are four lights in compound ray apparently, hardcoded in. traceOcclusion for any to get a crash...
+    for (int i = 0; i < params.lights.count; ++i) { // or .lights.count()
 
-    for( int i = 0; i < params.lights.count; ++i )
-    {
         Light::Point light = params.lights[i];
-
         // TODO: optimize
-        const float  L_dist  = length( light.position - geom.P );
-        const float3 L       = ( light.position - geom.P ) / L_dist;
-        const float3 V       = -normalize( optixGetWorldRayDirection() );
-        const float3 H       = normalize( L + V );
-        const float  N_dot_L = dot( N, L );
-        const float  N_dot_V = dot( N, V );
-        const float  N_dot_H = dot( N, H );
-        const float  V_dot_H = dot( V, H );
-
-        if( N_dot_L > 0.0f && N_dot_V > 0.0f )
-        {
+        const float  L_dist  = length (light.position - geom.P);
+        const float3 L       = (light.position - geom.P) / L_dist;
+        const float3 V       = -normalize (optixGetWorldRayDirection());
+        const float3 H       = normalize (L + V);
+        const float  N_dot_L = dot(N, L);
+        const float  N_dot_V = dot(N, V);
+        const float  N_dot_H = dot(N, H);
+        const float  V_dot_H = dot(V, H);
+        if (N_dot_L > 0.0f && N_dot_V > 0.0f) {
             const float tmin     = 0.001f;          // TODO
             const float tmax     = L_dist - 0.001f; // TODO
-            const bool  occluded = traceOcclusion( params.handle, geom.P, L, tmin, tmax );
-            if( !occluded )
-            {
-                const float3 F     = schlick( spec_color, V_dot_H );
-                const float  G_vis = vis( N_dot_L, N_dot_V, alpha );
-                const float  D     = ggxNormal( N_dot_H, alpha );
-
-                const float3 diff = ( 1.0f - F )*diff_color / M_PIf;
-                const float3 spec = F*G_vis*D;
-
-                result += light.color*light.intensity*N_dot_L*( diff + spec );
+            const bool occluded = traceOcclusion (params.handle, geom.P, L, tmin, tmax);
+            if (!occluded) {
+                const float3 F     = schlick (spec_color, V_dot_H);
+                const float  G_vis = vis (N_dot_L, N_dot_V, alpha);
+                const float  D     = ggxNormal (N_dot_H, alpha);
+                const float3 diff = (1.0f - F) * diff_color / M_PIf;
+                const float3 spec = F * G_vis * D;
+                result += light.color * light.intensity * N_dot_L * (diff + spec);
             }
         }
     }
-    // TODO: add debug viewing mode that allows runtime switchable views of shading params, normals, etc
-    //result = make_float3( roughness );
-    //result = N*0.5f + make_float3( 0.5f );
-    //result = geom.N*0.5f + make_float3( 0.5f );
-    setPayloadResult( result );
+
+    setPayloadResult (result);
 }

@@ -14,6 +14,7 @@ inline bool operator==(const float3 l, const float3 r)
 { return (l.x == r.x && l.y == r.y && l.z == r.z); }
 inline bool operator==(const float2 l, const float2 r)
 { return (l.x == r.x && l.y == r.y); }
+
 struct LocalSpace
 {
   float3 xAxis = {1.0f, 0.0f, 0.0f};
@@ -23,11 +24,8 @@ struct LocalSpace
   { return (this->xAxis == r.xAxis && this->yAxis == r.yAxis && this->zAxis == r.zAxis); }
   inline bool operator!=(const LocalSpace& r)
   { return !(*this==r); }
-  //inline float3 transform(const float3 v)
-  //{
-  //  return(v.x*xAxis + v.y*yAxis + v.z*zAxis);
-  //}
 };
+
 template <typename T>
 struct RaygenPosedContainer
 {
@@ -40,7 +38,3 @@ struct RaygenPosedContainer
   inline bool operator!=(const RaygenPosedContainer<T>& r)
   { return !(*this==r); }
 };
-
-//A generic record type that stores generic specialised user data alongside pose data
-template <typename T>
-using RaygenPosedContainerRecord = RaygenRecord<RaygenPosedContainer<T>>;

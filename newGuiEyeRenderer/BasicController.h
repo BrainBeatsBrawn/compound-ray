@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <sutil/vec_math.h>
 
@@ -11,7 +11,6 @@ class BasicController {
   public:
     float speed = 0.02f;
     float angularSpeed = M_PIf * 0.5f/180;
-    //float focalSpeed = 0.05f;
 
     bool ingestKeyAction(int32_t key, int32_t action);// Returns true if an update is made
     float3 getMovementVector();
@@ -19,8 +18,6 @@ class BasicController {
     float getHorizontalRotationAngle();// Rightward is positive
     float getFocalMultiplier();
     bool isActivelyMoving();// true if any part is set to true
-    // TODO: Make the getMovementVector function take a timestep to disconnect it from framerate
-    //       Also to combine the rotation methods.
 
   private:
     static constexpr float3 UP      = {0.0f,  1.0f, 0.0f};

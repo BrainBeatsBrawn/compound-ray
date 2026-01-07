@@ -28,8 +28,8 @@
 #pragma once
 
 #include <sutil/vec_math.h>
+#include <sutil/Matrix.h>
 #include <sutil/Aabb.h>
-
 
 #ifndef __CUDACC__
 #  include <assert.h>
@@ -37,7 +37,6 @@
 #else
 #  define SUTIL_AABB_ASSERT(x)
 #endif
-
 
 namespace sutil
 {
@@ -437,4 +436,3 @@ namespace sutil
   }
 
 } // end namespace sutil
-
