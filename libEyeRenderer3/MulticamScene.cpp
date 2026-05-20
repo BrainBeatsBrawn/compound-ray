@@ -320,6 +320,7 @@ namespace
                 // Try and load the file as an absolute (or relative to the execution of the eye)
                 std::ifstream eyeDataFile(eyeDataPath, std::ifstream::in);
                 std::string usedEyeDataPath; // Track the actual complete path that was used
+                std::string eye_data_path = {};
                 if(!eyeDataFile.is_open())
                 {
                     if constexpr (debug_cameras == true) {
@@ -331,21 +332,21 @@ namespace
                     if(!eyeDataFile.is_open())
                     {
                         std::cerr << "ERROR: Unable to open \"" << relativeEyeDataPath << "\", read cancelled."<<std::endl;
-                        scene.eye_data_path = relativeEyeDataPath;
+                        eye_data_path = relativeEyeDataPath;
                         return;
                     }else{
                         if constexpr (debug_cameras == true) {
                             std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
                         }
                         usedEyeDataPath = relativeEyeDataPath;
-                        scene.eye_data_path = usedEyeDataPath;
+                        eye_data_path = usedEyeDataPath;
                     }
                 }else{
                     if constexpr (debug_cameras == true) {
                         std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
                     }
                     usedEyeDataPath = eyeDataPath;
-                    scene.eye_data_path = usedEyeDataPath;
+                    eye_data_path = usedEyeDataPath;
                 }
 
                 // Read the lines of the file
@@ -374,6 +375,8 @@ namespace
                 int cidx = scene.addCamera(camera);
                 camera->copyOmmatidia(ommVector.data());
                 scene.addCompoundCamera(cidx, camera, ommVector);
+
+                scene.eye_data_paths[cidx] = eye_data_path;
 
                 eyeDataFile.close();
 
