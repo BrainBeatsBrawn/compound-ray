@@ -490,7 +490,7 @@ bool isCompoundEyeActive() { return scene->isCompoundEyeActive(); }
 
 std::string getEyeDataPath()
 {
-    if (scene->isCompoundEyeActive()) { return scene->eye_data_path; }
+    if (scene->isCompoundEyeActive()) { return scene->eye_data_paths[scene->getCameraIndex()]; }
     return std::string("");
 }
 
