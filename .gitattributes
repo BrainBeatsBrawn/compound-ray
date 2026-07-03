@@ -1,0 +1,4 @@
+# Linguist language identification tweaks.
+*.h                               linguist-language=C++
+*.cppm                            linguist-language=C++
+*.eye                             linguist-language=text
