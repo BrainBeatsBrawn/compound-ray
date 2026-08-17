@@ -22,7 +22,13 @@ as Ubuntu 24's default of gcc 13.
 
 This is a branch where I'm trying to build compoundray against OptiX 9.1. This requires cuda-toolkit (nvcc) version 13.3. cuda toolkit 13.3 requires driver version 6.10. I am using the Addition-drivers 'nvidia open kernel 610' (it has to be open kernel for our 5090 GPU).
 
-These allow the use of gcc 13 (and gcc 14). clang-20 isn't usable as a compiler (along side nvcc 13.3) of compound-ray.
+These allow the use of gcc 13 (and gcc 14) as the non-cuda compiler.
+
+To compile using clang (clang-20) you can call cmake like this:
+
+```
+CC=clang-20 CXX=clang++-20 cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-9.1.0-linux64-x86_64/ -DCUDA_HOST_COMPILER=/usr/bin/clang-20
+```
 
 ### Packaged dependencies
 
