@@ -60,8 +60,8 @@
 # If you have any questions, don't feel shy about posting to the OptiX forums:
 # https://devtalk.nvidia.com/default/board/90/
 
-cmake_minimum_required(VERSION 3.5.0 FATAL_ERROR)
-cmake_policy(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10.0 FATAL_ERROR)
+#cmake_policy(VERSION 3.5)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -149,7 +149,7 @@ SET(BUFFER_TYPE "BUFFER_TYPE_ZERO_COPY" CACHE STRING "Which type of buffer to us
 message(STATUS "Buffer Type set to ${BUFFER_TYPE}")
 add_definitions("-D${BUFFER_TYPE}")
 
-set(ARCH_INT "60" CACHE STRING "sm and compute architecture integer for compiling NVCC and NVRTC. Defaults to '60', which aligns with all Pascal architecture processors. See docs/indepth-install-notes.md for further details.")
+set(ARCH_INT "86" CACHE STRING "sm and compute architecture integer for compiling NVCC and NVRTC. Defaults to '60', which aligns with all Pascal architecture processors. See docs/indepth-install-notes.md for further details. or 86 for 30x series?")
 
 # Add some useful default arguments to the NVCC and NVRTC flags. This is an example of
 # how we use PASSED_FIRST_CONFIGURE.  Once you have configured, this variable is TRUE

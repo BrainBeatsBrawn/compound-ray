@@ -18,6 +18,12 @@ Note that you may have to install gcc version 12 to compile
 successfully because OptiX does not like more recent gcc versions such
 as Ubuntu 24's default of gcc 13.
 
+#### dev/modern_toolchain branch
+
+This is a branch where I'm trying to build compoundray against OptiX 9.1. This requires cuda-toolkit (nvcc) version 13.3. cuda toolkit 13.3 requires driver version 6.10. I am using the Addition-drivers 'nvidia open kernel 610' (it has to be open kernel for our 5090 GPU).
+
+These allow the use of gcc 13 (and gcc 14). clang-20 isn't usable as a compiler (along side nvcc 13.3) of compound-ray.
+
 ### Packaged dependencies
 
 You will need these packages to build compound-ray. Here is the Ubuntu apt install command:
