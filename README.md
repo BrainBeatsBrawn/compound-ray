@@ -5,9 +5,8 @@
 
 ## Building
 
-
 To build the software you must first install [NVidia CUDA](https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html) and
-the [Nvidia OptiX framework](https://developer.nvidia.com/designworks/optix/download). You can use OptiX 8.0/CUDA 12 or 9.1/CUDA 13.
+the [Nvidia OptiX framework](https://developer.nvidia.com/designworks/optix/download). You can use OptiX 8.0/CUDA 12 or OptiX 9.1/CUDA 13.
 
 ### Packaged dependencies
 
@@ -32,11 +31,11 @@ sudo make install
 
 #### Building with OptiX 8.0 and CUDA 12
 
-Seb is currently using CUDA 12.1 (not `apt` package managed), OptiX 8.0
+I used CUDA 12.1 (not `apt` package managed), OptiX 8.0
 (not `apt` package managed) and the NVidia driver version 535 (which IS
 `apt` package managed) on Ubuntu 24.04.
 
-Note that you may have to use gcc version 12 to compile
+Note that you have to use gcc version 12 (or 11) to compile
 successfully because OptiX 8.0 does not like more recent gcc versions such
 as Ubuntu 24's default of gcc 13.
 
@@ -46,11 +45,13 @@ If gcc-12 (or 11) IS your default gcc, then you can use this cmake command, wher
 cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/
 ```
 
-If gcc-12 is not your default, you can specify an alternative gcc with a cmake command like:
+If gcc-12 is installed, but not your default, you can specify an alternative gcc with a cmake command like:
 
 ```
 CC=gcc-12 CXX=g++-12 cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/ -DCUDA_HOST_COMPILER=/usr/bin/g++-12
 ```
+
+You can also build with OptiX 8.0 and CUDA 13/driver 610 with these commands.
 
 #### Building with Optix 9.1 and CUDA 13
 
