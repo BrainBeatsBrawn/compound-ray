@@ -20,7 +20,7 @@ as Ubuntu 24's default of gcc 13.
 
 #### dev/modern_toolchain branch
 
-This is a branch where I'm trying to build compoundray against OptiX 9.1. This requires cuda-toolkit (nvcc) version 13.3. cuda toolkit 13.3 requires driver version 6.10. I am using the Addition-drivers 'nvidia open kernel 610' (it has to be open kernel for our 5090 GPU).
+This is a branch where I'm trying to build compoundray against OptiX 9.1. This requires cuda-toolkit (nvcc) version 13.3. cuda toolkit 13.3 requires driver version 6.10. I used the Ubuntu Additional-drivers UI to install the driver metapackage 'nvidia-driver-610-open (proprietary)', which is the correct choice for a 5090 GPU.
 
 These allow the use of gcc 13 (and gcc 14) as the non-cuda compiler.
 
