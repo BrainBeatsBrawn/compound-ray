@@ -5,30 +5,9 @@
 
 ## Building
 
+
 To build the software you must first install [NVidia CUDA](https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html) and
-the [Nvidia OptiX framework](https://developer.nvidia.com/designworks/optix/download).
-
-### Dependency versions
-
-Seb is currently using CUDA 12.1 (not `apt` package managed), OptiX 8.0
-(not `apt` package managed) and the NVidia driver version 535 (which IS
-`apt` package managed) on Ubuntu 24.04.
-
-Note that you may have to install gcc version 12 to compile
-successfully because OptiX does not like more recent gcc versions such
-as Ubuntu 24's default of gcc 13.
-
-#### dev/modern_toolchain branch
-
-This is a branch where I'm trying to build compoundray against OptiX 9.1. This requires cuda-toolkit (nvcc) version 13.3. cuda toolkit 13.3 requires driver version 6.10. I used the Ubuntu Additional-drivers UI to install the driver metapackage 'nvidia-driver-610-open (proprietary)', which is the correct choice for a 5090 GPU.
-
-These allow the use of gcc 13 (and gcc 14) as the non-cuda compiler.
-
-To compile using clang (clang-20) you can call cmake like this:
-
-```
-CC=clang-20 CXX=clang++-20 cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-9.1.0-linux64-x86_64/ -DCUDA_HOST_COMPILER=/usr/bin/clang-20
-```
+the [Nvidia OptiX framework](https://developer.nvidia.com/designworks/optix/download). You can use OptiX 8.0/CUDA 12 or 9.1/CUDA 13.
 
 ### Packaged dependencies
 
@@ -50,6 +29,45 @@ cmake .. -DOptix_INSTALL_DIR=/path/to/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/
 make
 sudo make install
 ```
+
+#### Building with OptiX 8.0 and CUDA 12
+
+Seb is currently using CUDA 12.1 (not `apt` package managed), OptiX 8.0
+(not `apt` package managed) and the NVidia driver version 535 (which IS
+`apt` package managed) on Ubuntu 24.04.
+
+Note that you may have to use gcc version 12 to compile
+successfully because OptiX 8.0 does not like more recent gcc versions such
+as Ubuntu 24's default of gcc 13.
+
+If gcc-12 (or 11) IS your default gcc, then you can use this cmake command, where you just have to add the path to the location where you installed the OptiX SDK:
+
+```
+cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/
+```
+
+If gcc-12 is not your default, you can specify an alternative gcc with a cmake command like:
+
+```
+CC=gcc-12 CXX=g++-12 cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/ -DCUDA_HOST_COMPILER=/usr/bin/g++-12
+```
+
+#### Building with Optix 9.1 and CUDA 13
+
+Use of OptiX 9.1 requires cuda-toolkit (nvcc) version 13.3. cuda toolkit 13.3 requires driver version 6.10. I used the Ubuntu Additional-drivers UI to install the driver metapackage 'nvidia-driver-610-open (proprietary)', which is the correct choice for a 5090 GPU.
+
+These allow the use of gcc 13 (and gcc 14) as the non-cuda compiler. To compile with your default gcc/g++:
+
+```
+cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-9.1.0-linux64-x86_64/
+```
+
+To compile using clang (clang-20) you can call cmake like this:
+
+```
+CC=clang-20 CXX=clang++-20 cmake .. -DOptiX_INSTALL_DIR=~/src/NVIDIA-OptiX-SDK-9.1.0-linux64-x86_64/ -DCUDA_HOST_COMPILER=/usr/bin/clang-20
+```
+
 
 ### Older build instructions
 
