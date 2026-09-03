@@ -941,7 +941,7 @@ void MulticamScene::addImage(
     else if( bits_per_component == 16 )
     {
         pitch        = width*num_components*sizeof(uint16_t);
-        channel_desc = cudaCreateChannelDesc<uchar4>();
+        channel_desc = cudaCreateChannelDesc<ushort4>();
     }
     else
     {
