@@ -72,13 +72,13 @@
 # define GL_NEAREST 0x2600
 #endif
 
-namespace
-{
-    // Compile time debugging choices
-    static constexpr bool debug_gltf = false;
-    static constexpr bool debug_cameras = false;
-    static constexpr bool debug_pipeline = false;
+// Compile time debugging choices
+static constexpr bool debug_gltf = false;
+static constexpr bool debug_cameras = false;
+static constexpr bool debug_pipeline = false;
 
+namespace internal
+{
     float3 make_float3_from_double( double x, double y, double z )
     {
         return make_float3( static_cast<float>( x ), static_cast<float>( y ), static_cast<float>( z ) );
@@ -206,9 +206,9 @@ namespace
     {
         const sutil::Matrix4x4 translation = gltf_node.translation.empty() ?
         sutil::Matrix4x4::identity() :
-        sutil::Matrix4x4::translate( make_float3_from_double(gltf_node.translation[0],
-                                                             gltf_node.translation[1],
-                                                             gltf_node.translation[2]));
+        sutil::Matrix4x4::translate( internal::make_float3_from_double(gltf_node.translation[0],
+                                                                       gltf_node.translation[1],
+                                                                       gltf_node.translation[2]));
 
         const sutil::Matrix4x4 rotation = gltf_node.rotation.empty() ?
         sutil::Matrix4x4::identity() :
@@ -219,9 +219,9 @@ namespace
 
         const sutil::Matrix4x4 scale = gltf_node.scale.empty() ?
         sutil::Matrix4x4::identity() :
-        sutil::Matrix4x4::scale( make_float3_from_double(gltf_node.scale[0],
-                                                         gltf_node.scale[1],
-                                                         gltf_node.scale[2]));
+        sutil::Matrix4x4::scale( internal::make_float3_from_double(gltf_node.scale[0],
+                                                                   gltf_node.scale[1],
+                                                                   gltf_node.scale[2]));
 
         std::vector<float> gltf_matrix;
         for( double x : gltf_node.matrix )
@@ -241,9 +241,9 @@ namespace
                           << "\ttype: " << gltf_camera.type << std::endl;
             }
             // Get configured camera information and local axis
-            const float3 upAxis      = make_float3 (node_xform * make_float4_from_double (0.0f, 1.0f,  0.0f, 0.0f)); //  uy
-            const float3 forwardAxis = make_float3 (node_xform * make_float4_from_double (0.0f, 0.0f, -1.0f, 0.0f)); // -uz
-            const float3 rightAxis   = make_float3 (node_xform * make_float4_from_double (1.0f, 0.0f,  0.0f, 0.0f)); //  ux
+            const float3 upAxis      = make_float3 (node_xform * internal::make_float4_from_double (0.0f, 1.0f,  0.0f, 0.0f)); //  uy
+            const float3 forwardAxis = make_float3 (node_xform * internal::make_float4_from_double (0.0f, 0.0f, -1.0f, 0.0f)); // -uz
+            const float3 rightAxis   = make_float3 (node_xform * internal::make_float4_from_double (1.0f, 0.0f,  0.0f, 0.0f)); //  ux
 
             if constexpr (debug_cameras == true) {
                 std::cout << "\tUP axis: (" << upAxis.x <<"," << upAxis.y << "," << upAxis.z << ")" << std::endl;
@@ -252,7 +252,7 @@ namespace
             }
 
             // eye is 'position' - a transform of the origin
-            const float3 eye     = make_float3( node_xform*make_float4_from_double( 0.0f, 0.0f,  0.0f, 1.0f ) );
+            const float3 eye     = make_float3( node_xform*internal::make_float4_from_double( 0.0f, 0.0f,  0.0f, 1.0f ) );
             const float  yfov   = static_cast<float>( gltf_camera.perspective.yfov ) * 180.0f / static_cast<float>( M_PI );
             if constexpr (debug_cameras == true) {
                 std::cout << "\teye posn: " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
@@ -443,12 +443,12 @@ namespace
                 }
 
                 const auto& pos_gltf_accessor = model.accessors[ pos_accessor_idx ];
-                mesh->object_aabb = sutil::Aabb(make_float3_from_double(pos_gltf_accessor.minValues[0],
-                                                                        pos_gltf_accessor.minValues[1],
-                                                                        pos_gltf_accessor.minValues[2]),
-                                                make_float3_from_double(pos_gltf_accessor.maxValues[0],
-                                                                        pos_gltf_accessor.maxValues[1],
-                                                                        pos_gltf_accessor.maxValues[2]));
+                mesh->object_aabb = sutil::Aabb(internal::make_float3_from_double(pos_gltf_accessor.minValues[0],
+                                                                                  pos_gltf_accessor.minValues[1],
+                                                                                  pos_gltf_accessor.minValues[2]),
+                                                internal::make_float3_from_double(pos_gltf_accessor.maxValues[0],
+                                                                                  pos_gltf_accessor.maxValues[1],
+                                                                                  pos_gltf_accessor.maxValues[2]));
                 mesh->world_aabb = mesh->object_aabb;
                 mesh->world_aabb.transform( node_xform );
 
@@ -772,7 +772,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
             if( base_color_it != gltf_material.values.end() )
             {
                 const tinygltf::ColorValue c = base_color_it->second.ColorFactor();
-                mtl.base_color = make_float4_from_double( c[0], c[1], c[2], c[3] );
+                mtl.base_color = internal::make_float4_from_double( c[0], c[1], c[2], c[3] );
                 if constexpr (debug_gltf == true) {
                     std::cerr
                     << "\tBase color: ("
@@ -891,7 +891,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
     for (size_t i = 0; i < root_nodes.size(); ++i) {
         if (!root_nodes[i]) { continue; }
         auto& gltf_node = model.nodes[i];
-        processGLTFNode (scene, model, gltf_node, root_transform, glTFdir);
+        internal::processGLTFNode (scene, model, gltf_node, root_transform, glTFdir);
     }
 }
 
@@ -1146,12 +1146,13 @@ void MulticamScene::createContext()
     CUcontext          cuCtx = nullptr;  // zero means take the current context
     OPTIX_CHECK( optixInit() );
     OptixDeviceContextOptions options = {};
-    options.logCallbackFunction       = &context_log_cb;
+    options.logCallbackFunction       = &internal::context_log_cb;
     options.logCallbackLevel          = 4;
     OPTIX_CHECK( optixDeviceContextCreate( cuCtx, &options, &m_context ) );
 }
 
-namespace {
+namespace internal
+{
     template <typename T = char>
     class CuBuffer
     {
@@ -1347,9 +1348,9 @@ void MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
     size_t usedCompactedOutputSize = 0;
     double compactionRatio = initialCompactionRatio;
 
-    CuBuffer<char> d_temp;
-    CuBuffer<char> d_temp_output;
-    CuBuffer<size_t> d_temp_compactedSizes;
+    internal::CuBuffer<char> d_temp;
+    internal::CuBuffer<char> d_temp_output;
+    internal::CuBuffer<size_t> d_temp_compactedSizes;
 
     OptixAccelEmitDesc emitProperty = {};
     emitProperty.type = OPTIX_PROPERTY_TYPE_COMPACTED_SIZE;
@@ -1879,12 +1880,12 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
 
     // Hitgroup Records
     {
-        std::vector<HitGroupRecord> hitgroup_records;
+        std::vector<internal::HitGroupRecord> hitgroup_records;
         for( const auto& mesh : m_meshes )
         {
             for( size_t i = 0; i < mesh->material_idx.size(); ++i )
             {
-                HitGroupRecord rec = {};
+                internal::HitGroupRecord rec = {};
                 OPTIX_CHECK( optixSbtRecordPackHeader( m_radiance_hit_group, &rec ) );
                 rec.data.geometry_data.type                    = GeometryData::TRIANGLE_MESH;
                 rec.data.geometry_data.triangle_mesh.positions = mesh->positions[i];
@@ -1911,7 +1912,7 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
             }
         }
 
-        const size_t hitgroup_record_size = sizeof( HitGroupRecord );
+        const size_t hitgroup_record_size = sizeof( internal::HitGroupRecord );
         CUDA_CHECK( cudaMalloc(
                         reinterpret_cast<void**>( &sbt.hitgroupRecordBase ),
                         hitgroup_record_size*hitgroup_records.size()
