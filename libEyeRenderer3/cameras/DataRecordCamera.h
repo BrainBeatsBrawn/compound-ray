@@ -2,7 +2,7 @@
 
 #include "GenericCameraDataTypes.h"
 #include "GenericCamera.h"
-#include <sutil/Quaternion.h>
+#include <sutil/Exception.h> // For OPTIX_CHECK and CUDA_CHECK
 #include <sutil/Matrix.h>
 
 template<typename T>

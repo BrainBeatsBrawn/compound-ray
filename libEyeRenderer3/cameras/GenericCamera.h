@@ -2,11 +2,9 @@
 
 #pragma once
 
-//#define DEBUG
-
 #include <optix.h>
-#include <sutil/Quaternion.h>
-#include <sutil/Exception.h>
+#include <sutil/Matrix.h>
+//#include <sutil/Exception.h> // Not the right include.
 
 #include <iostream>
 

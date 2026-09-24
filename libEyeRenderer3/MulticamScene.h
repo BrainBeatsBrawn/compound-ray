@@ -69,9 +69,6 @@
 #pragma warning( pop )
 #endif
 
-
-//using namespace sutil;
-
 class MulticamScene
 {
 public:
