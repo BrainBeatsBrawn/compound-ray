@@ -70,7 +70,7 @@
 #endif
 
 
-using namespace sutil;
+//using namespace sutil;
 
 class MulticamScene
 {
@@ -78,7 +78,7 @@ public:
     struct MeshGroup
     {
         std::string                       name;
-        Matrix4x4                         transform;
+        sutil::Matrix4x4                  transform;
 
         std::vector<cuda::BufferView<uint32_t>> indices;
         std::vector<cuda::BufferView<float3> >  positions;
@@ -96,20 +96,20 @@ public:
         OptixTraversableHandle            gas_handle = 0;
         CUdeviceptr                       d_gas_output = 0;
 
-        Aabb                              object_aabb;
-        Aabb                              world_aabb;
+        sutil::Aabb                       object_aabb;
+        sutil::Aabb                       world_aabb;
     };
 
     struct HitboxMeshGroup
     {
         std::string name;
-        Matrix4x4 transform;
+        sutil::Matrix4x4 transform;
 
         std::vector<std::shared_ptr<std::vector<uint32_t>>> indices;
         std::vector<std::shared_ptr<std::vector<float3>>> positions;
 
-        Aabb object_aabb;
-        Aabb world_aabb;
+        sutil::Aabb object_aabb;
+        sutil::Aabb world_aabb;
     };
 
     struct Triangle
@@ -271,6 +271,6 @@ private:
 };
 
 
-void loadScene (const std::string& filename, MulticamScene& scene, const Matrix4x4& root_transform);
+void loadScene (const std::string& filename, MulticamScene& scene, const sutil::Matrix4x4& root_transform);
 
 #endif

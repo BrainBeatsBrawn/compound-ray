@@ -89,7 +89,7 @@ namespace
         return make_float4( static_cast<float>( x ), static_cast<float>( y ), static_cast<float>( z ), static_cast<float>( w ) );
     }
 
-    typedef Record<globalParameters::HitGroupData> HitGroupRecord;
+    typedef sutil::Record<globalParameters::HitGroupData> HitGroupRecord;
 
     static constexpr bool debug_allow_context_log = false;
     void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */)
@@ -127,8 +127,8 @@ namespace
             std::cout << "count from accessor: " << gltf_accessor.count << std::endl;
         }
 
-        if (cmpts_in_type == -1 || elmt_cmpt_byte_size == -1) { throw Exception ("gltf accessor not supported"); }
-        if ((cmpts_in_type * elmt_cmpt_byte_size) > sizeof(T)) { throw Exception ("bufferViewFromGLTF: sizeof(T) < accessor data type size"); }
+        if (cmpts_in_type == -1 || elmt_cmpt_byte_size == -1) { throw sutil::Exception ("gltf accessor not supported"); }
+        if ((cmpts_in_type * elmt_cmpt_byte_size) > sizeof(T)) { throw sutil::Exception ("bufferViewFromGLTF: sizeof(T) < accessor data type size"); }
 
         const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
         cuda::BufferView<T> buffer_view;
@@ -200,43 +200,37 @@ namespace
         MulticamScene& scene,
         const tinygltf::Model& model,
         const tinygltf::Node& gltf_node,
-        const Matrix4x4& parent_matrix,
+        const sutil::Matrix4x4& parent_matrix,
         const std::string& glTFdir
         )
     {
-        const Matrix4x4 translation = gltf_node.translation.empty() ?
-        Matrix4x4::identity() :
-        Matrix4x4::translate( make_float3_from_double(
-                                  gltf_node.translation[0],
-                                  gltf_node.translation[1],
-                                  gltf_node.translation[2]
-                                  ) );
+        const sutil::Matrix4x4 translation = gltf_node.translation.empty() ?
+        sutil::Matrix4x4::identity() :
+        sutil::Matrix4x4::translate( make_float3_from_double(gltf_node.translation[0],
+                                                             gltf_node.translation[1],
+                                                             gltf_node.translation[2]));
 
-        const Matrix4x4 rotation = gltf_node.rotation.empty() ?
-        Matrix4x4::identity() :
-        Quaternion(
-            static_cast<float>( gltf_node.rotation[3] ),
-            static_cast<float>( gltf_node.rotation[0] ),
-            static_cast<float>( gltf_node.rotation[1] ),
-            static_cast<float>( gltf_node.rotation[2] )
-            ).rotationMatrix();
+        const sutil::Matrix4x4 rotation = gltf_node.rotation.empty() ?
+        sutil::Matrix4x4::identity() :
+        sutil::Quaternion(static_cast<float>( gltf_node.rotation[3] ),
+                          static_cast<float>( gltf_node.rotation[0] ),
+                          static_cast<float>( gltf_node.rotation[1] ),
+                          static_cast<float>( gltf_node.rotation[2] )).rotationMatrix();
 
-        const Matrix4x4 scale = gltf_node.scale.empty() ?
-        Matrix4x4::identity() :
-        Matrix4x4::scale( make_float3_from_double(
-                              gltf_node.scale[0],
-                              gltf_node.scale[1],
-                              gltf_node.scale[2]
-                              ) );
+        const sutil::Matrix4x4 scale = gltf_node.scale.empty() ?
+        sutil::Matrix4x4::identity() :
+        sutil::Matrix4x4::scale( make_float3_from_double(gltf_node.scale[0],
+                                                         gltf_node.scale[1],
+                                                         gltf_node.scale[2]));
 
         std::vector<float> gltf_matrix;
         for( double x : gltf_node.matrix )
             gltf_matrix.push_back( static_cast<float>( x ) );
-        const Matrix4x4 matrix = gltf_node.matrix.empty() ?
-        Matrix4x4::identity() :
-        Matrix4x4( reinterpret_cast<float*>( gltf_matrix.data() ) ).transpose();
+        const sutil::Matrix4x4 matrix = gltf_node.matrix.empty() ?
+        sutil::Matrix4x4::identity() :
+        sutil::Matrix4x4( reinterpret_cast<float*>( gltf_matrix.data() ) ).transpose();
 
-        const Matrix4x4 node_xform = parent_matrix * matrix * translation * rotation * scale ;
+        const sutil::Matrix4x4 node_xform = parent_matrix * matrix * translation * rotation * scale ;
 
         if( gltf_node.camera != -1 )
         {
@@ -449,17 +443,12 @@ namespace
                 }
 
                 const auto& pos_gltf_accessor = model.accessors[ pos_accessor_idx ];
-                mesh->object_aabb = Aabb(
-                    make_float3_from_double(
-                        pos_gltf_accessor.minValues[0],
-                        pos_gltf_accessor.minValues[1],
-                        pos_gltf_accessor.minValues[2]
-                        ),
-                    make_float3_from_double(
-                        pos_gltf_accessor.maxValues[0],
-                        pos_gltf_accessor.maxValues[1],
-                        pos_gltf_accessor.maxValues[2]
-                        ) );
+                mesh->object_aabb = sutil::Aabb(make_float3_from_double(pos_gltf_accessor.minValues[0],
+                                                                        pos_gltf_accessor.minValues[1],
+                                                                        pos_gltf_accessor.minValues[2]),
+                                                make_float3_from_double(pos_gltf_accessor.maxValues[0],
+                                                                        pos_gltf_accessor.maxValues[1],
+                                                                        pos_gltf_accessor.maxValues[2]));
                 mesh->world_aabb = mesh->object_aabb;
                 mesh->world_aabb.transform( node_xform );
 
@@ -665,7 +654,7 @@ namespace
 
 // Load a scene from filename. Apply root_transform (which may be identity, or a transform to
 // convert from y-up (GLTF) to z-up (Blender-agreeable)
-void loadScene (const std::string& filename, MulticamScene& scene, const Matrix4x4& root_transform)
+void loadScene (const std::string& filename, MulticamScene& scene, const sutil::Matrix4x4& root_transform)
 {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
@@ -678,7 +667,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const Matrix4
     if( !ret )
     {
         std::cerr << "Failed to load GLTF scene '" << filename << "': " << err << std::endl;
-        throw Exception( err.c_str() );
+        throw sutil::Exception( err.c_str() );
     }
 
     // Calculate and store the path to the file bar the file iteself for relative includes
@@ -945,7 +934,7 @@ void MulticamScene::addImage(
     }
     else
     {
-        throw Exception( "Unsupported bits/component in glTF image" );
+        throw sutil::Exception( "Unsupported bits/component in glTF image" );
     }
 
 
@@ -1612,7 +1601,7 @@ void MulticamScene::createPTXModule()
     m_pipeline_compile_options.exceptionFlags            = OPTIX_EXCEPTION_FLAG_NONE; // should be optix_exception_flag_stack_overflow;
     m_pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
 
-    const std::string ptx = getPtxString( "EyeRenderer3", "shaders.cu" );
+    const std::string ptx = sutil::getPtxString( "EyeRenderer3", "shaders.cu" );
 
     m_ptx_module  = {};
     char log[2048];
@@ -1868,13 +1857,13 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
 
     // Miss Record
     {
-        const size_t miss_record_size = sizeof( EmptyRecord );
+        const size_t miss_record_size = sizeof( sutil::EmptyRecord );
         CUDA_CHECK( cudaMalloc(
                         reinterpret_cast<void**>( &sbt.missRecordBase ),
                         miss_record_size*globalParameters::RAY_TYPE_COUNT
                         ) );
 
-        EmptyRecord ms_sbt[ globalParameters::RAY_TYPE_COUNT ];
+        sutil::EmptyRecord ms_sbt[ globalParameters::RAY_TYPE_COUNT ];
         OPTIX_CHECK( optixSbtRecordPackHeader( m_radiance_miss_group,  &ms_sbt[0] ) );
         OPTIX_CHECK( optixSbtRecordPackHeader( m_occlusion_miss_group, &ms_sbt[1] ) );
 

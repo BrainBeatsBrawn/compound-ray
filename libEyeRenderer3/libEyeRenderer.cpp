@@ -259,7 +259,7 @@ void cleanup()
 //------------------------------------------------------------------------------
 void setVerbosity (bool v) { notificationsActive = v; }
 
-void loadGlTFscene (const char* filepath, Matrix4x4 root_transform)
+void loadGlTFscene (const char* filepath, sutil::Matrix4x4 root_transform)
 {
     if (scene == nullptr) { throw sutil::Exception ("loadGlTFscene exception: scene is nullptr"); }
 
