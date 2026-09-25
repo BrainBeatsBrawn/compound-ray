@@ -1,3 +1,10 @@
+/*
+ * This C API to compound-ray is now deprecated.
+ *
+ * Seb has moved the API functionality he uses into MulticamScene, avoiding the need for a global
+ * MulticamScene* pointer.
+ */
+
 #ifndef LIB_EYE_RENDERER_3_H
 #define LIB_EYE_RENDERER_3_H
 #include <cstddef>

@@ -369,8 +369,8 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   endif()
 
   message("-- Parsing ${target_name}...")
-  if (${target_name} STREQUAL "EyeRenderer3")
-    message("---- EyeRenderer library detected, appending shared object build targets...")
+  if (${target_name} STREQUAL "EyeRenderer3" OR ${target_name} STREQUAL "compoundray")
+    message("---- EyeRenderer/compoundray library detected, appending shared object build targets...")
     #target_compile_options(${target_name}
     #                       PUBLIC "-fpic"
     #                       )

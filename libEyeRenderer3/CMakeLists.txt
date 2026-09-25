@@ -26,16 +26,53 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# Include the eye renderer through the CMakeIncludes file instead
-# of explicitly listing every file again.
-set(local_eye_renderer_sources "")
-include("CMakeIncludes.cmake")
-add_eye_renderer("." local_eye_renderer_sources)
+include_directories(".")
+
+set(local_eye_renderer_sources
+  ./libEyeRenderer.h
+  ./libEyeRenderer.cpp
+  ./GlobalParameters.h
+  ./MulticamScene.h
+  ./MulticamScene.cpp
+  ./cameras/GenericCamera.h
+  ./cameras/GenericCamera.cpp
+  ./cameras/PerspectiveCamera.h
+  ./cameras/PerspectiveCamera.cpp
+  ./cameras/PanoramicCamera.h
+  ./cameras/PanoramicCamera.cpp
+  ./cameras/OrthographicCamera.h
+  ./cameras/OrthographicCamera.cpp
+  ./cameras/CompoundEye.h
+  ./cameras/CompoundEye.cpp
+  ./cameras/DataRecordCamera.h
+  ./shaders.cu
+  ./summing_kernel.cu
+)
+
+set(multicam_sources
+  ./GlobalParameters.h
+  ./MulticamScene.h
+  ./MulticamScene.cpp
+  ./cameras/GenericCamera.h
+  ./cameras/GenericCamera.cpp
+  ./cameras/PerspectiveCamera.h
+  ./cameras/PerspectiveCamera.cpp
+  ./cameras/PanoramicCamera.h
+  ./cameras/PanoramicCamera.cpp
+  ./cameras/OrthographicCamera.h
+  ./cameras/OrthographicCamera.cpp
+  ./cameras/CompoundEye.h
+  ./cameras/CompoundEye.cpp
+  ./cameras/DataRecordCamera.h
+  ./shaders.cu
+  ./summing_kernel.cu
+)
 
 # Mark a specific source file to be CUDA! From https://forums.developer.nvidia.com/t/how-to-compile-cuda-c-files-and-nvidia-optix-files-inside-the-same-visual-studio-project/31821/2
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/summing_kernel.cu
   PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
+
 OPTIX_add_sample_executable(EyeRenderer3 EyeRenderer3_target ${local_eye_renderer_sources} OPTIONS -rdc true)
 
 target_include_directories(${EyeRenderer3_target} PUBLIC
@@ -46,14 +83,26 @@ target_include_directories(${EyeRenderer3_target} PUBLIC
 # Client to link CUDA
 target_link_libraries(${EyeRenderer3_target} -lcudart -lrt -ldl)
 
-# Install EyeRender3 and its dependencies giving it the export name compound-ray-config
-install(TARGETS ${EyeRenderer3_target} ${sutil_target} ${glad_target}
+# libcompoundray is a new library that will only have MulticamScene in it (and *no* libEyeRenderer C API)
+OPTIX_add_sample_executable(compoundray compoundray_target ${multicam_sources} OPTIONS -rdc true)
+
+target_include_directories(${compoundray_target} PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compound-ray>"
+)
+
+# Client to link CUDA
+target_link_libraries(${compoundray_target} -lcudart -lrt -ldl)
+
+# Install EyeRender3, compoundray and its dependencies giving it the export name compound-ray-config
+install(TARGETS ${EyeRenderer3_target} ${compoundray_target} ${sutil_target} ${glad_target}
         EXPORT compound-ray-config
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
         INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray
       )
+
 
 # Install headers
 install(FILES libEyeRenderer.h GlobalParameters.h MulticamScene.h shaders.cu
@@ -75,7 +124,7 @@ install(FILES
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cameras)
 
 # Create the EXPORT so that compound-ray has its own .cmake file and find_package(compound-ray) should work
-export(TARGETS ${EyeRenderer3_target} ${sutil_target} ${glad_target}
+export(TARGETS ${EyeRenderer3_target} ${compoundray_target} ${sutil_target} ${glad_target}
     NAMESPACE compound-ray::
     FILE "${CMAKE_CURRENT_BINARY_DIR}/compound-ray-config.cmake"
 )
