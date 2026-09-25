@@ -139,14 +139,14 @@ public:
     void setCurrentEyeSamplesPerOmmatidium (int s)
     {
         if (this->isCompoundEyeActive()) {
-            ((CompoundEye*)this->getCamera())->setSamplesPerOmmatidium(s);
+            ((cray::CompoundEye*)this->getCamera())->setSamplesPerOmmatidium(s);
         }
     }
 
     int getCurrentEyeSamplesPerOmmatidium()
     {
         if (this->isCompoundEyeActive()) {
-            return(((CompoundEye*)this->getCamera())->getSamplesPerOmmatidium());
+            return(((cray::CompoundEye*)this->getCamera())->getSamplesPerOmmatidium());
         }
         return -1;
     }
@@ -154,14 +154,14 @@ public:
     void changeCurrentEyeSamplesPerOmmatidiumBy (int s)
     {
         if (this->isCompoundEyeActive()) {
-            ((CompoundEye*)this->getCamera())->changeSamplesPerOmmatidiumBy(s);
+            ((cray::CompoundEye*)this->getCamera())->changeSamplesPerOmmatidiumBy(s);
         }
     }
 
     size_t getCurrentEyeOmmatidialCount()
     {
         if (this->isCompoundEyeActive()) {
-            return ((CompoundEye*)this->getCamera())->getOmmatidialCount();
+            return ((cray::CompoundEye*)this->getCamera())->getOmmatidialCount();
         }
         return 0;
     }
@@ -175,11 +175,11 @@ public:
             if constexpr (sum_average_with_getCameraData == true) {
                 // Alternative place to do the sample summing. Useful here, so that you can time
                 // getCameraData() to work out how much time is taken to sum and transfer data to CPU
-                ((CompoundEye*)this->getCamera())->averageRecordFrame();
+                ((cray::CompoundEye*)this->getCamera())->averageRecordFrame();
             }
-            size_t omcount = ((CompoundEye*)this->getCamera())->getOmmatidialCount();
+            size_t omcount = ((cray::CompoundEye*)this->getCamera())->getOmmatidialCount();
             cameraData.resize (omcount);
-            float3* _data = ((CompoundEye*)this->getCamera())->getRecordFrame();
+            float3* _data = ((cray::CompoundEye*)this->getCamera())->getRecordFrame();
             for (size_t i = 0; i < omcount; ++i) {
                 // copy _data[i] to cameraData[i] applying gamma correction
                 // 1/2.2 = 0.45454545
@@ -228,7 +228,7 @@ public:
                                    0)); // stream
 
         if (this->hasCompoundEyes() && this->isCompoundEyeActive()) {
-            CompoundEye* camera = (CompoundEye*) this->getCamera();
+            cray::CompoundEye* camera = (cray::CompoundEye*) this->getCamera();
 
             auto csbt = this->compoundSbt();
             // Launch the ommatidial renderer
@@ -309,7 +309,7 @@ public:
     // Return index of the added camera
     int addCamera  ( GenericCamera* cameraPtr  );
     // Returns the position of the compound camera in the array for later reference
-    uint32_t addCompoundCamera  (int camera_index, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
+    uint32_t addCompoundCamera  (int camera_index, cray::CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
     uint32_t addMesh    ( std::shared_ptr<MeshGroup> mesh )    {
         m_meshes.push_back( mesh );
         return (this->m_meshes.size() - 1u);
@@ -421,7 +421,7 @@ private:
 
     // Contains pointers to all compound eyes (shared with the m_cameras vector). Might make more
     // sense for this to be map<int, CompoundEye*>
-    std::map<int, CompoundEye*>          m_compoundEyes;
+    std::map<int, cray::CompoundEye*>    m_compoundEyes;
 
     OptixShaderBindingTable              m_compound_sbt             = {};
     OptixPipeline                        m_compound_pipeline        = 0;

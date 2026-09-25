@@ -2,6 +2,8 @@
 
 #include <optix_stubs.h>
 #include <string>
+#include <cstdint>
+#include <cstddef>
 
 #include <sutil/sutilapi.h>
 #include <sutil/vec_math.h>
@@ -10,66 +12,69 @@
 
 #include "CompoundEyeDataTypes.h"
 
-class CompoundEye : public cray::DataRecordCamera<cray::CompoundEyeData>
+namespace cray
 {
-public:
-    static void InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, OptixProgramGroup& compoundProgramGroup, const CUdeviceptr& targetRecord);
-    static void FreeCompoundRecord();
-    static void RedirectCompoundDataPointer(OptixProgramGroup& programGroup, const CUdeviceptr& targetRecord);
+    struct CompoundEye : public cray::DataRecordCamera<cray::CompoundEyeData>
+    {
+        static void InitiateCompoundRecord (OptixShaderBindingTable& compoundSbt, OptixProgramGroup& compoundProgramGroup, const CUdeviceptr& targetRecord);
+        static void FreeCompoundRecord();
+        static void RedirectCompoundDataPointer (OptixProgramGroup& programGroup, const CUdeviceptr& targetRecord);
 
-    CompoundEye(const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath);
-    ~CompoundEye();
+        CompoundEye(const std::string name, const std::string shaderName, std::size_t ommatidialCount, const std::string& eyeDataPath);
+        ~CompoundEye();
 
-    const char* getEntryFunctionName() const { return shaderName.c_str(); }
+        const char* getEntryFunctionName() const { return shaderName.c_str(); }
 
-    void setOmmatidia(cray::Ommatidium* ommatidia, size_t count); // Copies in the ommatidial list, resetting and reallocating all affected memory if count differs from the current ommatidial count
-    void copyOmmatidia(cray::Ommatidium* ommatidia); // Copies in the ommatidial list given, to the length of the current number of ommatidia in the eye
-    const size_t getOmmatidialCount() const { return specializedData.ommatidialCount; }
+        void setOmmatidia (cray::Ommatidium* ommatidia, std::size_t count); // Copies in the ommatidial list, resetting and reallocating all affected memory if count differs from the current ommatidial count
+        void copyOmmatidia (cray::Ommatidium* ommatidia); // Copies in the ommatidial list given, to the length of the current number of ommatidia in the eye
+        const size_t getOmmatidialCount() const { return specializedData.ommatidialCount; }
 
-    const uint32_t getSamplesPerOmmatidium() const { return specializedData.samplesPerOmmatidium; }
-    void setSamplesPerOmmatidium(int32_t s);
-    void changeSamplesPerOmmatidiumBy(int32_t d);
-    void setShaderName(const std::string shaderName);
+        const std::uint32_t getSamplesPerOmmatidium() const { return specializedData.samplesPerOmmatidium; }
+        void setSamplesPerOmmatidium (std::int32_t s);
+        void changeSamplesPerOmmatidiumBy (std::int32_t d);
+        void setShaderName (const std::string shaderName);
 
-    // Sets this eye's randomsConfigured to true. TODO(RANDOMS): Will not be required when randoms are ensured configured on creation. Literally only used in libEyeRenderer's renderFrame function:
-    void setRandomsAsConfigured() { specializedData.randomsConfigured = true; }
+        // Sets this eye's randomsConfigured to true. TODO(RANDOMS): Will not be required when randoms are ensured configured on creation. Literally only used in libEyeRenderer's renderFrame function:
+        void setRandomsAsConfigured() { specializedData.randomsConfigured = true; }
 
-    std::string eyeDataPath; // A string containing the path to the eye data (note: easily mutable)
+        std::string eyeDataPath; // A string containing the path to the eye data (note: easily mutable)
 
-    // Copy data from GPU to host, then average across samples to get data in ommatidial_average.
-    void copyOmmatidialDataToHost();
+        // Copy data from GPU to host, then average across samples to get data in ommatidial_average.
+        void copyOmmatidialDataToHost();
 
-    // Return the pointer ommatidial_average if it is allocated. Call copyOmmatidialDataToHost first.
-    float3* getRecordFrame();
-    void zeroRecordFrame();
-    void averageRecordFrame();
+        // Return the pointer ommatidial_average if it is allocated. Call copyOmmatidialDataToHost first.
+        float3* getRecordFrame();
+        void zeroRecordFrame();
+        void averageRecordFrame();
 
-private:
+    private:
 
-    // Run through h_ommatidial_samples and compute ommatidial_average.
-    void computeOmmatidialSampleAverage();
+        // Run through h_ommatidial_samples and compute ommatidial_average.
+        void computeOmmatidialSampleAverage();
 
-    // Static consts for configuration
-    static constexpr const char* NAME_PREFIX = "__raygen__compound_projection_";
+        // Static consts for configuration
+        static constexpr const char* NAME_PREFIX = "__raygen__compound_projection_";
 
-    // Static variables for management of the compound pipeline's single redirecting record
-    static cray::RaygenRecord<cray::RecordPointer> s_compoundRecordPtrRecord;
-    static CUdeviceptr s_d_compoundRecordPtrRecord;
+        // Static variables for management of the compound pipeline's single redirecting record
+        static cray::RaygenRecord<cray::RecordPointer> s_compoundRecordPtrRecord;
+        static CUdeviceptr s_d_compoundRecordPtrRecord;
 
-    // Changes the ommatidial count, resetting ommatidial, random
-    // and compound rendering buffers if the count has changed
-    void reconfigureOmmatidialCount(size_t count);
+        // Changes the ommatidial count, resetting ommatidial, random
+        // and compound rendering buffers if the count has changed
+        void reconfigureOmmatidialCount (std::size_t count);
 
-    // A pointer to (number of ommatidia) float3 values, copied from CUDA device
-    float3* ommatidial_average = nullptr;
+        // A pointer to (number of ommatidia) float3 values, copied from CUDA device
+        float3* ommatidial_average = nullptr;
 
-    std::string shaderName;
-    void allocateOmmatidialMemory();
-    void allocateOmmatidialRandomStates();
-    void allocateCompoundRenderingBuffer();
-    void allocateCompoundRenderingAvgBuffer();
-    void freeOmmatidialMemory();
-    void freeOmmatidialRandomStates();
-    void freeCompoundRenderingBuffer();
-    void freeCompoundRenderingAvgBuffer();
-};
+        std::string shaderName;
+        void allocateOmmatidialMemory();
+        void allocateOmmatidialRandomStates();
+        void allocateCompoundRenderingBuffer();
+        void allocateCompoundRenderingAvgBuffer();
+        void freeOmmatidialMemory();
+        void freeOmmatidialRandomStates();
+        void freeCompoundRenderingBuffer();
+        void freeCompoundRenderingAvgBuffer();
+    };
+
+} // namespace

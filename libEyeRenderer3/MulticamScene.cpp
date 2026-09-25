@@ -363,7 +363,7 @@ namespace internal
                 }
 
                 // Create a new compound eye
-                CompoundEye* camera = new CompoundEye(gltf_camera.name, projectionShader, ommVector.size(), usedEyeDataPath);
+                cray::CompoundEye* camera = new cray::CompoundEye(gltf_camera.name, projectionShader, ommVector.size(), usedEyeDataPath);
                 camera->setPosition(eye);
                 camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
                 int cidx = scene.addCamera(camera);
@@ -1067,7 +1067,7 @@ void cray::MulticamScene::finalize()
     createSBTmissAndHit(m_sbt);
 
     // Now handle the creation of the compound SBT table
-    CompoundEye::InitiateCompoundRecord(m_compound_sbt, m_compound_raygen_group, c->getRecordPtr());// Initialize the compound record
+    cray::CompoundEye::InitiateCompoundRecord(m_compound_sbt, m_compound_raygen_group, c->getRecordPtr());// Initialize the compound record
     createSBTmissAndHit(m_compound_sbt); // Create the miss and hit bindings
 
     // Make sure the raygenRecord is pointed at and valid memory:
@@ -1088,7 +1088,7 @@ void cray::MulticamScene::cleanup()
 {
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->params->lights.data     ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->d_params               ) ) );
-    CompoundEye::FreeCompoundRecord();
+    cray::CompoundEye::FreeCompoundRecord();
     delete this->params;
 }
 
@@ -1145,7 +1145,7 @@ void cray::MulticamScene::previousCamera()
 //  COMPOUND EYE FUNCTIONS
 //
 //------------------------------------------------------------------------------
-uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, std::vector<cray::Ommatidium>& ommVec)
+uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, cray::CompoundEye* cameraPtr, std::vector<cray::Ommatidium>& ommVec)
 {
     m_compoundEyes[cam_idx] = cameraPtr;
     m_ommVecs[cam_idx] = ommVec;
@@ -1872,7 +1872,7 @@ void cray::MulticamScene::reconfigureSBTforCurrentCamera(bool force)
 
         // Redirect the static compound eye pipeline record toward the current camera's record since the currently selected camera has changed
         // TODO: The raygen group reference might not be needed here. Find out.
-        CompoundEye::RedirectCompoundDataPointer(m_compound_raygen_group, c->getRecordPtr());
+        cray::CompoundEye::RedirectCompoundDataPointer(m_compound_raygen_group, c->getRecordPtr());
 
         optixPipelineDestroy(m_pipeline);
         createPipeline();

@@ -126,7 +126,7 @@ void handleCameraUpdate()
 // Launch Optix threads to render a camera view. Once this is done getCameraData() accesses the
 // summed average values for a compound eye. Non-compound eye data is accessed with
 // getFramePointer()
-void launchFrame (cray::MulticamScene* _scene )
+void launchFrame (cray::MulticamScene* _scene)
 {
     if (outputBuffer && (outputBuffer->width() * outputBuffer->height() > 0)) {
         _scene->params->frame_buffer = outputBuffer->map();
@@ -142,7 +142,7 @@ void launchFrame (cray::MulticamScene* _scene )
                                0)); // stream
 
     if (_scene->hasCompoundEyes() && _scene->isCompoundEyeActive()) {
-        CompoundEye* camera = (CompoundEye*) _scene->getCamera();
+        cray::CompoundEye* camera = (cray::CompoundEye*) _scene->getCamera();
 
         auto csbt = _scene->compoundSbt();
         // Launch the ommatidial renderer
@@ -418,13 +418,13 @@ void setOmmatidia (OmmatidiumPacket* omms, size_t count)
     }
 
     // Actually set the new ommatidial structure
-    ((CompoundEye*)scene->getCamera())->setOmmatidia (ommVector.data(), count);
+    ((cray::CompoundEye*)scene->getCamera())->setOmmatidia (ommVector.data(), count);
 }
 
 const char* getCurrentEyeDataPath()
 {
     if (scene->isCompoundEyeActive()) {
-        return ((CompoundEye*)scene->getCamera())->eyeDataPath.c_str();
+        return ((cray::CompoundEye*)scene->getCamera())->eyeDataPath.c_str();
     }
     return "\0";
 }
@@ -432,22 +432,22 @@ const char* getCurrentEyeDataPath()
 void setCurrentEyeShaderName (char* name)
 {
     if (scene->isCompoundEyeActive()) {
-        ((CompoundEye*)scene->getCamera())->setShaderName (std::string(name)); // Set the shader
+        ((cray::CompoundEye*)scene->getCamera())->setShaderName (std::string(name)); // Set the shader
         scene->reconfigureSBTforCurrentCamera (true); // Reconfigure for the new shader
     }
 }
 
-bool isInsideHitGeometry(float x, float y, float z, char* name)
+bool isInsideHitGeometry (float x, float y, float z, char* name)
 {
     return scene->isInsideHitGeometry (make_float3(x, y, z), std::string(name), false);
 }
 
-float3 getGeometryMaxBounds(char* name)
+float3 getGeometryMaxBounds (char* name)
 {
     return scene->getGeometryMaxBounds (std::string(name));
 }
 
-float3 getGeometryMinBounds(char* name)
+float3 getGeometryMinBounds (char* name)
 {
     return scene->getGeometryMinBounds (std::string(name));
 }
