@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "GenericCameraDataTypes.h"
 #include "GenericCamera.h"
 #include <sutil/Exception.h> // For OPTIX_CHECK and CUDA_CHECK

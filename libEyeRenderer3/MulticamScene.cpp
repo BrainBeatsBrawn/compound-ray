@@ -278,7 +278,7 @@ namespace internal
                 if constexpr (debug_cameras == true) {
                     std::cout << "This camera has special indicator 'panoramic' specified, adding panoramic camera..."<<std::endl;
                 }
-                PanoramicCamera* camera = new PanoramicCamera(gltf_camera.name);
+                cray::PanoramicCamera* camera = new cray::PanoramicCamera(gltf_camera.name);
                 camera->setPosition(eye);
                 camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
                 int cidx = scene.addCamera(camera);
@@ -377,7 +377,7 @@ namespace internal
                 return;
             }
 
-            PerspectiveCamera* camera = new PerspectiveCamera(gltf_camera.name);
+            cray::PerspectiveCamera* camera = new cray::PerspectiveCamera (gltf_camera.name);
             camera->setPosition(eye);
             camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
             camera->setYFOV(yfov);

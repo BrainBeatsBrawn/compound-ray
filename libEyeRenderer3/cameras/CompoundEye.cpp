@@ -1,10 +1,11 @@
+#include <iostream>
 #include "CompoundEye.h"
 #include "curand_kernel.h"
 
 cray::RaygenRecord<RecordPointer> CompoundEye::s_compoundRecordPtrRecord = (cray::RaygenRecord<RecordPointer>){};
 CUdeviceptr CompoundEye::s_d_compoundRecordPtrRecord = (CUdeviceptr){};
 
-CompoundEye::CompoundEye(const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath) : DataRecordCamera<CompoundEyeData>(name), shaderName(NAME_PREFIX + shaderName)
+CompoundEye::CompoundEye(const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath) : cray::DataRecordCamera<CompoundEyeData>(name), shaderName(NAME_PREFIX + shaderName)
 {
     //// Assign VRAM for compound eye structure configuration
     reconfigureOmmatidialCount(ommatidialCount);

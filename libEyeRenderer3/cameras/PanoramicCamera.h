@@ -1,15 +1,16 @@
-#include "GenericCamera.h"
+#pragma once
+
 #include "DataRecordCamera.h"
-
-#include <optix_stubs.h>// Needed for optixSbtRecordPackHeader
-
 #include "PanoramicCameraDataTypes.h"
 
-class PanoramicCamera : public cray::DataRecordCamera<PanoramicCameraData>
+namespace cray
 {
-public:
-    PanoramicCamera(const std::string name);
-    ~PanoramicCamera();
-    void setStartRadius(float d);
-    const char* getEntryFunctionName() const { return "__raygen__panoramic"; }
-};
+    struct PanoramicCamera : public cray::DataRecordCamera<PanoramicCameraData>
+    {
+        PanoramicCamera (const std::string name);
+        ~PanoramicCamera();
+        void setStartRadius (float d);
+        const char* getEntryFunctionName() const { return "__raygen__panoramic"; }
+    };
+
+} // namespace

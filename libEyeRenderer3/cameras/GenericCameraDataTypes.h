@@ -1,6 +1,7 @@
 // The root file for the Record Data Types for cameras hierarchy
 #pragma once
 
+#include <optix_stubs.h> // For OPTIX_SBT_RECORD_*
 #include <vector_types.h>
 
 namespace cray

@@ -2,11 +2,10 @@
 
 #pragma once
 
+#include <string>
+#include <vector_types.h>
 #include <optix.h>
 #include <sutil/Matrix.h>
-//#include <sutil/Exception.h> // Not the right include.
-
-#include <iostream>
 
 namespace cray
 {
