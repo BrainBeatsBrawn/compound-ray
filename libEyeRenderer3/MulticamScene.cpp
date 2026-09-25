@@ -1046,16 +1046,11 @@ void MulticamScene::finalize()
     //    m_cameras.front().setLookat( m_scene_aabb.center() );
 }
 
-
-MulticamScene::~MulticamScene()
-{
-    cleanup();
-}
-
 void MulticamScene::cleanup()
 {
     //TODO: destroy the camera vector properly
     CompoundEye::FreeCompoundRecord();
+    delete this->params;
 }
 
 //------------------------------------------------------------------------------

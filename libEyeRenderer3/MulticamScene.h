@@ -72,6 +72,9 @@
 class MulticamScene
 {
 public:
+    globalParameters::LaunchParams*  d_params = nullptr;
+    globalParameters::LaunchParams*  params = nullptr; // hostside now
+
     struct MeshGroup
     {
         std::string                       name;
@@ -114,7 +117,15 @@ public:
         float p1, p2, p3;
     };
 
-    ~MulticamScene();
+    MulticamScene()
+    {
+        this->params = new globalParameters::LaunchParams{};
+    }
+
+    ~MulticamScene()
+    {
+        this->cleanup();
+    }
 
     // Obtain access to a mesh of positions (to scan over a landscape)
     const std::vector<cuda::BufferView<float3> >* getMeshPositions (size_t idx)

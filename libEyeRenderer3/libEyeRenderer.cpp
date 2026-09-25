@@ -95,12 +95,9 @@ static constexpr bool sum_average_with_getCameraData = false;
 
 MulticamScene* scene;
 
-globalParameters::LaunchParams*  d_params = nullptr;
-globalParameters::LaunchParams*  params = nullptr; // hostside now
-
-// An output buffer used by non-compound eye cameras. Annoyingly, CUDAOutputBuffer has lots of GL calls in it.
+// An output buffer used by non-compound eye cameras. Annoyingly, CUDAOutputBuffer has lots of GL calls in it. libEyeRenderer only.
 sutil::CUDAOutputBuffer<uchar4>* outputBuffer = nullptr;
-// The width and height of the output buffer
+// The width and height of the output buffer. libEyeRenderer only.
 int32_t width = 0;
 int32_t height = 0;
 
@@ -110,21 +107,19 @@ void multicamAlloc()
 {
     outputBuffer = new sutil::CUDAOutputBuffer<uchar4>(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
     scene = new MulticamScene{};
-    params = new globalParameters::LaunchParams{};
 }
 
 void multicamDealloc()
 {
     if (outputBuffer) { delete outputBuffer; }
-    delete params;
     delete scene;
 }
 
-void initLaunchParams( const MulticamScene* _scene )
+void initLaunchParams( MulticamScene* _scene )
 {
-    params->frame_buffer = nullptr;
-    params->frame = 0;
-    params->lighting = false;
+    _scene->params->frame_buffer = nullptr;
+    _scene->params->frame = 0;
+    _scene->params->lighting = false;
 
     const float loffset = _scene->aabb().maxExtent();
 
@@ -146,17 +141,16 @@ void initLaunchParams( const MulticamScene* _scene )
     lights[3].position  = _scene->aabb().center() + make_float3( 1.0f, -6.0f, 0.0f);
     lights[3].falloff   = Light::Falloff::QUADRATIC;
 
-    params->lights.count  = static_cast<uint32_t>( lights.size() );
+    _scene->params->lights.count  = static_cast<uint32_t>( lights.size() );
 
-    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&params->lights.data), lights.size() * sizeof(Light::Point)));
-    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(params->lights.data), lights.data(),
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&_scene->params->lights.data), lights.size() * sizeof(Light::Point)));
+    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(_scene->params->lights.data), lights.data(),
                             lights.size() * sizeof(Light::Point), cudaMemcpyHostToDevice));
 
-    params->miss_color = make_float3( 0.1f );
+    _scene->params->miss_color = make_float3( 0.1f );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(_scene->d_params)), sizeof(globalParameters::LaunchParams)));
 
-    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&d_params), sizeof(globalParameters::LaunchParams)));
-
-    params->handle = _scene->traversableHandle();
+    _scene->params->handle = _scene->traversableHandle();
 }
 
 
@@ -174,14 +168,14 @@ void handleCameraUpdate()
 void launchFrame (MulticamScene* _scene )
 {
     if (outputBuffer && (outputBuffer->width() * outputBuffer->height() > 0)) {
-        params->frame_buffer = outputBuffer->map();
+        _scene->params->frame_buffer = outputBuffer->map();
     } else {
-        params->frame_buffer = nullptr;
+        _scene->params->frame_buffer = nullptr;
     }
 
-    // d_params is a global pointer to GPU RAM, params is a global pointer to CPU-side RAM
-    CUDA_CHECK(cudaMemcpyAsync(reinterpret_cast<void*>(d_params),
-                               params,
+    // d_params is a (no-longer global) pointer to GPU RAM, params is a (no-longer global) pointer to CPU-side RAM
+    CUDA_CHECK(cudaMemcpyAsync(reinterpret_cast<void*>(_scene->d_params),
+                               _scene->params,
                                sizeof(globalParameters::LaunchParams),
                                cudaMemcpyHostToDevice,
                                0)); // stream
@@ -194,7 +188,7 @@ void launchFrame (MulticamScene* _scene )
         auto cpl = _scene->compoundPipeline();
         auto ole = optixLaunch (cpl,                               // pipeline
                                 0,                                 // stream
-                                reinterpret_cast<CUdeviceptr>( d_params ), // pipelineParams
+                                reinterpret_cast<CUdeviceptr>( _scene->d_params ), // pipelineParams
                                 sizeof( globalParameters::LaunchParams ),  // pipelineParamsSize
                                 csbt,                              // shader buffer table
                                 camera->getOmmatidialCount(),      // launch width
@@ -214,7 +208,7 @@ void launchFrame (MulticamScene* _scene )
             }
         } // this is more or less CUDA_SYNC_CHECK();
 
-        params->frame++;// Increase the frame number
+        _scene->params->frame++;// Increase the frame number
         camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
 
         if constexpr (sum_average_with_getCameraData == false) {
@@ -228,7 +222,7 @@ void launchFrame (MulticamScene* _scene )
     if (_scene->require_noncompound_pipeline == true && width > 0 && height > 0) {
         OPTIX_CHECK (optixLaunch (_scene->pipeline(),
                                   0,      // stream
-                                  reinterpret_cast<CUdeviceptr>(d_params),
+                                  reinterpret_cast<CUdeviceptr>(_scene->d_params),
                                   sizeof(globalParameters::LaunchParams),
                                   _scene->sbt(),
                                   width,  // launch width
@@ -245,8 +239,8 @@ void launchFrame (MulticamScene* _scene )
 
 void cleanup()
 {
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( params->lights.data     ) ) );
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( d_params               ) ) );
+    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( scene->params->lights.data     ) ) );
+    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( scene->d_params               ) ) );
     scene->cleanup();
 }
 
