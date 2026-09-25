@@ -142,15 +142,15 @@ public:
     }
 
 protected:
-    RaygenRecord<RaygenPosedContainer<T>> sbtRecord; // The sbtRecord associated with this camera
+    cray::RaygenRecord<cray::RaygenPosedContainer<T>> sbtRecord; // The sbtRecord associated with this camera
     T& specializedData = sbtRecord.data.specializedData; // Convenience reference
-    LocalSpace& ls = sbtRecord.data.localSpace; // Convenience reference
+    cray::LocalSpace& ls = sbtRecord.data.localSpace; // Convenience reference
 
 private:
     CUdeviceptr d_record = 0;// Stores the pointer to the SBT record
 
     // Change tracking duplicates (done by keeping an old copy and comparing)
-    RaygenPosedContainer<T> previous_sbtRecordData;
+    cray::RaygenPosedContainer<T> previous_sbtRecordData;
 
     void allocateRecord()
     {

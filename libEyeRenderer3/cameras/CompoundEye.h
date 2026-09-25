@@ -52,8 +52,8 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     static constexpr const char* NAME_PREFIX = "__raygen__compound_projection_";
 
     // Static variables for management of the compound pipeline's single redirecting record
-    static RaygenRecord<RecordPointer> s_compoundRecordPtrRecord;
-    static CUdeviceptr                 s_d_compoundRecordPtrRecord;
+    static cray::RaygenRecord<RecordPointer> s_compoundRecordPtrRecord;
+    static CUdeviceptr s_d_compoundRecordPtrRecord;
 
     // Changes the ommatidial count, resetting ommatidial, random
     // and compound rendering buffers if the count has changed

@@ -1,3 +1,6 @@
+#pragma once
+
+#include <vector_types.h>
 #include "GenericCameraDataTypes.h"
 
 struct PanoramicCameraData
@@ -9,4 +12,4 @@ struct PanoramicCameraData
 };
 
 // A typedef for a RaygenPosedContainer containing a PanoramicCameraData
-typedef RaygenPosedContainer<PanoramicCameraData> PanoramicCameraPosedData;
+typedef cray::RaygenPosedContainer<PanoramicCameraData> PanoramicCameraPosedData;
