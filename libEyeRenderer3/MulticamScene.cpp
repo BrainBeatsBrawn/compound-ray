@@ -345,12 +345,12 @@ namespace internal
 
                 // Read the lines of the file
                 std::string line;
-                std::vector<Ommatidium> ommVector;// Stores the ommatidia
+                std::vector<cray::Ommatidium> ommVector;// Stores the ommatidia
                 size_t ommCount = 0;
                 while(std::getline(eyeDataFile, line))
                 {
                     std::vector<std::string> splitData = splitString(line, " ");// position, direction, angle, offset
-                    Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
+                    cray::Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
                     ommVector.push_back(o);
                     ommCount++;
                 }
@@ -1145,7 +1145,7 @@ void cray::MulticamScene::previousCamera()
 //  COMPOUND EYE FUNCTIONS
 //
 //------------------------------------------------------------------------------
-uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec)
+uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, std::vector<cray::Ommatidium>& ommVec)
 {
     m_compoundEyes[cam_idx] = cameraPtr;
     m_ommVecs[cam_idx] = ommVec;

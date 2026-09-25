@@ -408,7 +408,7 @@ void setOmmatidia (OmmatidiumPacket* omms, size_t count)
     if (!scene->isCompoundEyeActive()) { return; }
 
     // First convert the OmmatidiumPacket list into an array of Ommatidium objects
-    std::vector<Ommatidium> ommVector(count);
+    std::vector<cray::Ommatidium> ommVector(count);
     for(size_t i = 0; i<count; i++) {
         OmmatidiumPacket& omm = omms[i];
         ommVector[i].relativePosition  = make_float3(omm.posX, omm.posY, omm.posZ);

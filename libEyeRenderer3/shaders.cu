@@ -37,7 +37,6 @@
 #include "GlobalParameters.h"
 
 #include <stdint.h>
-
 #include <stdio.h>
 
 // For each camera Datatype:
@@ -338,12 +337,12 @@ extern "C" __global__ void __raygen__orthographic()
 //
 //------------------------------------------------------------------------------
 
-__device__ float3 getSummedOmmatidiumData(const uint32_t ommatidiumIndex, CompoundEyeData& eyeData)
+__device__ float3 getSummedOmmatidiumData(const uint32_t ommatidiumIndex, cray::CompoundEyeData& eyeData)
 {
-  float3 summation = make_float3(0.0f);
-  for(int i = 0; i<eyeData.samplesPerOmmatidium; i++)
-    summation += ((float3*)eyeData.d_compoundBuffer)[eyeData.ommatidialCount*i + ommatidiumIndex];
-  return summation;
+    float3 summation = make_float3(0.0f);
+    for(int i = 0; i<eyeData.samplesPerOmmatidium; i++)
+        summation += ((float3*)eyeData.d_compoundBuffer)[eyeData.ommatidialCount*i + ommatidiumIndex];
+    return summation;
 }
 
 /*
@@ -353,19 +352,19 @@ __device__ float3 getSummedOmmatidiumData(const uint32_t ommatidiumIndex, Compou
  */
 extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples()
 {
-    auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3 launch_idx          = optixGetLaunchIndex();
-  const uint3 launch_dims         = optixGetLaunchDimensions();
-  const CompoundEyeData& eyeData  = posedData->specializedData;
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3 launch_idx          = optixGetLaunchIndex();
+    const uint3 launch_dims         = optixGetLaunchDimensions();
+    const cray::CompoundEyeData& eyeData  = posedData->specializedData;
 
-  // Break if this is not a pixel to render:
-  if(launch_idx.y >= eyeData.samplesPerOmmatidium || launch_idx.x >= eyeData.ommatidialCount)
-    return;
+    // Break if this is not a pixel to render:
+    if(launch_idx.y >= eyeData.samplesPerOmmatidium || launch_idx.x >= eyeData.ommatidialCount)
+        return;
 
-  // Set the colour based on the ommatidia this pixel represents
-  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  float3 pixel = ((float3*)eyeData.d_compoundBuffer)[eyeData.ommatidialCount*launch_idx.y + launch_idx.x];
-  params.frame_buffer[image_index] = make_color(pixel);
+    // Set the colour based on the ommatidia this pixel represents
+    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    float3 pixel = ((float3*)eyeData.d_compoundBuffer)[eyeData.ommatidialCount*launch_idx.y + launch_idx.x];
+    params.frame_buffer[image_index] = make_color(pixel);
 }
 
 /*
@@ -374,20 +373,20 @@ extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples(
  */
 extern "C" __global__ void __raygen__compound_projection_single_dimension()
 {
-    auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3  launch_idx      = optixGetLaunchIndex();
-  const uint3  launch_dims     = optixGetLaunchDimensions();
-  const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3  launch_idx      = optixGetLaunchIndex();
+    const uint3  launch_dims     = optixGetLaunchDimensions();
+    const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
-  // Scale the x coordinate by the number of ommatidia (we don't want to be reading too far off the edge of the assigned ommatidia)
-  const uint32_t ommatidiumIndex = (launch_idx.x * ommatidialCount)/launch_dims.x;
+    // Scale the x coordinate by the number of ommatidia (we don't want to be reading too far off the edge of the assigned ommatidia)
+    const uint32_t ommatidiumIndex = (launch_idx.x * ommatidialCount)/launch_dims.x;
 
-  //
-  // Update results
-  //
-  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  float3 summedpixel = getSummedOmmatidiumData(ommatidiumIndex, posedData->specializedData);
-  params.frame_buffer[image_index] = make_color(summedpixel);
+    //
+    // Update results
+    //
+    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    float3 summedpixel = getSummedOmmatidiumData(ommatidiumIndex, posedData->specializedData);
+    params.frame_buffer[image_index] = make_color(summedpixel);
 }
 
 /*
@@ -396,14 +395,14 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension()
  */
 extern "C" __global__ void __raygen__compound_projection_single_dimension_fast()
 {
-    auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3 launch_idx = optixGetLaunchIndex();
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3 launch_idx = optixGetLaunchIndex();
 
-  // Break if this is not a pixel to render:
-  if(launch_idx.y > 0 || launch_idx.x >= posedData->specializedData.ommatidialCount) return;
+    // Break if this is not a pixel to render:
+    if(launch_idx.y > 0 || launch_idx.x >= posedData->specializedData.ommatidialCount) return;
 
-  // Set the colour based on the ommatidia this pixel represents
-  params.frame_buffer[(uint32_t)launch_idx.x] = make_color(getSummedOmmatidiumData(launch_idx.x, posedData->specializedData));
+    // Set the colour based on the ommatidia this pixel represents
+    params.frame_buffer[(uint32_t)launch_idx.x] = make_color(getSummedOmmatidiumData(launch_idx.x, posedData->specializedData));
 }
 
 /*
@@ -412,40 +411,40 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension_fast()
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_positionwise()
 {
-    auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3  launch_idx      = optixGetLaunchIndex();
-  const uint3  launch_dims     = optixGetLaunchDimensions();
-  const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3  launch_idx      = optixGetLaunchIndex();
+    const uint3  launch_dims     = optixGetLaunchDimensions();
+    const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
-  // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+    // Project the 2D coordinates of the display window to spherical coordinates
+    const float2 d = 2.0f * make_float2(
+        static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
+        static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
+        ) - 1.0f;
+    const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
+    const float cosY = cos(angles.y);
+    const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
 
-  // Finds the closest ommatidium (NOTE: This is explicitly based on the position of the base of the ommatidium)
-  Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSpherePosition)/(length(allOmmatidia->relativePosition)*length(unitSpherePosition)));
-  float angle;
-  uint32_t i, closestIndex = 0;
-  for(i = 1; i<ommatidialCount; i++)
-  {
-    angle = acos(dot((allOmmatidia+i)->relativePosition, unitSpherePosition)/(length((allOmmatidia+i)->relativePosition)*length(unitSpherePosition)));
-    if(angle < smallestAngle)
+    // Finds the closest ommatidium (NOTE: This is explicitly based on the position of the base of the ommatidium)
+    cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
+    float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSpherePosition)/(length(allOmmatidia->relativePosition)*length(unitSpherePosition)));
+    float angle;
+    uint32_t i, closestIndex = 0;
+    for(i = 1; i<ommatidialCount; i++)
     {
-      smallestAngle = angle;
-      closestIndex = i;
+        angle = acos(dot((allOmmatidia+i)->relativePosition, unitSpherePosition)/(length((allOmmatidia+i)->relativePosition)*length(unitSpherePosition)));
+        if(angle < smallestAngle)
+        {
+            smallestAngle = angle;
+            closestIndex = i;
+        }
     }
-  }
 
-  //
-  // Update results
-  //
-  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
+    //
+    // Update results
+    //
+    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
 }
 
 /*
@@ -454,41 +453,41 @@ extern "C" __global__ void __raygen__compound_projection_spherical_positionwise(
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_orientationwise()
 {
-    auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3  launch_idx      = optixGetLaunchIndex();
-  const uint3  launch_dims     = optixGetLaunchDimensions();
-  const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3  launch_idx      = optixGetLaunchIndex();
+    const uint3  launch_dims     = optixGetLaunchDimensions();
+    const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
-  // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+    // Project the 2D coordinates of the display window to spherical coordinates
+    const float2 d = 2.0f * make_float2(
+        static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
+        static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
+        ) - 1.0f;
+    const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
+    const float cosY = cos(angles.y);
+    const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
 
-  // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
-  Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
-  float angle;
-  uint32_t i, closestIndex = 0;
-  for(i = 1; i<ommatidialCount; i++)
-  {
-    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
-    if(angle < smallestAngle)
+    // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
+    cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
+    float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
+    float angle;
+    uint32_t i, closestIndex = 0;
+    for(i = 1; i<ommatidialCount; i++)
     {
-      smallestAngle = angle;
-      closestIndex = i;
+        angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
+        if(angle < smallestAngle)
+        {
+            smallestAngle = angle;
+            closestIndex = i;
+        }
     }
-  }
 
-  //
-  // Update results
-  //
-  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  // This is summing into the frame buffer. I want to do this just for data, with index as per ommatidial indices
-  params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
+    //
+    // Update results
+    //
+    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    // This is summing into the frame buffer. I want to do this just for data, with index as per ommatidial indices
+    params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
 }
 
 /*
@@ -497,49 +496,49 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_split_orientationwise()
 {
-  auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3  launch_idx      = optixGetLaunchIndex();
-  const uint3  launch_dims     = optixGetLaunchDimensions();
-  const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3  launch_idx      = optixGetLaunchIndex();
+    const uint3  launch_dims     = optixGetLaunchDimensions();
+    const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
-  //// Project the 2D coordinates of the display window to two sets of spherical coordinates
-  // Get the 2D coordinates of the pixel
-  const float2 uv = make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          );
-  //const float d = ((uv * make_float2(2.0f, 1.0f))%make_float2(1.0f))*2 -1.0f;
-  const float2 scaled = uv * make_float2(2.0f, 1.0f);
-  const float subtraction = scaled.x>1.0f ? 1.0f : 0.f;
-  const float2 modded = make_float2(scaled.x-subtraction, scaled.y);
-  const float2 d = modded*2.0 -1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+    //// Project the 2D coordinates of the display window to two sets of spherical coordinates
+    // Get the 2D coordinates of the pixel
+    const float2 uv = make_float2(
+        static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
+        static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
+        );
+    //const float d = ((uv * make_float2(2.0f, 1.0f))%make_float2(1.0f))*2 -1.0f;
+    const float2 scaled = uv * make_float2(2.0f, 1.0f);
+    const float subtraction = scaled.x>1.0f ? 1.0f : 0.f;
+    const float2 modded = make_float2(scaled.x-subtraction, scaled.y);
+    const float2 d = modded*2.0 -1.0f;
+    const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
+    const float cosY = cos(angles.y);
+    const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
 
-  // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
-  // (ALSO NOTE: In this, the "split" version, those points on the positive x axis are considered only by pixels on the right,
-  //             the inverse is true of those on the left)
-  Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
-  float angle;
-  uint32_t i, closestIndex = 0;
-  for(i = 1; i<ommatidialCount; i++)
-  {
-    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
-    if( (((allOmmatidia+i)->relativePosition.x > 0.f && uv.x > 0.5f) || ((allOmmatidia+i)->relativePosition.x < 0.f && uv.x < 0.5f))
-        && angle < smallestAngle)
+    // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
+    // (ALSO NOTE: In this, the "split" version, those points on the positive x axis are considered only by pixels on the right,
+    //             the inverse is true of those on the left)
+    cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
+    float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
+    float angle;
+    uint32_t i, closestIndex = 0;
+    for(i = 1; i<ommatidialCount; i++)
     {
-      smallestAngle = angle;
-      closestIndex = i;
+        angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
+        if( (((allOmmatidia+i)->relativePosition.x > 0.f && uv.x > 0.5f) || ((allOmmatidia+i)->relativePosition.x < 0.f && uv.x < 0.5f))
+            && angle < smallestAngle)
+        {
+            smallestAngle = angle;
+            closestIndex = i;
+        }
     }
-  }
 
-  //
-  // Update results
-  //
-  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
+    //
+    // Update results
+    //
+    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
 }
 
 /*
@@ -549,49 +548,49 @@ extern "C" __global__ void __raygen__compound_projection_spherical_split_orienta
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_orientationwise_ids()
 {
-  auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3  launch_idx      = optixGetLaunchIndex();
-  const uint3  launch_dims     = optixGetLaunchDimensions();
-  const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3  launch_idx      = optixGetLaunchIndex();
+    const uint3  launch_dims     = optixGetLaunchDimensions();
+    const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
-  // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+    // Project the 2D coordinates of the display window to spherical coordinates
+    const float2 d = 2.0f * make_float2(
+        static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
+        static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
+        ) - 1.0f;
+    const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
+    const float cosY = cos(angles.y);
+    const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
 
-  // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
-  Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
-  float angle;
-  uint32_t i, closestIndex = 0;
-  for(i = 1; i<ommatidialCount; i++)
-  {
-    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
-    if(angle < smallestAngle)
+    // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
+    cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
+    float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
+    float angle;
+    uint32_t i, closestIndex = 0;
+    for(i = 1; i<ommatidialCount; i++)
     {
-      smallestAngle = angle;
-      closestIndex = i;
+        angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
+        if(angle < smallestAngle)
+        {
+            smallestAngle = angle;
+            closestIndex = i;
+        }
     }
-  }
 
-  //
-  // Update results
-  //
-  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  const uint8_t id_red   = closestIndex >> 24;
-  const uint8_t id_green = (closestIndex >> 16) & 0xff;
-  const uint8_t id_blue  = (closestIndex >> 8) & 0xff;
-  const uint8_t id_alpha = closestIndex & 0xff;
-  //if(image_index == 0)
-  //{
-  //  printf("------------------------------------------ id readouts");
-  //  printf("closestIndex: %u\tRGBA: %u %u %u %u", closestIndex, id_red, id_green, id_blue, id_alpha);
-  //}
-  params.frame_buffer[image_index] = make_uchar4(id_red, id_green, id_blue, id_alpha);
+    //
+    // Update results
+    //
+    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    const uint8_t id_red   = closestIndex >> 24;
+    const uint8_t id_green = (closestIndex >> 16) & 0xff;
+    const uint8_t id_blue  = (closestIndex >> 8) & 0xff;
+    const uint8_t id_alpha = closestIndex & 0xff;
+    //if(image_index == 0)
+    //{
+    //  printf("------------------------------------------ id readouts");
+    //  printf("closestIndex: %u\tRGBA: %u %u %u %u", closestIndex, id_red, id_green, id_blue, id_alpha);
+    //}
+    params.frame_buffer[image_index] = make_uchar4(id_red, id_green, id_blue, id_alpha);
 }
 
 /*
@@ -601,44 +600,44 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_positionwise_ids()
 {
-  auto posedData = (cray::RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
-  const uint3  launch_idx      = optixGetLaunchIndex();
-  const uint3  launch_dims     = optixGetLaunchDimensions();
-  const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
+    auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
+    const uint3  launch_idx      = optixGetLaunchIndex();
+    const uint3  launch_dims     = optixGetLaunchDimensions();
+    const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
-  // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+    // Project the 2D coordinates of the display window to spherical coordinates
+    const float2 d = 2.0f * make_float2(
+        static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
+        static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
+        ) - 1.0f;
+    const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
+    const float cosY = cos(angles.y);
+    const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
 
-  // Finds the closest ommatidium (NOTE: This is explicitly based on the position of the base of the ommatidium)
-  Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSpherePosition)/(length(allOmmatidia->relativePosition)*length(unitSpherePosition)));
-  float angle;
-  uint32_t i, closestIndex = 0;
-  for(i = 1; i<ommatidialCount; i++)
-  {
-    angle = acos(dot((allOmmatidia+i)->relativePosition, unitSpherePosition)/(length((allOmmatidia+i)->relativePosition)*length(unitSpherePosition)));
-    if(angle < smallestAngle)
+    // Finds the closest ommatidium (NOTE: This is explicitly based on the position of the base of the ommatidium)
+    cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
+    float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSpherePosition)/(length(allOmmatidia->relativePosition)*length(unitSpherePosition)));
+    float angle;
+    uint32_t i, closestIndex = 0;
+    for(i = 1; i<ommatidialCount; i++)
     {
-      smallestAngle = angle;
-      closestIndex = i;
+        angle = acos(dot((allOmmatidia+i)->relativePosition, unitSpherePosition)/(length((allOmmatidia+i)->relativePosition)*length(unitSpherePosition)));
+        if(angle < smallestAngle)
+        {
+            smallestAngle = angle;
+            closestIndex = i;
+        }
     }
-  }
 
-  //
-  // Update results
-  //
-  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  const uint8_t id_red   = closestIndex >> 24;
-  const uint8_t id_green = (closestIndex >> 16) & 0xff;
-  const uint8_t id_blue  = (closestIndex >> 8) & 0xff;
-  const uint8_t id_alpha = closestIndex & 0xff;
-  params.frame_buffer[image_index] = make_uchar4(id_red, id_green, id_blue, id_alpha);
+    //
+    // Update results
+    //
+    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    const uint8_t id_red   = closestIndex >> 24;
+    const uint8_t id_green = (closestIndex >> 16) & 0xff;
+    const uint8_t id_blue  = (closestIndex >> 8) & 0xff;
+    const uint8_t id_alpha = closestIndex & 0xff;
+    params.frame_buffer[image_index] = make_uchar4(id_red, id_green, id_blue, id_alpha);
 }
 
 //------------------------------------------------------------------------------
@@ -649,7 +648,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_positionwise_
 
 __device__ inline float3 rotatePoint(const float3 point, const float angle, const float3 axis)
 {
-  return (cos(angle)*point + sin(angle)*cross(axis, point) + (1 - cos(angle))*dot(axis, point)*axis);
+    return (cos(angle)*point + sin(angle)*cross(axis, point) + (1 - cos(angle))*dot(axis, point)*axis);
 }
 __device__ float3 generateOffsetRay( const float ommatidialAxisAngle, const float splayAngle, const float3 ommatidialAxis)
 {
@@ -665,74 +664,74 @@ __device__ float3 generateOffsetRay( const float ommatidialAxisAngle, const floa
 
 extern "C" __global__ void __raygen__ommatidium()
 {
-  const uint3 launch_idx = optixGetLaunchIndex();
-  const uint3 launch_dims = optixGetLaunchDimensions();
-  const uint32_t ommatidialIndex = launch_idx.x;
-  const int id = launch_dims.x * launch_idx.y + launch_idx.x;
+    const uint3 launch_idx = optixGetLaunchIndex();
+    const uint3 launch_dims = optixGetLaunchDimensions();
+    const uint32_t ommatidialIndex = launch_idx.x;
+    const int id = launch_dims.x * launch_idx.y + launch_idx.x;
 
-  const RecordPointer* recordPointer = (RecordPointer*)optixGetSbtDataPointer();// Gets the compound record, which points to the current camera's record.
+    const cray::RecordPointer* recordPointer = (cray::RecordPointer*)optixGetSbtDataPointer();// Gets the compound record, which points to the current camera's record.
 
-  const cray::RaygenPosedContainer<CompoundEyeData> posedData = ((cray::RaygenRecord<cray::RaygenPosedContainer<CompoundEyeData>>*)(recordPointer->d_record))->data; // Contains the actual posed eye data
+    const cray::RaygenPosedContainer<cray::CompoundEyeData> posedData = ((cray::RaygenRecord<cray::RaygenPosedContainer<cray::CompoundEyeData>>*)(recordPointer->d_record))->data; // Contains the actual posed eye data
 
-  Ommatidium* allOmmatidia = (Ommatidium*)(posedData.specializedData.d_ommatidialArray);// List of all ommatidia
-  Ommatidium ommatidium = *(allOmmatidia + ommatidialIndex);// This ommatidium
+    cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData.specializedData.d_ommatidialArray);// List of all ommatidia
+    cray::Ommatidium ommatidium = *(allOmmatidia + ommatidialIndex);// This ommatidium
 
-  // Get the relative direction of the ommatidial axis
-  const float3 relativeOmmatidialAxis = ommatidium.relativeDirection;
-  const float3 relativeOmmatidialPosition = ommatidium.relativePosition;
+    // Get the relative direction of the ommatidial axis
+    const float3 relativeOmmatidialAxis = ommatidium.relativeDirection;
+    const float3 relativeOmmatidialPosition = ommatidium.relativePosition;
 
-  curandState localState; // A local copy of the cuRand state (to be) stored in shared memory
-  curandState& sharedState = ((curandState*)(posedData.specializedData.d_randomStates))[id]; // A reference to the original cuRand state stored in shared memory
-  if(!posedData.specializedData.randomsConfigured)
-  {
-    curand_init(42, id, 0, &localState); // Initialize the state if it needs to be
-  }else{
-    localState = sharedState; // Pull down the random state of this ommatidium
-  }
+    curandState localState; // A local copy of the cuRand state (to be) stored in shared memory
+    curandState& sharedState = ((curandState*)(posedData.specializedData.d_randomStates))[id]; // A reference to the original cuRand state stored in shared memory
+    if(!posedData.specializedData.randomsConfigured)
+    {
+        curand_init(42, id, 0, &localState); // Initialize the state if it needs to be
+    }else{
+        localState = sharedState; // Pull down the random state of this ommatidium
+    }
 
-  // Calculate the s.d. to scale a standard normal random value up to so that it matches the acceptance angle
-  const float standardDeviation = ommatidium.acceptanceAngleRadians/FWHM_SD_RATIO;
-  float splayAngle = curand_normal(&localState) * standardDeviation;// Angle away from the ommatidial axis
-  float ommatidialAxisAngle = curand_uniform(&localState)*M_PIf;// Angle around the ommatidial axis (note that it only needs to rotate through 180 degrees because splayAngle can be negative)
+    // Calculate the s.d. to scale a standard normal random value up to so that it matches the acceptance angle
+    const float standardDeviation = ommatidium.acceptanceAngleRadians/FWHM_SD_RATIO;
+    float splayAngle = curand_normal(&localState) * standardDeviation;// Angle away from the ommatidial axis
+    float ommatidialAxisAngle = curand_uniform(&localState)*M_PIf;// Angle around the ommatidial axis (note that it only needs to rotate through 180 degrees because splayAngle can be negative)
 
-  // Copy the RNG state back into the buffer for use next time
-  sharedState = localState;
+    // Copy the RNG state back into the buffer for use next time
+    sharedState = localState;
 
-  // Generate a pair of angles away from the ommatidial axis
-  const float3 relativeDir = generateOffsetRay(ommatidialAxisAngle, splayAngle, relativeOmmatidialAxis);
+    // Generate a pair of angles away from the ommatidial axis
+    const float3 relativeDir = generateOffsetRay(ommatidialAxisAngle, splayAngle, relativeOmmatidialAxis);
 
-  // Move the start of the ray into the eye along the ommatidial axis by focalPointOffset
-  const float3 relativePos = relativeOmmatidialPosition - normalize(relativeOmmatidialAxis) * ommatidium.focalPointOffset;
+    // Move the start of the ray into the eye along the ommatidial axis by focalPointOffset
+    const float3 relativePos = relativeOmmatidialPosition - normalize(relativeOmmatidialAxis) * ommatidium.focalPointOffset;
 
-  // Transform ray information into world-space
-  const float3 ray_origin = posedData.position + posedData.localSpace.xAxis*relativePos.x
-                                               + posedData.localSpace.yAxis*relativePos.y
-                                               + posedData.localSpace.zAxis*relativePos.z;
-  const float3 ray_direction = posedData.localSpace.xAxis * relativeDir.x
-                             + posedData.localSpace.yAxis * relativeDir.y
-                             + posedData.localSpace.zAxis * relativeDir.z;
+    // Transform ray information into world-space
+    const float3 ray_origin = posedData.position + posedData.localSpace.xAxis*relativePos.x
+    + posedData.localSpace.yAxis*relativePos.y
+    + posedData.localSpace.zAxis*relativePos.z;
+    const float3 ray_direction = posedData.localSpace.xAxis * relativeDir.x
+    + posedData.localSpace.yAxis * relativeDir.y
+    + posedData.localSpace.zAxis * relativeDir.z;
 
-  // Transmit the ray
-  cray::PayloadRadiance payload;
-  payload.result = make_float3( 0.0f );
-  payload.importance = 1.0f;
-  payload.depth = 0.0f;
+    // Transmit the ray
+    cray::PayloadRadiance payload;
+    payload.result = make_float3( 0.0f );
+    payload.importance = 1.0f;
+    payload.depth = 0.0f;
 
-  traceRadiance(
-          params.handle,
-          ray_origin,
-          ray_direction,
-          ommatidium.focalPointOffset, // tmin, the surface of the top of the ommatidial lens
-          1e16f,  // tmax
-          &payload );
+    traceRadiance(
+        params.handle,
+        ray_origin,
+        ray_direction,
+        ommatidium.focalPointOffset, // tmin, the surface of the top of the ommatidial lens
+        1e16f,  // tmax
+        &payload );
 
-  //
-  // Add results to this eye's compound buffer
-  // This mixes in the feedback from each sample ray with respect to the it's position in the rendering volume.
-  // For instance, if each ommatidium is to make 20 samples then each launch of this shader is one sample and only
-  // contributes 0.05/1 to the final colour in the compound buffer.
-  ((float3*)posedData.specializedData.d_compoundBuffer)[id] = payload.result * (1.0f/posedData.specializedData.samplesPerOmmatidium); // Scale it down as these will be summed in the projection shader
-  // end atomic stuff
+    //
+    // Add results to this eye's compound buffer
+    // This mixes in the feedback from each sample ray with respect to the it's position in the rendering volume.
+    // For instance, if each ommatidium is to make 20 samples then each launch of this shader is one sample and only
+    // contributes 0.05/1 to the final colour in the compound buffer.
+    ((float3*)posedData.specializedData.d_compoundBuffer)[id] = payload.result * (1.0f/posedData.specializedData.samplesPerOmmatidium); // Scale it down as these will be summed in the projection shader
+    // end atomic stuff
 }
 
 
@@ -748,7 +747,7 @@ extern "C" __global__ void __miss__default_background()
     setPayloadResult(make_float3((atan2(dir.z, dir.x)+M_PIf)/(M_PIf*2.0f), (asin(dir.y)+M_PIf/2.0f)/M_PIf, 0.0f));
     const float border = 0.01;
     if(abs(dir.x) < border || abs(dir.y) < border || abs(dir.z) < border)
-      setPayloadResult(make_float3(0.0f));
+        setPayloadResult(make_float3(0.0f));
 }
 
 extern "C" __global__ void __miss__white() { setPayloadResult(make_float3(1.0f)); }

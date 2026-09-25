@@ -3,13 +3,16 @@
 #include <vector_types.h>
 #include "GenericCameraDataTypes.h"
 
-struct OrthographicCameraData
+namespace cray
 {
-  float2 scale;
+    struct OrthographicCameraData
+    {
+        float2 scale;
 
-  inline bool operator==(const OrthographicCameraData& other)
-  { return (this->scale.x == other.scale.x && this->scale.y == other.scale.y); }
-};
+        inline bool operator==(const OrthographicCameraData& other)
+        { return (this->scale.x == other.scale.x && this->scale.y == other.scale.y); }
+    };
+}
 
 // A typedef for a RaygenPosedContainer containing an OrthographicCameraData
-typedef cray::RaygenPosedContainer<OrthographicCameraData> OrthographicCameraPosedData;
+typedef cray::RaygenPosedContainer<cray::OrthographicCameraData> OrthographicCameraPosedData;

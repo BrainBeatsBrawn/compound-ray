@@ -2,18 +2,18 @@
 #include "CompoundEye.h"
 #include "curand_kernel.h"
 
-cray::RaygenRecord<RecordPointer> CompoundEye::s_compoundRecordPtrRecord = (cray::RaygenRecord<RecordPointer>){};
+cray::RaygenRecord<cray::RecordPointer> CompoundEye::s_compoundRecordPtrRecord = (cray::RaygenRecord<cray::RecordPointer>){};
 CUdeviceptr CompoundEye::s_d_compoundRecordPtrRecord = (CUdeviceptr){};
 
-CompoundEye::CompoundEye(const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath) : cray::DataRecordCamera<CompoundEyeData>(name), shaderName(NAME_PREFIX + shaderName)
+CompoundEye::CompoundEye (const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath)
+    : cray::DataRecordCamera<cray::CompoundEyeData>(name), shaderName(NAME_PREFIX + shaderName)
 {
-    //// Assign VRAM for compound eye structure configuration
-    reconfigureOmmatidialCount(ommatidialCount);
-
+    // Assign VRAM for compound eye structure configuration
+    reconfigureOmmatidialCount (ommatidialCount);
     // Set this object's eyeDataPath to a copy of the given eyeDataPath
     this->eyeDataPath = std::string(eyeDataPath);
-
 }
+
 CompoundEye::~CompoundEye()
 {
     // Free VRAM of compound eye structure information
@@ -23,21 +23,21 @@ CompoundEye::~CompoundEye()
     // Free VRAM of the compound eye's rendering buffer
 }
 
-void CompoundEye::setShaderName(const std::string shaderName)
+void CompoundEye::setShaderName (const std::string shaderName)
 {
     this->shaderName = NAME_PREFIX + shaderName;
 }
 
-void CompoundEye::setOmmatidia(Ommatidium* ommatidia, size_t count)
+void CompoundEye::setOmmatidia (cray::Ommatidium* ommatidia, size_t count)
 {
     reconfigureOmmatidialCount(count); // Change the count and buffers (if required)
     copyOmmatidia(ommatidia); // Actually copy the data in
 }
-void CompoundEye::reconfigureOmmatidialCount(size_t count)
+
+void CompoundEye::reconfigureOmmatidialCount (size_t count)
 {
     // Only do this if the count has changed
-    if(count != specializedData.ommatidialCount)
-    {
+    if (count != specializedData.ommatidialCount) {
         // Assign VRAM for compound eye structure configuration
         specializedData.ommatidialCount = count;
         allocateOmmatidialMemory();
@@ -83,12 +83,12 @@ void CompoundEye::zeroRecordFrame()
     CUDA_SYNC_CHECK();
 }
 
-void CompoundEye::copyOmmatidia(Ommatidium* ommatidia)
+void CompoundEye::copyOmmatidia (cray::Ommatidium* ommatidia)
 {
     CUDA_CHECK( cudaMemcpy(
                     reinterpret_cast<void*>(specializedData.d_ommatidialArray),
                     ommatidia,
-                    sizeof(Ommatidium)*specializedData.ommatidialCount,
+                    sizeof(cray::Ommatidium) * specializedData.ommatidialCount,
                     cudaMemcpyHostToDevice
                     )
         );
@@ -97,7 +97,7 @@ void CompoundEye::copyOmmatidia(Ommatidium* ommatidia)
 
 void CompoundEye::allocateOmmatidialMemory()
 {
-    size_t memSize = sizeof(Ommatidium)*specializedData.ommatidialCount;
+    size_t memSize = sizeof(cray::Ommatidium) * specializedData.ommatidialCount;
     if constexpr (debug_memory == true) {
         std::cout << "Clearing and allocating ommatidial data on device. "
                   << "(size: "<<memSize<<", "<<specializedData.ommatidialCount<<" blocks)"<<std::endl;

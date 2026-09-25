@@ -10,7 +10,7 @@
 
 #include "CompoundEyeDataTypes.h"
 
-class CompoundEye : public cray::DataRecordCamera<CompoundEyeData>
+class CompoundEye : public cray::DataRecordCamera<cray::CompoundEyeData>
 {
 public:
     static void InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, OptixProgramGroup& compoundProgramGroup, const CUdeviceptr& targetRecord);
@@ -22,8 +22,8 @@ public:
 
     const char* getEntryFunctionName() const { return shaderName.c_str(); }
 
-    void setOmmatidia(Ommatidium* ommatidia, size_t count); // Copies in the ommatidial list, resetting and reallocating all affected memory if count differs from the current ommatidial count
-    void copyOmmatidia(Ommatidium* ommatidia); // Copies in the ommatidial list given, to the length of the current number of ommatidia in the eye
+    void setOmmatidia(cray::Ommatidium* ommatidia, size_t count); // Copies in the ommatidial list, resetting and reallocating all affected memory if count differs from the current ommatidial count
+    void copyOmmatidia(cray::Ommatidium* ommatidia); // Copies in the ommatidial list given, to the length of the current number of ommatidia in the eye
     const size_t getOmmatidialCount() const { return specializedData.ommatidialCount; }
 
     const uint32_t getSamplesPerOmmatidium() const { return specializedData.samplesPerOmmatidium; }
@@ -53,7 +53,7 @@ private:
     static constexpr const char* NAME_PREFIX = "__raygen__compound_projection_";
 
     // Static variables for management of the compound pipeline's single redirecting record
-    static cray::RaygenRecord<RecordPointer> s_compoundRecordPtrRecord;
+    static cray::RaygenRecord<cray::RecordPointer> s_compoundRecordPtrRecord;
     static CUdeviceptr s_d_compoundRecordPtrRecord;
 
     // Changes the ommatidial count, resetting ommatidial, random
