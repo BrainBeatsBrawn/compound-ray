@@ -651,10 +651,48 @@ namespace internal
 
 } // end anon namespace
 
+void MulticamScene::initLaunchParams()
+{
+    this->params->frame_buffer = nullptr;
+    this->params->frame = 0;
+    this->params->lighting = false;
+
+    const float loffset = this->aabb().maxExtent();
+
+    std::vector<Light::Point> lights(4);
+    lights[0].color     = { 1.0f, 1.0f, 0.8f };
+    lights[0].intensity = 5.0f;
+    lights[0].position  = this->aabb().center() + make_float3( loffset );
+    lights[0].falloff   = Light::Falloff::QUADRATIC;
+    lights[1].color     = { 0.8f, 0.8f, 1.0f };
+    lights[1].intensity = 3.0f;
+    lights[1].position  = this->aabb().center() + make_float3( -loffset, 0.5f*loffset, -0.5f*loffset  );
+    lights[1].falloff   = Light::Falloff::QUADRATIC;
+    lights[2].color     = { 1.0f, 1.0f, 0.8f };
+    lights[2].intensity = 5.0f;
+    lights[2].position  = this->aabb().center() + make_float3( 0.0f, 4.0f, -5.0f);
+    lights[2].falloff   = Light::Falloff::QUADRATIC;
+    lights[3].color     = { 1.0f, 1.0f, 0.8f };
+    lights[3].intensity = 0.5f;
+    lights[3].position  = this->aabb().center() + make_float3( 1.0f, -6.0f, 0.0f);
+    lights[3].falloff   = Light::Falloff::QUADRATIC;
+
+    this->params->lights.count  = static_cast<uint32_t>( lights.size() );
+
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&this->params->lights.data), lights.size() * sizeof(Light::Point)));
+    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(this->params->lights.data), lights.data(),
+                            lights.size() * sizeof(Light::Point), cudaMemcpyHostToDevice));
+
+    this->params->miss_color = make_float3( 0.1f );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(this->d_params)), sizeof(globalParameters::LaunchParams)));
+
+    this->params->handle = this->traversableHandle();
+}
 
 // Load a scene from filename. Apply root_transform (which may be identity, or a transform to
 // convert from y-up (GLTF) to z-up (Blender-agreeable)
-void loadScene (const std::string& filename, MulticamScene& scene, const sutil::Matrix4x4& root_transform)
+void
+MulticamScene::loadScene (const std::string& filename, const sutil::Matrix4x4& root_transform)
 {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
@@ -689,11 +727,11 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
 
         if(bgShader != "")
         {
-            scene.m_backgroundShader = "__miss__" + bgShader;
+            this->m_backgroundShader = "__miss__" + bgShader;
         }
     }
     if constexpr (debug_gltf == true) {
-            std::cout << "Background shader set to: \"" << scene.m_backgroundShader << "\"" << std::endl;
+            std::cout << "Background shader set to: \"" << this->m_backgroundShader << "\"" << std::endl;
     }
 
 
@@ -708,7 +746,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
                       << "\tbyte size: " << buf_size << "\n"
                       << "\turi      : " << (buf_size > 128u ? gltf_buffer.uri.substr(0, 128) + std::string("...") : gltf_buffer.uri) << std::endl;
         }
-        scene.addBuffer( buf_size,  gltf_buffer.data.data() );
+        this->addBuffer( buf_size,  gltf_buffer.data.data() );
     }
 
     //
@@ -724,7 +762,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
         assert( gltf_image.component == 4 );
         assert( gltf_image.bits      == 8 || gltf_image.bits == 16 );
 
-        scene.addImage(
+        this->addImage(
             gltf_image.width,
             gltf_image.height,
             gltf_image.bits,
@@ -740,7 +778,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
     {
         if( gltf_texture.sampler == -1 )
         {
-            scene.addSampler( cudaAddressModeWrap, cudaAddressModeWrap, cudaFilterModeLinear, gltf_texture.source );
+            this->addSampler( cudaAddressModeWrap, cudaAddressModeWrap, cudaFilterModeLinear, gltf_texture.source );
             continue;
         }
 
@@ -754,7 +792,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
         cudaAddressModeWrap;
         const cudaTextureFilterMode  filter    = gltf_sampler.minFilter == GL_NEAREST     ? cudaFilterModePoint   :
         cudaFilterModeLinear;
-        scene.addSampler( address_s, address_t, filter, gltf_texture.source );
+        this->addSampler( address_s, address_t, filter, gltf_texture.source );
     }
 
     //
@@ -796,7 +834,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tFound base color texture: " << base_color_it->second.TextureIndex() << "\n";
                 }
-                mtl.base_color_tex = scene.getSampler( base_color_it->second.TextureIndex() );
+                mtl.base_color_tex = this->getSampler( base_color_it->second.TextureIndex() );
             }
             else
             {
@@ -848,7 +886,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tFound metallic roughness tex: " << metallic_roughness_it->second.TextureIndex() << "\n";
                 }
-                mtl.metallic_roughness_tex = scene.getSampler( metallic_roughness_it->second.TextureIndex() );
+                mtl.metallic_roughness_tex = this->getSampler( metallic_roughness_it->second.TextureIndex() );
             }
             else
             {
@@ -865,7 +903,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tFound normal color tex: " << normal_it->second.TextureIndex() << "\n";
                 }
-                mtl.normal_tex = scene.getSampler( normal_it->second.TextureIndex() );
+                mtl.normal_tex = this->getSampler( normal_it->second.TextureIndex() );
             }
             else
             {
@@ -875,7 +913,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
             }
         }
 
-        scene.addMaterial( mtl );
+        this->addMaterial( mtl );
     }
 
     //
@@ -891,7 +929,7 @@ void loadScene (const std::string& filename, MulticamScene& scene, const sutil::
     for (size_t i = 0; i < root_nodes.size(); ++i) {
         if (!root_nodes[i]) { continue; }
         auto& gltf_node = model.nodes[i];
-        internal::processGLTFNode (scene, model, gltf_node, root_transform, glTFdir);
+        internal::processGLTFNode (*this, model, gltf_node, root_transform, glTFdir);
     }
 }
 

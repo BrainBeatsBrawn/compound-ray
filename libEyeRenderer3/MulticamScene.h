@@ -127,6 +127,17 @@ public:
         this->cleanup();
     }
 
+    void initLaunchParams();
+
+    void loadScene (const std::string& filename, const sutil::Matrix4x4& root_transform);
+
+    void loadGlTFscene (const char* filepath, sutil::Matrix4x4 root_transform)
+    {
+        this->loadScene (filepath, root_transform);
+        this->finalize();
+        this->initLaunchParams();
+    }
+
     // Obtain access to a mesh of positions (to scan over a landscape)
     const std::vector<cuda::BufferView<float3> >* getMeshPositions (size_t idx)
     {
@@ -277,8 +288,5 @@ private:
     size_t                               currentCamera              = 0;
     size_t                               lastPipelinedCamera        = std::numeric_limits<size_t>::max();
 };
-
-
-void loadScene (const std::string& filename, MulticamScene& scene, const sutil::Matrix4x4& root_transform);
 
 #endif

@@ -115,45 +115,6 @@ void multicamDealloc()
     delete scene;
 }
 
-void initLaunchParams( MulticamScene* _scene )
-{
-    _scene->params->frame_buffer = nullptr;
-    _scene->params->frame = 0;
-    _scene->params->lighting = false;
-
-    const float loffset = _scene->aabb().maxExtent();
-
-    std::vector<Light::Point> lights(4);
-    lights[0].color     = { 1.0f, 1.0f, 0.8f };
-    lights[0].intensity = 5.0f;
-    lights[0].position  = _scene->aabb().center() + make_float3( loffset );
-    lights[0].falloff   = Light::Falloff::QUADRATIC;
-    lights[1].color     = { 0.8f, 0.8f, 1.0f };
-    lights[1].intensity = 3.0f;
-    lights[1].position  = _scene->aabb().center() + make_float3( -loffset, 0.5f*loffset, -0.5f*loffset  );
-    lights[1].falloff   = Light::Falloff::QUADRATIC;
-    lights[2].color     = { 1.0f, 1.0f, 0.8f };
-    lights[2].intensity = 5.0f;
-    lights[2].position  = _scene->aabb().center() + make_float3( 0.0f, 4.0f, -5.0f);
-    lights[2].falloff   = Light::Falloff::QUADRATIC;
-    lights[3].color     = { 1.0f, 1.0f, 0.8f };
-    lights[3].intensity = 0.5f;
-    lights[3].position  = _scene->aabb().center() + make_float3( 1.0f, -6.0f, 0.0f);
-    lights[3].falloff   = Light::Falloff::QUADRATIC;
-
-    _scene->params->lights.count  = static_cast<uint32_t>( lights.size() );
-
-    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&_scene->params->lights.data), lights.size() * sizeof(Light::Point)));
-    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(_scene->params->lights.data), lights.data(),
-                            lights.size() * sizeof(Light::Point), cudaMemcpyHostToDevice));
-
-    _scene->params->miss_color = make_float3( 0.1f );
-    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(_scene->d_params)), sizeof(globalParameters::LaunchParams)));
-
-    _scene->params->handle = _scene->traversableHandle();
-}
-
-
 // Updates the params to acurately reflect the currently selected camera
 void handleCameraUpdate()
 {
@@ -251,10 +212,7 @@ void setVerbosity (bool v) { notificationsActive = v; }
 void loadGlTFscene (const char* filepath, sutil::Matrix4x4 root_transform)
 {
     if (scene == nullptr) { throw sutil::Exception ("loadGlTFscene exception: scene is nullptr"); }
-
-    loadScene (filepath, *scene, root_transform);
-    scene->finalize();
-    initLaunchParams (scene);
+    scene->loadGlTFscene (filepath, root_transform);
 }
 
 void setRenderSize (int w, int h)
