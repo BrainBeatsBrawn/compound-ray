@@ -26,15 +26,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# For compound-ray, build a library of the sutil features that we use.
 set(sources
-    ${CMAKE_CURRENT_BINARY_DIR}/../sampleConfig.h
-    ${SAMPLES_CUDA_DIR}/whitted.cu
-    ${SAMPLES_CUDA_DIR}/BufferView.h
-    ${SAMPLES_CUDA_DIR}/GeometryData.h
-    ${SAMPLES_CUDA_DIR}/Light.h
-    ${SAMPLES_CUDA_DIR}/LocalGeometry.h
-    ${SAMPLES_CUDA_DIR}/MaterialData.h
-    ${SAMPLES_CUDA_DIR}/util.h
+#    ${CMAKE_CURRENT_BINARY_DIR}/../sampleConfig.h # Don't appear to need to compile these into libsutil
+#    ${SAMPLES_CUDA_DIR}/whitted.cu
+#    ${SAMPLES_CUDA_DIR}/BufferView.h
+#    ${SAMPLES_CUDA_DIR}/GeometryData.h
+#    ${SAMPLES_CUDA_DIR}/Light.h
+#    ${SAMPLES_CUDA_DIR}/LocalGeometry.h
+#    ${SAMPLES_CUDA_DIR}/MaterialData.h
+#    ${SAMPLES_CUDA_DIR}/util.h
     Aabb.h
     Camera.cpp
     Camera.h
@@ -55,8 +56,6 @@ set(sources
     hitscanprocessing.h
     hitscanprocessing.cpp
     )
-
-
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 

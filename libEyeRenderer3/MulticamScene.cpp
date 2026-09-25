@@ -1057,8 +1057,6 @@ void cray::MulticamScene::finalize()
     createContext();
     buildMeshAccels();
     buildInstanceAccel();
-    //createPTXModule(m_compound_ptx_module, "ommatidialShader.cu");
-    //createPTXModule(m_ptx_module, "shaders.cu");
     createPTXModule();
     createProgramGroups();
     createPipeline();
@@ -1634,21 +1632,22 @@ void cray::MulticamScene::createPTXModule()
     m_pipeline_compile_options.exceptionFlags            = OPTIX_EXCEPTION_FLAG_NONE; // should be optix_exception_flag_stack_overflow;
     m_pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
 
-    const std::string ptx = sutil::getPtxString( "EyeRenderer3", "shaders.cu" );
+    // This needs to find the right shaders.cu. This may be installed
+    // (e.g. /usr/local/include/compound-ray/) or in a code repo.
+    //const std::string ptx = sutil::getPtxString( "EyeRenderer3", "shaders.cu" );
+    const std::string ptx = sutil::getPtxString( "compoundray", "shaders.cu" );
 
     m_ptx_module  = {};
     char log[2048];
     size_t sizeof_log = sizeof( log );
-    OPTIX_CHECK_LOG( optixModuleCreate(
-                         m_context,
-                         &module_compile_options,
-                         &m_pipeline_compile_options,
-                         ptx.c_str(),
-                         ptx.size(),
-                         log,
-                         &sizeof_log,
-                         &m_ptx_module
-                         ) );
+    OPTIX_CHECK_LOG( optixModuleCreate(m_context,
+                                       &module_compile_options,
+                                       &m_pipeline_compile_options,
+                                       ptx.c_str(),
+                                       ptx.size(),
+                                       log,
+                                       &sizeof_log,
+                                       &m_ptx_module) );
 }
 
 

@@ -447,15 +447,16 @@ static void getPtxFromCuString( std::string& ptx, const char* sample_name, const
 
 #else  // CUDA_NVRTC_ENABLED
 
+// A function to find the PTX files which are generated during the build process. These are *not*
+// installed at present (Seb needs to fix this) and so it always finds the PTX in the source code
+// repo, and if the source code repo is not present, the program fails (FIXME).
 static std::string samplePTXFilePath( const char* sampleName, const char* fileName )
 {
     // Allow for overrides.
     static const char* directories[] =
     {
-        // TODO: Remove the environment variable OPTIX_EXP_SAMPLES_SDK_PTX_DIR once SDK 6/7 packages are split
-        getenv( "OPTIX_EXP_SAMPLES_SDK_PTX_DIR" ),
-        getenv( "OPTIX_SAMPLES_SDK_PTX_DIR" ),
         SAMPLES_PTX_DIR,
+        // INSTALL_PTX_DIR, // This would be the location where we will install ptx files.
         "."
     };
     for( const char* directory : directories )
@@ -463,6 +464,7 @@ static std::string samplePTXFilePath( const char* sampleName, const char* fileNa
         if( directory )
         {
             std::string path = directory;
+            std::cout << "samplePTXFilePath: Searching for PTX in directory " << path << "..." << std::endl;
             path += '/';
             path += sampleName ? sampleName : "cuda_compile_ptx";
             path += "_generated_";
@@ -482,8 +484,9 @@ static std::string samplePTXFilePath( const char* sampleName, const char* fileNa
 
 static void getPtxStringFromFile( std::string& ptx, const char* sample_name, const char* filename )
 {
+    std::cout << "Called with sample_name: " << sample_name << " and filename " << filename << std::endl;
     const std::string sourceFilePath = samplePTXFilePath( sample_name, filename );
-
+    std::cout << "samplePTXFilePath generates sourceFilePath " << sourceFilePath << std::endl;
     // Try to open source PTX file
     if( !readSourceFile( ptx, sourceFilePath ) )
     {
@@ -518,10 +521,12 @@ const char* getPtxString( const char* sample, const char* filename, const char**
     {
         ptx = new std::string();
 #if CUDA_NVRTC_ENABLED
+        std::cout << "Calling getCuStringFromFile AND  getPtxFromCuString\n";
         std::string location;
         getCuStringFromFile( cu, location, sample, filename );
         getPtxFromCuString( *ptx, sample, cu.c_str(), location.c_str(), log );
 #else
+        std::cout << "Calling just getPtxStringFromFile\n";
         getPtxStringFromFile( *ptx, sample, filename );
 #endif
         g_ptxSourceCache.map[key] = ptx;
