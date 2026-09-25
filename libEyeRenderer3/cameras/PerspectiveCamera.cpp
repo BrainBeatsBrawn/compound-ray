@@ -2,7 +2,7 @@
 #include <sutil/vec_math.h>
 #include "PerspectiveCamera.h"
 
-cray::PerspectiveCamera::PerspectiveCamera (const std::string name) : cray::DataRecordCamera<PerspectiveCameraData>(name)
+cray::PerspectiveCamera::PerspectiveCamera (const std::string name) : cray::DataRecordCamera<cray::PerspectiveCameraData>(name)
 {
     // Set the scale of the perspective camera
     specializedData.scale = make_float3 (10.0f, 10.0f, 1.0f);

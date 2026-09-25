@@ -5,7 +5,7 @@
 
 namespace cray
 {
-    struct PanoramicCamera : public cray::DataRecordCamera<PanoramicCameraData>
+    struct PanoramicCamera : public cray::DataRecordCamera<cray::PanoramicCameraData>
     {
         PanoramicCamera (const std::string name);
         ~PanoramicCamera();

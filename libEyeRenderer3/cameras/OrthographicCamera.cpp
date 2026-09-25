@@ -1,9 +1,9 @@
 #include "OrthographicCamera.h"
 
-OrthographicCamera::OrthographicCamera (const std::string name) : cray::DataRecordCamera<OrthographicCameraData>(name) {}
-OrthographicCamera::~OrthographicCamera() {}
+cray::OrthographicCamera::OrthographicCamera (const std::string name) : cray::DataRecordCamera<OrthographicCameraData>(name) {}
+cray::OrthographicCamera::~OrthographicCamera() {}
 
-void OrthographicCamera::setXYscale (float x, float y)
+void cray::OrthographicCamera::setXYscale (float x, float y)
 {
     specializedData.scale.x = x;
     specializedData.scale.y = y;

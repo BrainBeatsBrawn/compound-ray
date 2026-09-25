@@ -262,7 +262,7 @@ namespace internal
             // Form camera objects
             if( gltf_camera.type == "orthographic" )
             {
-                OrthographicCamera* camera = new OrthographicCamera(gltf_camera.name);
+                cray::OrthographicCamera* camera = new cray::OrthographicCamera(gltf_camera.name);
                 camera->setPosition(eye);
                 camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
                 camera->setXYscale(gltf_camera.orthographic.xmag, gltf_camera.orthographic.ymag);
