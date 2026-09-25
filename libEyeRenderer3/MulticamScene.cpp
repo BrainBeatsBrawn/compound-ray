@@ -111,7 +111,7 @@ namespace internal
      * that underlies the BufferViews.
      */
     template<typename T>
-    cuda::BufferView<T> bufferViewFromGLTF(const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx)
+    cuda::BufferView<T> bufferViewFromGLTF(const tinygltf::Model& model, cray::MulticamScene& scene, const int32_t accessor_idx)
     {
         if (accessor_idx == -1) { return cuda::BufferView<T>(); }
 
@@ -197,7 +197,7 @@ namespace internal
 
     // Global function called from loadScene
     void processGLTFNode(
-        MulticamScene& scene,
+        cray::MulticamScene& scene,
         const tinygltf::Model& model,
         const tinygltf::Node& gltf_node,
         const sutil::Matrix4x4& parent_matrix,
@@ -420,7 +420,7 @@ namespace internal
                     continue;
                 }
 
-                auto mesh = std::make_shared<MulticamScene::MeshGroup>();
+                auto mesh = std::make_shared<cray::MulticamScene::MeshGroup>();
 
                 // Add the mesh to the mesh list
                 int m_idx = scene.addMesh (mesh);
@@ -651,7 +651,7 @@ namespace internal
 
 } // end anon namespace
 
-void MulticamScene::initLaunchParams()
+void cray::MulticamScene::initLaunchParams()
 {
     this->params->frame_buffer = nullptr;
     this->params->frame = 0;
@@ -692,7 +692,7 @@ void MulticamScene::initLaunchParams()
 // Load a scene from filename. Apply root_transform (which may be identity, or a transform to
 // convert from y-up (GLTF) to z-up (Blender-agreeable)
 void
-MulticamScene::loadScene (const std::string& filename, const sutil::Matrix4x4& root_transform)
+cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix4x4& root_transform)
 {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
@@ -934,7 +934,7 @@ MulticamScene::loadScene (const std::string& filename, const sutil::Matrix4x4& r
 }
 
 
-void MulticamScene::addBuffer( const uint64_t buf_size, const void* data )
+void cray::MulticamScene::addBuffer( const uint64_t buf_size, const void* data )
 {
     CUdeviceptr buffer = 0;
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &buffer ), buf_size ) );
@@ -949,7 +949,7 @@ void MulticamScene::addBuffer( const uint64_t buf_size, const void* data )
 }
 
 
-void MulticamScene::addImage(
+void cray::MulticamScene::addImage(
     const int32_t width,
     const int32_t height,
     const int32_t bits_per_component,
@@ -996,7 +996,7 @@ void MulticamScene::addImage(
 }
 
 
-void MulticamScene::addSampler(
+void cray::MulticamScene::addSampler(
     cudaTextureAddressMode address_s,
     cudaTextureAddressMode address_t,
     cudaTextureFilterMode  filter,
@@ -1032,25 +1032,25 @@ void MulticamScene::addSampler(
 }
 
 
-CUdeviceptr MulticamScene::getBuffer( int32_t buffer_index ) const
+CUdeviceptr cray::MulticamScene::getBuffer( int32_t buffer_index ) const
 {
     return m_buffers[ buffer_index ];
 }
 
 
-cudaArray_t MulticamScene::getImage( int32_t image_index ) const
+cudaArray_t cray::MulticamScene::getImage( int32_t image_index ) const
 {
     return m_images[ image_index ];
 }
 
 
-cudaTextureObject_t MulticamScene::getSampler( int32_t sampler_index ) const
+cudaTextureObject_t cray::MulticamScene::getSampler( int32_t sampler_index ) const
 {
     return m_samplers[ sampler_index ];
 }
 
 
-void MulticamScene::finalize()
+void cray::MulticamScene::finalize()
 {
     GenericCamera* c = getCamera();
 
@@ -1084,7 +1084,7 @@ void MulticamScene::finalize()
     //    m_cameras.front().setLookat( m_scene_aabb.center() );
 }
 
-void MulticamScene::cleanup()
+void cray::MulticamScene::cleanup()
 {
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->params->lights.data     ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->d_params               ) ) );
@@ -1098,14 +1098,14 @@ void MulticamScene::cleanup()
 //
 //------------------------------------------------------------------------------
 
-int MulticamScene::addCamera(GenericCamera* cameraPtr)
+int cray::MulticamScene::addCamera(GenericCamera* cameraPtr)
 {
     int i = m_cameras.size();
     m_cameras[i] = cameraPtr;
     checkIfCurrentCameraIsCompound();
     return i;
 }
-GenericCamera* MulticamScene::getCamera() const
+GenericCamera* cray::MulticamScene::getCamera() const
 {
     if (!m_cameras.empty()) {
         try {
@@ -1116,21 +1116,21 @@ GenericCamera* MulticamScene::getCamera() const
     }
     return nullptr;
 }
-void MulticamScene::setCurrentCamera(const int index)
+void cray::MulticamScene::setCurrentCamera(const int index)
 {
     const int s = int(getCameraCount());
     currentCamera = (index%s + s)%s;
     checkIfCurrentCameraIsCompound();
 }
-const size_t MulticamScene::getCameraCount() const
+const size_t cray::MulticamScene::getCameraCount() const
 {
     return m_cameras.size();
 }
-void MulticamScene::nextCamera()
+void cray::MulticamScene::nextCamera()
 {
     setCurrentCamera(currentCamera+1);
 }
-void MulticamScene::previousCamera()
+void cray::MulticamScene::previousCamera()
 {
     setCurrentCamera(currentCamera-1);
 }
@@ -1140,7 +1140,7 @@ void MulticamScene::previousCamera()
 //  COMPOUND EYE FUNCTIONS
 //
 //------------------------------------------------------------------------------
-uint32_t MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec)
+uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec)
 {
     m_compoundEyes[cam_idx] = cameraPtr;
     m_ommVecs[cam_idx] = ommVec;
@@ -1150,7 +1150,7 @@ uint32_t MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, s
     }
     return (m_compoundEyes.size()-1);
 }
-void MulticamScene::checkIfCurrentCameraIsCompound()
+void cray::MulticamScene::checkIfCurrentCameraIsCompound()
 {
     GenericCamera* cam = getCamera();
     bool out = false;
@@ -1164,7 +1164,7 @@ void MulticamScene::checkIfCurrentCameraIsCompound()
 //
 //------------------------------------------------------------------------------
 
-void MulticamScene::createContext()
+void cray::MulticamScene::createContext()
 {
     // Initialize CUDA
     CUDA_CHECK( cudaFree( nullptr ) );
@@ -1245,7 +1245,7 @@ namespace internal
     };
 }  // namespace
 
-void MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
+void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
 {
     // Problem:
     // The memory requirements of a compacted GAS are unknown prior to building the GAS.
@@ -1534,7 +1534,7 @@ struct Instance
     float transform[12];
 };
 
-void MulticamScene::buildInstanceAccel( int rayTypeCount )
+void cray::MulticamScene::buildInstanceAccel( int rayTypeCount )
 {
     const size_t num_instances = m_meshes.size();
 
@@ -1614,7 +1614,7 @@ void MulticamScene::buildInstanceAccel( int rayTypeCount )
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( d_instances   ) ) );
 }
 
-void MulticamScene::createPTXModule()
+void cray::MulticamScene::createPTXModule()
 {
 
     OptixModuleCompileOptions module_compile_options = {};
@@ -1646,7 +1646,7 @@ void MulticamScene::createPTXModule()
 }
 
 
-void MulticamScene::createProgramGroups()
+void cray::MulticamScene::createProgramGroups()
 {
     char log[2048];
     size_t sizeof_log = sizeof( log );
@@ -1772,7 +1772,7 @@ void MulticamScene::createProgramGroups()
 }
 
 
-void MulticamScene::createPipeline()
+void cray::MulticamScene::createPipeline()
 {
     if constexpr (debug_pipeline == true) {
         std::cout << "MulticamScene::createPipeline(): Generating Projection pipeline..." << std::endl;
@@ -1803,7 +1803,7 @@ void MulticamScene::createPipeline()
                          ) );
 }
 
-void MulticamScene::createCompoundPipeline()
+void cray::MulticamScene::createCompoundPipeline()
 {
     if constexpr (debug_pipeline == true) {
         std::cout << "MulticamScene::createCompoundPipeline(): Generating Compound pipeline..." << std::endl;
@@ -1834,7 +1834,7 @@ void MulticamScene::createCompoundPipeline()
                          ) );
 }
 
-void MulticamScene::reconfigureSBTforCurrentCamera(bool force)
+void cray::MulticamScene::reconfigureSBTforCurrentCamera(bool force)
 {
     GenericCamera* c = getCamera();
     char log[2048];
@@ -1878,7 +1878,7 @@ void MulticamScene::reconfigureSBTforCurrentCamera(bool force)
     }
 }
 
-void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
+void cray::MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
 {
     // Per-camera raygen Records are handled by each camera
 
@@ -1957,7 +1957,7 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
 }
 
 //// Additional scene features
-bool MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool debug)
+bool cray::MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool debug)
 {
     if(debug) { std::cout << "Atempting hitscan against \"" << name << "\"\n"; }
 
@@ -1992,7 +1992,7 @@ bool MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool 
 }
 
 // TODO: Each of these below (and the one above) should share a "get geometry by name" method.
-float3 MulticamScene::getGeometryMaxBounds(std::string name)
+float3 cray::MulticamScene::getGeometryMaxBounds(std::string name)
 {
     for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
         if(m_hitboxMeshes[i].name == name)
@@ -2004,7 +2004,7 @@ float3 MulticamScene::getGeometryMaxBounds(std::string name)
 
     return make_float3(0.0f);
 }
-float3 MulticamScene::getGeometryMinBounds(std::string name)
+float3 cray::MulticamScene::getGeometryMinBounds(std::string name)
 {
     for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
         if(m_hitboxMeshes[i].name == name)

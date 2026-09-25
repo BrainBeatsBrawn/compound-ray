@@ -70,6 +70,8 @@
 #pragma warning( pop )
 #endif
 
+namespace cray
+{
 class MulticamScene
 {
 public:
@@ -442,5 +444,6 @@ private:
     size_t                               currentCamera              = 0;
     size_t                               lastPipelinedCamera        = std::numeric_limits<size_t>::max();
 };
+} // namespace
 
 #endif

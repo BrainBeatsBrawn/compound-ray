@@ -93,7 +93,7 @@
 // i9/4080).
 static constexpr bool sum_average_with_getCameraData = false;
 
-MulticamScene* scene;
+cray::MulticamScene* scene;
 
 // An output buffer used by non-compound eye cameras. Annoyingly, CUDAOutputBuffer has lots of GL calls in it. libEyeRenderer only.
 sutil::CUDAOutputBuffer<uchar4>* outputBuffer = nullptr;
@@ -106,7 +106,7 @@ bool notificationsActive = true;
 void multicamAlloc()
 {
     outputBuffer = new sutil::CUDAOutputBuffer<uchar4>(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
-    scene = new MulticamScene{};
+    scene = new cray::MulticamScene{};
 }
 
 void multicamDealloc()
@@ -126,7 +126,7 @@ void handleCameraUpdate()
 // Launch Optix threads to render a camera view. Once this is done getCameraData() accesses the
 // summed average values for a compound eye. Non-compound eye data is accessed with
 // getFramePointer()
-void launchFrame (MulticamScene* _scene )
+void launchFrame (cray::MulticamScene* _scene )
 {
     if (outputBuffer && (outputBuffer->width() * outputBuffer->height() > 0)) {
         _scene->params->frame_buffer = outputBuffer->map();
