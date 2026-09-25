@@ -54,7 +54,7 @@ __constant__ float FWHM_SD_RATIO = 2.35482004503094938202313865291f;
 
 extern "C"
 {
-__constant__ globalParameters::LaunchParams params;
+__constant__ cray::LaunchParams params;
 }
 
 
@@ -113,7 +113,7 @@ static __forceinline__ __device__ void traceRadiance(
         float3                      ray_direction,
         float                       tmin,
         float                       tmax,
-        globalParameters::PayloadRadiance*   payload
+        cray::PayloadRadiance*   payload
         )
 {
     uint32_t u0=0, u1=0, u2=0, u3=0;
@@ -125,9 +125,9 @@ static __forceinline__ __device__ void traceRadiance(
             0.0f,                     // rayTime
             OptixVisibilityMask( 1 ),
             OPTIX_RAY_FLAG_NONE,
-            globalParameters::RAY_TYPE_RADIANCE,        // SBT offset
-            globalParameters::RAY_TYPE_COUNT,           // SBT stride
-            globalParameters::RAY_TYPE_RADIANCE,        // missSBTIndex
+            cray::RAY_TYPE_RADIANCE,        // SBT offset
+            cray::RAY_TYPE_COUNT,           // SBT stride
+            cray::RAY_TYPE_RADIANCE,        // missSBTIndex
             u0, u1, u2, u3 );
 
      payload->result.x = __int_as_float( u0 );
@@ -155,9 +155,9 @@ static __forceinline__ __device__ bool traceOcclusion(
             0.0f,                    // rayTime
             OptixVisibilityMask( 1 ),
             OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
-            globalParameters::RAY_TYPE_OCCLUSION,      // SBT offset
-            globalParameters::RAY_TYPE_COUNT,          // SBT stride
-            globalParameters::RAY_TYPE_OCCLUSION,      // missSBTIndex
+            cray::RAY_TYPE_OCCLUSION,      // SBT offset
+            cray::RAY_TYPE_COUNT,          // SBT stride
+            cray::RAY_TYPE_OCCLUSION,      // missSBTIndex
             occluded );
     return occluded;
 }
@@ -219,7 +219,7 @@ extern "C" __global__ void __raygen__pinhole()
     //
     // Trace camera ray
     //
-    globalParameters::PayloadRadiance payload;
+    cray::PayloadRadiance payload;
     payload.result = make_float3( 0.0f );
     payload.importance = 1.0f;
     payload.depth = 0.0f;
@@ -268,7 +268,7 @@ extern "C" __global__ void __raygen__panoramic()
     //
     // Trace camera ray
     //
-    globalParameters::PayloadRadiance payload;
+    cray::PayloadRadiance payload;
     payload.result = make_float3( 0.0f );
     payload.importance = 1.0f;
     payload.depth = 0.0f;
@@ -312,7 +312,7 @@ extern "C" __global__ void __raygen__orthographic()
     //
     // Trace camera ray
     //
-    globalParameters::PayloadRadiance payload;
+    cray::PayloadRadiance payload;
     payload.result = make_float3( 0.0f );
     payload.importance = 1.0f;
     payload.depth = 0.0f;
@@ -713,7 +713,7 @@ extern "C" __global__ void __raygen__ommatidium()
                              + posedData.localSpace.zAxis * relativeDir.z;
 
   // Transmit the ray
-  globalParameters::PayloadRadiance payload;
+  cray::PayloadRadiance payload;
   payload.result = make_float3( 0.0f );
   payload.importance = 1.0f;
   payload.depth = 0.0f;
@@ -828,7 +828,7 @@ extern "C" __global__ void __closesthit__occlusion()
 extern "C" __global__ void __closesthit__radiance()
 {
     float3 result = make_float3( 0.0f );
-    const globalParameters::HitGroupData* hit_group_data = reinterpret_cast<globalParameters::HitGroupData*>(optixGetSbtDataPointer());
+    const cray::HitGroupData* hit_group_data = reinterpret_cast<cray::HitGroupData*>(optixGetSbtDataPointer());
     const LocalGeometry geom = getLocalGeometry (hit_group_data->geometry_data);
 
     //

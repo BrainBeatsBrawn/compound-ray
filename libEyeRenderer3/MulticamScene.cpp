@@ -89,7 +89,7 @@ namespace internal
         return make_float4( static_cast<float>( x ), static_cast<float>( y ), static_cast<float>( z ), static_cast<float>( w ) );
     }
 
-    typedef sutil::Record<globalParameters::HitGroupData> HitGroupRecord;
+    typedef sutil::Record<cray::HitGroupData> HitGroupRecord;
 
     static constexpr bool debug_allow_context_log = false;
     void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */)
@@ -684,7 +684,7 @@ void cray::MulticamScene::initLaunchParams()
                             lights.size() * sizeof(Light::Point), cudaMemcpyHostToDevice));
 
     this->params->miss_color = make_float3( 0.1f );
-    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(this->d_params)), sizeof(globalParameters::LaunchParams)));
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(this->d_params)), sizeof(cray::LaunchParams)));
 
     this->params->handle = this->traversableHandle();
 }
@@ -1623,7 +1623,7 @@ void cray::MulticamScene::createPTXModule()
     m_pipeline_compile_options = {};
     m_pipeline_compile_options.usesMotionBlur            = false;
     m_pipeline_compile_options.traversableGraphFlags     = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING;
-    m_pipeline_compile_options.numPayloadValues          = globalParameters::NUM_PAYLOAD_VALUES;
+    m_pipeline_compile_options.numPayloadValues          = cray::NUM_PAYLOAD_VALUES;
     m_pipeline_compile_options.numAttributeValues        = 2; // todo
     m_pipeline_compile_options.exceptionFlags            = OPTIX_EXCEPTION_FLAG_NONE; // should be optix_exception_flag_stack_overflow;
     m_pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
@@ -1887,21 +1887,21 @@ void cray::MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
         const size_t miss_record_size = sizeof( sutil::EmptyRecord );
         CUDA_CHECK( cudaMalloc(
                         reinterpret_cast<void**>( &sbt.missRecordBase ),
-                        miss_record_size*globalParameters::RAY_TYPE_COUNT
+                        miss_record_size*cray::RAY_TYPE_COUNT
                         ) );
 
-        sutil::EmptyRecord ms_sbt[ globalParameters::RAY_TYPE_COUNT ];
+        sutil::EmptyRecord ms_sbt[ cray::RAY_TYPE_COUNT ];
         OPTIX_CHECK( optixSbtRecordPackHeader( m_radiance_miss_group,  &ms_sbt[0] ) );
         OPTIX_CHECK( optixSbtRecordPackHeader( m_occlusion_miss_group, &ms_sbt[1] ) );
 
         CUDA_CHECK( cudaMemcpy(
                         reinterpret_cast<void*>( sbt.missRecordBase ),
                         ms_sbt,
-                        miss_record_size*globalParameters::RAY_TYPE_COUNT,
+                        miss_record_size*cray::RAY_TYPE_COUNT,
                         cudaMemcpyHostToDevice
                         ) );
         sbt.missRecordStrideInBytes = static_cast<uint32_t>( miss_record_size );
-        sbt.missRecordCount     = globalParameters::RAY_TYPE_COUNT;
+        sbt.missRecordCount     = cray::RAY_TYPE_COUNT;
     }
 
     // Hitgroup Records

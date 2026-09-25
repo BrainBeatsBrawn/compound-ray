@@ -137,7 +137,7 @@ void launchFrame (cray::MulticamScene* _scene )
     // d_params is a (no-longer global) pointer to GPU RAM, params is a (no-longer global) pointer to CPU-side RAM
     CUDA_CHECK(cudaMemcpyAsync(reinterpret_cast<void*>(_scene->d_params),
                                _scene->params,
-                               sizeof(globalParameters::LaunchParams),
+                               sizeof(cray::LaunchParams),
                                cudaMemcpyHostToDevice,
                                0)); // stream
 
@@ -150,7 +150,7 @@ void launchFrame (cray::MulticamScene* _scene )
         auto ole = optixLaunch (cpl,                               // pipeline
                                 0,                                 // stream
                                 reinterpret_cast<CUdeviceptr>( _scene->d_params ), // pipelineParams
-                                sizeof( globalParameters::LaunchParams ),  // pipelineParamsSize
+                                sizeof( cray::LaunchParams ),  // pipelineParamsSize
                                 csbt,                              // shader buffer table
                                 camera->getOmmatidialCount(),      // launch width
                                 camera->getSamplesPerOmmatidium(), // launch height
@@ -184,7 +184,7 @@ void launchFrame (cray::MulticamScene* _scene )
         OPTIX_CHECK (optixLaunch (_scene->pipeline(),
                                   0,      // stream
                                   reinterpret_cast<CUdeviceptr>(_scene->d_params),
-                                  sizeof(globalParameters::LaunchParams),
+                                  sizeof(cray::LaunchParams),
                                   _scene->sbt(),
                                   width,  // launch width
                                   height, // launch height

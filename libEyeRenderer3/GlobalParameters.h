@@ -35,11 +35,10 @@
 #include <cuda/Light.h>
 #include <cuda/MaterialData.h>
 
-namespace globalParameters
+// Types that have to do with raycasting (and possibly tracing)
+namespace cray
 {
-
 const uint32_t NUM_PAYLOAD_VALUES = 4u;
-
 
 struct HitGroupData
 {
@@ -47,14 +46,12 @@ struct HitGroupData
     MaterialData material_data;
 };
 
-
 enum RayType
 {
     RAY_TYPE_RADIANCE  = 0,
     RAY_TYPE_OCCLUSION = 1,
     RAY_TYPE_COUNT = 2
 };
-
 
 struct LaunchParams
 {
@@ -73,7 +70,6 @@ struct LaunchParams
     OptixTraversableHandle   handle;
 };
 
-
 struct PayloadRadiance
 {
     float3 result;
@@ -81,10 +77,8 @@ struct PayloadRadiance
     int    depth;
 };
 
-
 struct PayloadOcclusion
 {
 };
 
-
-} // end namespace whitted
+} // end namespace

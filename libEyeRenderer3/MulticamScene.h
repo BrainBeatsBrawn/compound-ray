@@ -75,8 +75,8 @@ namespace cray
 class MulticamScene
 {
 public:
-    globalParameters::LaunchParams*  d_params = nullptr;
-    globalParameters::LaunchParams*  params = nullptr; // hostside now
+    cray::LaunchParams*  d_params = nullptr;
+    cray::LaunchParams*  params = nullptr; // hostside now
 
     struct MeshGroup
     {
@@ -122,7 +122,7 @@ public:
 
     MulticamScene()
     {
-        this->params = new globalParameters::LaunchParams{};
+        this->params = new cray::LaunchParams{};
     }
 
     ~MulticamScene()
@@ -223,7 +223,7 @@ public:
         // d_params is a (no-longer global) pointer to GPU RAM, params is a (no-longer global) pointer to CPU-side RAM
         CUDA_CHECK(cudaMemcpyAsync(reinterpret_cast<void*>(this->d_params),
                                    this->params,
-                                   sizeof(globalParameters::LaunchParams),
+                                   sizeof(cray::LaunchParams),
                                    cudaMemcpyHostToDevice,
                                    0)); // stream
 
@@ -236,7 +236,7 @@ public:
             auto ole = optixLaunch (cpl,                               // pipeline
                                     0,                                 // stream
                                     reinterpret_cast<CUdeviceptr>( this->d_params ), // pipelineParams
-                                    sizeof( globalParameters::LaunchParams ),  // pipelineParamsSize
+                                    sizeof( cray::LaunchParams ),  // pipelineParamsSize
                                     csbt,                              // shader buffer table
                                     camera->getOmmatidialCount(),      // launch width
                                     camera->getSamplesPerOmmatidium(), // launch height
@@ -364,7 +364,7 @@ public:
 
     void createContext();
     void buildMeshAccels( uint32_t triangle_input_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT );
-    void buildInstanceAccel( int rayTypeCount = globalParameters::RAY_TYPE_COUNT );
+    void buildInstanceAccel( int rayTypeCount = cray::RAY_TYPE_COUNT );
 
     // Changes the SBT to refelct the current camera (assumes all camera records are allocated)
     void reconfigureSBTforCurrentCamera(bool force);
