@@ -1105,24 +1105,16 @@ int MulticamScene::addCamera(GenericCamera* cameraPtr)
     checkIfCurrentCameraIsCompound();
     return i;
 }
-GenericCamera* MulticamScene::getCamera()
+GenericCamera* MulticamScene::getCamera() const
 {
-    if(!m_cameras.empty())
-    {
-        return m_cameras[currentCamera];
+    if (!m_cameras.empty()) {
+        try {
+            return m_cameras.at (currentCamera);
+        } catch (const std::out_of_range& e) {
+            return nullptr;
+        }
     }
-
-    if constexpr (debug_cameras == true) {
-        std::cerr << "Initializing default camera" << std::endl;
-    }
-    //cam.setFovY( 45.0f );
-    //cam.setLookat( m_scene_aabb.center() );
-    //cam.setEye   ( m_scene_aabb.center() + make_float3( 0.0f, 0.0f, 1.5f*m_scene_aabb.maxExtent() ) );
-
-    PerspectiveCamera* cam = new PerspectiveCamera("Default Camera");
-    this->addCamera(cam);
-    return getCamera();
-
+    return nullptr;
 }
 void MulticamScene::setCurrentCamera(const int index)
 {

@@ -134,7 +134,7 @@ public:
         return nullptr;
     }
 
-    void getLocalSpace (float3& xAxis, float3& yAxis, float3& zAxis)
+    void getLocalSpace (float3& xAxis, float3& yAxis, float3& zAxis) const
     {
         xAxis = sbtRecord.data.localSpace.xAxis;
         yAxis = sbtRecord.data.localSpace.yAxis;

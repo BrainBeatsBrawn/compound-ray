@@ -278,14 +278,7 @@ void getFrame (unsigned char* frame)
     }
 }
 
-void stop()
-{
-    if (notificationsActive) {
-        std::cout<<"[PyEye] Cleaning eye renderer resources."<<std::endl;
-    }
-    cleanup();
-    // Maybe multicamDealloc()?
-}
+void stop() {} // now a no-op. All cleanup is in MulticamScene deconstruction
 
 //------------------------------------------------------------------------------
 // Camera Control
@@ -357,11 +350,7 @@ void rotateCamerasAround (float angle, float x, float y, float z)
 
 void rotateCamerasLocallyAround (float angle, float x, float y, float z)
 {
-    size_t cc = scene->getCameraCount();
-    for (size_t i = 0; i < cc; ++i) {
-        scene->getCamera()->rotateLocallyAround (angle, make_float3(x,y,z));
-        scene->nextCamera();
-    }
+    scene->rotateCamerasLocallyAround (angle, x, y, z);
 }
 
 void translateCamera (float x, float y, float z)
@@ -398,78 +387,20 @@ void setCameraPose (float posX, float posY, float posZ, float rotX, float rotY, 
 
 void setCameraPoseMatrix (const sutil::Matrix4x4& camera_localspace)
 {
-    scene->getCamera()->setLocalSpace (camera_localspace);
+    scene->setCameraPoseMatrix (camera_localspace);
 }
 
-void getCameraData (std::vector<std::array<float, 3>>& cameraData)
-{
-    if (isCompoundEyeActive() == true) {
-
-        if constexpr (sum_average_with_getCameraData == true) {
-            // Alternative place to do the sample summing. Useful here, so that you can time
-            // getCameraData() to work out how much time is taken to sum and transfer data to CPU
-            ((CompoundEye*)scene->getCamera())->averageRecordFrame();
-        }
-        size_t omcount = ((CompoundEye*)scene->getCamera())->getOmmatidialCount();
-        cameraData.resize (omcount);
-        float3* _data = ((CompoundEye*)scene->getCamera())->getRecordFrame();
-        for (size_t i = 0; i < omcount; ++i) {
-            // copy _data[i] to cameraData[i] applying gamma correction
-            // 1/2.2 = 0.45454545
-            //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
-            // Check for nans while running; somewhere in the averaging code, we sometimes obtain a NaN
-            if (std::isnan(_data[i].x)) { // Only need to check one element for NaN
-                cameraData[i] = { 0.0f, 0.0f, 0.0f };
-            } else {
-                cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
-            }
-        }
-
-    } else {
-        throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
-    }
-}
+void getCameraData (std::vector<std::array<float, 3>>& cameraData) { scene->getCameraData (cameraData); }
 
 //------------------------------------------------------------------------------
 // Ommatidial Camera Control
 //------------------------------------------------------------------------------
 bool isCompoundEyeActive() { return scene->isCompoundEyeActive(); }
-
-std::string getEyeDataPath()
-{
-    if (scene->isCompoundEyeActive()) { return scene->eye_data_paths[scene->getCameraIndex()]; }
-    return std::string("");
-}
-
-void setCurrentEyeSamplesPerOmmatidium (int s)
-{
-    if (scene->isCompoundEyeActive()) {
-        ((CompoundEye*)scene->getCamera())->setSamplesPerOmmatidium(s);
-    }
-}
-
-int getCurrentEyeSamplesPerOmmatidium()
-{
-    if (scene->isCompoundEyeActive()) {
-        return(((CompoundEye*)scene->getCamera())->getSamplesPerOmmatidium());
-    }
-    return -1;
-}
-
-void changeCurrentEyeSamplesPerOmmatidiumBy (int s)
-{
-    if (scene->isCompoundEyeActive()) {
-        ((CompoundEye*)scene->getCamera())->changeSamplesPerOmmatidiumBy(s);
-    }
-}
-
-size_t getCurrentEyeOmmatidialCount()
-{
-    if (scene->isCompoundEyeActive()) {
-        return ((CompoundEye*)scene->getCamera())->getOmmatidialCount();
-    }
-    return 0;
-}
+std::string getEyeDataPath() { return scene->getEyeDataPath(); }
+void setCurrentEyeSamplesPerOmmatidium (int s) { scene->setCurrentEyeSamplesPerOmmatidium (s); }
+int getCurrentEyeSamplesPerOmmatidium() { return scene->getCurrentEyeSamplesPerOmmatidium(); }
+void changeCurrentEyeSamplesPerOmmatidiumBy (int s) { scene->changeCurrentEyeSamplesPerOmmatidiumBy (s); }
+size_t getCurrentEyeOmmatidialCount() { return scene->getCurrentEyeOmmatidialCount(); }
 
 void setOmmatidia (OmmatidiumPacket* omms, size_t count)
 {

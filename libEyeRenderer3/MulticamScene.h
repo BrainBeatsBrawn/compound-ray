@@ -46,6 +46,7 @@
 #include <vector>
 #include <fstream>
 #include <limits>
+#include <chrono>
 
 #include "GlobalParameters.h"
 #include "cameras/GenericCameraDataTypes.h"
@@ -127,6 +128,159 @@ public:
         this->cleanup();
     }
 
+    std::string getEyeDataPath()
+    {
+        if (this->isCompoundEyeActive()) { return this->eye_data_paths[this->getCameraIndex()]; }
+        return std::string("");
+    }
+
+    void setCurrentEyeSamplesPerOmmatidium (int s)
+    {
+        if (this->isCompoundEyeActive()) {
+            ((CompoundEye*)this->getCamera())->setSamplesPerOmmatidium(s);
+        }
+    }
+
+    int getCurrentEyeSamplesPerOmmatidium()
+    {
+        if (this->isCompoundEyeActive()) {
+            return(((CompoundEye*)this->getCamera())->getSamplesPerOmmatidium());
+        }
+        return -1;
+    }
+
+    void changeCurrentEyeSamplesPerOmmatidiumBy (int s)
+    {
+        if (this->isCompoundEyeActive()) {
+            ((CompoundEye*)this->getCamera())->changeSamplesPerOmmatidiumBy(s);
+        }
+    }
+
+    size_t getCurrentEyeOmmatidialCount()
+    {
+        if (this->isCompoundEyeActive()) {
+            return ((CompoundEye*)this->getCamera())->getOmmatidialCount();
+        }
+        return 0;
+    }
+
+    static constexpr bool sum_average_with_getCameraData = false;
+
+    void getCameraData (std::vector<std::array<float, 3>>& cameraData)
+    {
+        if (this->isCompoundEyeActive() == true) {
+
+            if constexpr (sum_average_with_getCameraData == true) {
+                // Alternative place to do the sample summing. Useful here, so that you can time
+                // getCameraData() to work out how much time is taken to sum and transfer data to CPU
+                ((CompoundEye*)this->getCamera())->averageRecordFrame();
+            }
+            size_t omcount = ((CompoundEye*)this->getCamera())->getOmmatidialCount();
+            cameraData.resize (omcount);
+            float3* _data = ((CompoundEye*)this->getCamera())->getRecordFrame();
+            for (size_t i = 0; i < omcount; ++i) {
+                // copy _data[i] to cameraData[i] applying gamma correction
+                // 1/2.2 = 0.45454545
+                //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
+                // Check for nans while running; somewhere in the averaging code, we sometimes obtain a NaN
+                if (std::isnan(_data[i].x)) { // Only need to check one element for NaN
+                    cameraData[i] = { 0.0f, 0.0f, 0.0f };
+                } else {
+                    cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
+                }
+            }
+
+        } else {
+            throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
+        }
+    }
+
+    void rotateCamerasLocallyAround (float angle, float x, float y, float z)
+    {
+        size_t cc = this->getCameraCount();
+        for (size_t i = 0; i < cc; ++i) {
+            this->getCamera()->rotateLocallyAround (angle, make_float3(x,y,z));
+            this->nextCamera();
+        }
+    }
+
+    void setCameraPoseMatrix (const sutil::Matrix4x4& camera_localspace)
+    {
+        if (this->getCamera() != nullptr) {
+            this->getCamera()->setLocalSpace (camera_localspace);
+        }
+    }
+
+    // Launch Optix threads to render a camera view. Once this is done getCameraData() accesses the
+    // summed average values for a compound eye. Non-compound eye data is accessed with
+    // getFramePointer()
+    void launchFrame()
+    {
+        this->params->frame_buffer = nullptr; // outputBuffer not supported in the class method launchFrame
+
+        // d_params is a (no-longer global) pointer to GPU RAM, params is a (no-longer global) pointer to CPU-side RAM
+        CUDA_CHECK(cudaMemcpyAsync(reinterpret_cast<void*>(this->d_params),
+                                   this->params,
+                                   sizeof(globalParameters::LaunchParams),
+                                   cudaMemcpyHostToDevice,
+                                   0)); // stream
+
+        if (this->hasCompoundEyes() && this->isCompoundEyeActive()) {
+            CompoundEye* camera = (CompoundEye*) this->getCamera();
+
+            auto csbt = this->compoundSbt();
+            // Launch the ommatidial renderer
+            auto cpl = this->compoundPipeline();
+            auto ole = optixLaunch (cpl,                               // pipeline
+                                    0,                                 // stream
+                                    reinterpret_cast<CUdeviceptr>( this->d_params ), // pipelineParams
+                                    sizeof( globalParameters::LaunchParams ),  // pipelineParamsSize
+                                    csbt,                              // shader buffer table
+                                    camera->getOmmatidialCount(),      // launch width
+                                    camera->getSamplesPerOmmatidium(), // launch height
+                                    1);                                // launch depth
+            OPTIX_CHECK (ole);
+
+            {
+                cudaDeviceSynchronize();
+                cudaError_t error = cudaGetLastError();
+                if (error != cudaSuccess) {
+                    std::stringstream ss;
+                    ss << "Post-launch CUDA error on synchronize with error " << (int)error << " '"
+                       << cudaGetErrorString (error)
+                       << "' (" __FILE__ << ":" << __LINE__ << ")\n";
+                    throw sutil::Exception (ss.str().c_str());
+                }
+            } // this is more or less CUDA_SYNC_CHECK();
+
+            this->params->frame++;// Increase the frame number
+            camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
+
+            if constexpr (sum_average_with_getCameraData == false) {
+                // After the compoundray pipeline, can call the sample-summing CUDA kernel here
+                camera->averageRecordFrame();
+                CUDA_SYNC_CHECK();
+            }
+        }
+
+        // No need for outputBuffer unmap here any more
+
+        CUDA_SYNC_CHECK();
+    }
+
+    double renderFrame()
+    {
+        // Make sure the SBT of the scene is updated for the newly selected camera before launch,
+        // also push any changed host-side camera SBT data over to the device.
+        this->reconfigureSBTforCurrentCamera (false);
+
+        auto then = std::chrono::steady_clock::now();
+        this->launchFrame();
+        CUDA_SYNC_CHECK();
+        std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;
+        return render_time.count();
+    }
+
     void initLaunchParams();
 
     void loadScene (const std::string& filename, const sutil::Matrix4x4& root_transform);
@@ -182,8 +336,8 @@ public:
     void                           cleanup();
 
     //// Camera functions
-    // Gets a pointer to the current camera
-    GenericCamera*                            getCamera();
+    // Gets a pointer to the current camera (or nullptr if there is none)
+    GenericCamera*                            getCamera() const;
     void                                      setCurrentCamera(const int index);
     const size_t                              getCameraCount() const;
     const size_t                              getCameraIndex() const { return currentCamera; }
