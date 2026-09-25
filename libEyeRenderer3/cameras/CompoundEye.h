@@ -10,8 +10,9 @@
 
 #include "CompoundEyeDataTypes.h"
 
-class CompoundEye : public DataRecordCamera<CompoundEyeData> {
-  public:
+class CompoundEye : public cray::DataRecordCamera<CompoundEyeData>
+{
+public:
     static void InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, OptixProgramGroup& compoundProgramGroup, const CUdeviceptr& targetRecord);
     static void FreeCompoundRecord();
     static void RedirectCompoundDataPointer(OptixProgramGroup& programGroup, const CUdeviceptr& targetRecord);
@@ -43,7 +44,7 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     void zeroRecordFrame();
     void averageRecordFrame();
 
-  private:
+private:
 
     // Run through h_ommatidial_samples and compute ommatidial_average.
     void computeOmmatidialSampleAverage();

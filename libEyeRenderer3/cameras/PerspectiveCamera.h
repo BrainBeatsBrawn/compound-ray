@@ -11,7 +11,7 @@
 
 #include "PerspectiveCameraDataTypes.h"
 
-class PerspectiveCamera : public DataRecordCamera<PerspectiveCameraData> {
+class PerspectiveCamera : public cray::DataRecordCamera<PerspectiveCameraData> {
   public:
     PerspectiveCamera(const std::string name);
     ~PerspectiveCamera();

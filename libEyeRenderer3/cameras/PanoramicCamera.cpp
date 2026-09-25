@@ -4,7 +4,7 @@
 #include <iostream>
 #endif
 
-PanoramicCamera::PanoramicCamera(const std::string name) : DataRecordCamera<PanoramicCameraData>(name)
+PanoramicCamera::PanoramicCamera (const std::string name) : cray::DataRecordCamera<PanoramicCameraData>(name)
 {
     // Allocate the SBT record for the associated raygen program
     if constexpr (debug_cameras == true) { std::cout << "Creating 360 camera." << std::endl;}

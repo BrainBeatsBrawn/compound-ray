@@ -52,7 +52,7 @@
 #include "cameras/GenericCameraDataTypes.h"
 #include "cameras/GenericCamera.h"
 #include "cameras/PerspectiveCamera.h"
-#include "cameras/ThreeSixtyCamera.h"
+#include "cameras/PanoramicCamera.h"
 #include "cameras/OrthographicCamera.h"
 #include "cameras/CompoundEye.h"
 

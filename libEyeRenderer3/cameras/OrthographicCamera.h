@@ -7,7 +7,7 @@
 
 #include "OrthographicCameraDataTypes.h"
 
-class OrthographicCamera : public DataRecordCamera<OrthographicCameraData> {
+class OrthographicCamera : public cray::DataRecordCamera<OrthographicCameraData> {
   public:
     OrthographicCamera(const std::string name);
     ~OrthographicCamera();

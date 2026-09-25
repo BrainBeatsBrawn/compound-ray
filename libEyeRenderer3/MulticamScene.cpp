@@ -1052,7 +1052,7 @@ cudaTextureObject_t cray::MulticamScene::getSampler( int32_t sampler_index ) con
 
 void cray::MulticamScene::finalize()
 {
-    GenericCamera* c = getCamera();
+    cray::GenericCamera* c = getCamera();
 
     createContext();
     buildMeshAccels();
@@ -1098,14 +1098,15 @@ void cray::MulticamScene::cleanup()
 //
 //------------------------------------------------------------------------------
 
-int cray::MulticamScene::addCamera(GenericCamera* cameraPtr)
+int cray::MulticamScene::addCamera (cray::GenericCamera* cameraPtr)
 {
     int i = m_cameras.size();
     m_cameras[i] = cameraPtr;
     checkIfCurrentCameraIsCompound();
     return i;
 }
-GenericCamera* cray::MulticamScene::getCamera() const
+
+cray::GenericCamera* cray::MulticamScene::getCamera() const
 {
     if (!m_cameras.empty()) {
         try {
@@ -1116,20 +1117,24 @@ GenericCamera* cray::MulticamScene::getCamera() const
     }
     return nullptr;
 }
+
 void cray::MulticamScene::setCurrentCamera(const int index)
 {
     const int s = int(getCameraCount());
     currentCamera = (index%s + s)%s;
     checkIfCurrentCameraIsCompound();
 }
+
 const size_t cray::MulticamScene::getCameraCount() const
 {
     return m_cameras.size();
 }
+
 void cray::MulticamScene::nextCamera()
 {
     setCurrentCamera(currentCamera+1);
 }
+
 void cray::MulticamScene::previousCamera()
 {
     setCurrentCamera(currentCamera-1);
@@ -1150,6 +1155,7 @@ uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* camera
     }
     return (m_compoundEyes.size()-1);
 }
+
 void cray::MulticamScene::checkIfCurrentCameraIsCompound()
 {
     GenericCamera* cam = getCamera();

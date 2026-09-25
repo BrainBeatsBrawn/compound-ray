@@ -119,8 +119,8 @@ install(FILES
         cameras/PanoramicCameraDataTypes.h
         cameras/PerspectiveCamera.h
         cameras/PerspectiveCameraDataTypes.h
-        cameras/ThreeSixtyCamera.h
-        cameras/ThreeSixtyCameraDataTypes.h
+#        cameras/ThreeSixtyCamera.h
+#        cameras/ThreeSixtyCameraDataTypes.h
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cameras)
 
 # Create the EXPORT so that compound-ray has its own .cmake file and find_package(compound-ray) should work

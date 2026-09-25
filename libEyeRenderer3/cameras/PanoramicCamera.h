@@ -5,7 +5,7 @@
 
 #include "PanoramicCameraDataTypes.h"
 
-class PanoramicCamera : public DataRecordCamera<PanoramicCameraData>
+class PanoramicCamera : public cray::DataRecordCamera<PanoramicCameraData>
 {
 public:
     PanoramicCamera(const std::string name);
