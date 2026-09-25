@@ -11,7 +11,7 @@ macro(add_eye_renderer relative_path sources)
   set(eye_renderer_sources
       ${relative_path}/libEyeRenderer.h
       ${relative_path}/libEyeRenderer.cpp
-      ${relative_path}/GlobalParameters.h
+      ${relative_path}/RayComputeTypes.h
       ${relative_path}/MulticamScene.h
       ${relative_path}/MulticamScene.cpp
       ${relative_path}/cameras/GenericCamera.h

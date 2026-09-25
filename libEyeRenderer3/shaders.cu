@@ -34,7 +34,7 @@
 #include <cuda/LocalGeometry.h>
 #include <cuda/random.h>
 #include <sutil/vec_math.h>
-#include "GlobalParameters.h"
+#include "RayComputeTypes.h"
 
 #include <stdint.h>
 #include <stdio.h>

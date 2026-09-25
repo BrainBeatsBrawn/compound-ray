@@ -31,7 +31,7 @@ include_directories(".")
 set(local_eye_renderer_sources
   ./libEyeRenderer.h
   ./libEyeRenderer.cpp
-  ./GlobalParameters.h
+  ./RayComputeTypes.h
   ./MulticamScene.h
   ./MulticamScene.cpp
   ./cameras/GenericCamera.h
@@ -50,7 +50,7 @@ set(local_eye_renderer_sources
 )
 
 set(multicam_sources
-  ./GlobalParameters.h
+  ./RayComputeTypes.h
   ./MulticamScene.h
   ./MulticamScene.cpp
   ./cameras/GenericCamera.h
@@ -103,9 +103,8 @@ install(TARGETS ${EyeRenderer3_target} ${compoundray_target} ${sutil_target} ${g
         INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray
       )
 
-
 # Install headers
-install(FILES libEyeRenderer.h GlobalParameters.h MulticamScene.h shaders.cu
+install(FILES libEyeRenderer.h RayComputeTypes.h MulticamScene.h shaders.cu
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray)
 install(FILES
         cameras/DataRecordCamera.h
@@ -119,8 +118,6 @@ install(FILES
         cameras/PanoramicCameraDataTypes.h
         cameras/PerspectiveCamera.h
         cameras/PerspectiveCameraDataTypes.h
-#        cameras/ThreeSixtyCamera.h
-#        cameras/ThreeSixtyCameraDataTypes.h
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cameras)
 
 # Create the EXPORT so that compound-ray has its own .cmake file and find_package(compound-ray) should work

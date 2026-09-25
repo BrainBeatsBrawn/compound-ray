@@ -45,7 +45,7 @@
 #include <sutil/vec_math.h>
 
 #include "MulticamScene.h"
-#include "GlobalParameters.h"
+#include "RayComputeTypes.h"
 #include "cameras/CompoundEyeDataTypes.h"
 
 #include <array>

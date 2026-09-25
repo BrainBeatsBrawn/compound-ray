@@ -48,7 +48,7 @@
 #include <limits>
 #include <chrono>
 
-#include "GlobalParameters.h"
+#include "RayComputeTypes.h"
 #include "cameras/GenericCameraDataTypes.h"
 #include "cameras/GenericCamera.h"
 #include "cameras/PerspectiveCamera.h"
