@@ -1048,7 +1048,8 @@ void MulticamScene::finalize()
 
 void MulticamScene::cleanup()
 {
-    //TODO: destroy the camera vector properly
+    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->params->lights.data     ) ) );
+    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->d_params               ) ) );
     CompoundEye::FreeCompoundRecord();
     delete this->params;
 }

@@ -237,12 +237,7 @@ void launchFrame (MulticamScene* _scene )
     CUDA_SYNC_CHECK();
 }
 
-void cleanup()
-{
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( scene->params->lights.data     ) ) );
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( scene->d_params               ) ) );
-    scene->cleanup();
-}
+void cleanup() {} // no-op; cleanup is now all in MulticamScene deconstructor
 
 //------------------------------------------------------------------------------
 //
