@@ -38,41 +38,41 @@
 // Types that have to do with raycasting (and possibly tracing)
 namespace cray
 {
-const uint32_t NUM_PAYLOAD_VALUES = 4u;
+    constexpr uint32_t NUM_PAYLOAD_VALUES = 4u;
 
-struct HitGroupData
-{
-    GeometryData geometry_data;
-    MaterialData material_data;
-};
+    struct HitGroupData
+    {
+        GeometryData geometry_data;
+        MaterialData material_data;
+    };
 
-enum RayType
-{
-    RAY_TYPE_RADIANCE  = 0,
-    RAY_TYPE_OCCLUSION = 1,
-    RAY_TYPE_COUNT = 2
-};
+    enum RayType
+    {
+        RAY_TYPE_RADIANCE  = 0,
+        RAY_TYPE_OCCLUSION = 1,
+        RAY_TYPE_COUNT = 2
+    };
 
-struct LaunchParams
-{
-    uchar4*                  frame_buffer; // An output buffer for non-compound eye cameras
-    int32_t                  max_depth;
-    uint32_t                 frame;        // The current frame
-    bool                     lighting;
-    cuda::BufferView<Light::Point> lights;
-    float3                   miss_color;
-    OptixTraversableHandle   handle;
-};
+    struct LaunchParams
+    {
+        uchar4*                  frame_buffer; // An output buffer for non-compound eye cameras
+        int32_t                  max_depth;
+        uint32_t                 frame;        // The current frame
+        bool                     lighting;
+        cuda::BufferView<Light::Point> lights;
+        float3                   miss_color;
+        OptixTraversableHandle   handle;
+    };
 
-struct PayloadRadiance
-{
-    float3 result;
-    float  importance;
-    int    depth;
-};
+    struct PayloadRadiance
+    {
+        float3 result;
+        float  importance;
+        int    depth;
+    };
 
-struct PayloadOcclusion
-{
-};
+    struct PayloadOcclusion
+    {
+    };
 
 } // end namespace
