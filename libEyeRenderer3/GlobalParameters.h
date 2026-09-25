@@ -57,13 +57,7 @@ struct LaunchParams
 {
     uchar4*                  frame_buffer; // An output buffer for non-compound eye cameras
     int32_t                  max_depth;
-
-    CUdeviceptr              compoundBufferPtr;// Pointer to an on-device buffer for compound eye handling
-    uint32_t                 compoundBufferWidth;
-    uint32_t                 compoundBufferHeight;
-    uint32_t                 compoundBufferDepth;
-    uint32_t                 frame;// The current frame
-
+    uint32_t                 frame;        // The current frame
     bool                     lighting;
     cuda::BufferView<Light::Point> lights;
     float3                   miss_color;
