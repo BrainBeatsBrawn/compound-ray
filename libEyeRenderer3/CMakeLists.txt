@@ -73,19 +73,10 @@ set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/summing_kernel.cu
   PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
 
-OPTIX_add_sample_executable(EyeRenderer3 EyeRenderer3_target ${local_eye_renderer_sources} OPTIONS -rdc true)
-
-target_include_directories(${EyeRenderer3_target} PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compound-ray>"
-)
-
-# Client to link CUDA
-target_link_libraries(${EyeRenderer3_target} -lcudart -lrt -ldl)
-
 # libcompoundray is a new library that will only have MulticamScene in it (and *no* libEyeRenderer C API)
 OPTIX_add_sample_executable(compoundray compoundray_target ${multicam_sources} OPTIONS -rdc true)
 message("generated ptx files for compoundray: ${compoundray_ptx_files}")
+message ("compoundray_target is ${compoundray_target}")
 
 target_include_directories(${compoundray_target} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
@@ -97,10 +88,9 @@ target_link_libraries(${compoundray_target} -lcudart -lrt -ldl)
 
 # Install the PTX files
 install(FILES ${compoundray_ptx_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-install(FILES ${EyeRenderer3_ptx_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 # Install EyeRender3, compoundray and its dependencies giving it the export name compound-ray-config
-install(TARGETS ${EyeRenderer3_target} ${compoundray_target} ${sutil_target} ${glad_target}
+install(TARGETS ${compoundray_target} ${sutil_target} ${glad_target}
         EXPORT compound-ray-config
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
@@ -109,7 +99,7 @@ install(TARGETS ${EyeRenderer3_target} ${compoundray_target} ${sutil_target} ${g
       )
 
 # Install headers
-install(FILES libEyeRenderer.h RayComputeTypes.h MulticamScene.h shaders.cu
+install(FILES RayComputeTypes.h MulticamScene.h shaders.cu
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray)
 install(FILES
         cameras/DataRecordCamera.h
@@ -126,7 +116,7 @@ install(FILES
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cameras)
 
 # Create the EXPORT so that compound-ray has its own .cmake file and find_package(compound-ray) should work
-export(TARGETS ${EyeRenderer3_target} ${compoundray_target} ${sutil_target} ${glad_target}
+export(TARGETS ${compoundray_target} ${sutil_target} ${glad_target}
     NAMESPACE compound-ray::
     FILE "${CMAKE_CURRENT_BINARY_DIR}/compound-ray-config.cmake"
 )
