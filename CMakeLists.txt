@@ -438,7 +438,7 @@ add_subdirectory(sutil)
 add_subdirectory(src)
 
 # An example eye renderer gui program
-add_subdirectory( newGuiEyeRenderer )
+add_subdirectory(gui_example)
 
 #################################################################
 

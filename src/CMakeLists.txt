@@ -28,28 +28,7 @@
 
 include_directories(".")
 
-set(local_eye_renderer_sources
-  ./libEyeRenderer.h
-  ./libEyeRenderer.cpp
-  ./RayComputeTypes.h
-  ./MulticamScene.h
-  ./MulticamScene.cpp
-  ./cameras/GenericCamera.h
-  ./cameras/GenericCamera.cpp
-  ./cameras/PerspectiveCamera.h
-  ./cameras/PerspectiveCamera.cpp
-  ./cameras/PanoramicCamera.h
-  ./cameras/PanoramicCamera.cpp
-  ./cameras/OrthographicCamera.h
-  ./cameras/OrthographicCamera.cpp
-  ./cameras/CompoundEye.h
-  ./cameras/CompoundEye.cpp
-  ./cameras/DataRecordCamera.h
-  ./shaders.cu
-  ./summing_kernel.cu
-)
-
-set(multicam_sources
+set(libcompoundray_sources
   ./RayComputeTypes.h
   ./MulticamScene.h
   ./MulticamScene.cpp
@@ -74,7 +53,7 @@ set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/summing_kernel.cu
 )
 
 # libcompoundray is a new library that will only have MulticamScene in it (and *no* libEyeRenderer C API)
-OPTIX_add_sample_executable(compoundray compoundray_target ${multicam_sources} OPTIONS -rdc true)
+OPTIX_add_sample_executable(compoundray compoundray_target ${libcompoundray_sources} OPTIONS -rdc true)
 message("generated ptx files for compoundray: ${compoundray_ptx_files}")
 message ("compoundray_target is ${compoundray_target}")
 
