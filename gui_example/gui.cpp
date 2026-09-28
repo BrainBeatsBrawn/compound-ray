@@ -167,7 +167,7 @@ static void windowSizeCallback (GLFWwindow* _window, int32_t res_x, int32_t res_
 
 void printHelp()
 {
-  std::cout << "USAGE:\nnewGuiEyeRenderer -f <path to gltf scene>" << std::endl << std::endl;
+  std::cout << "USAGE:\ngui_example -f <path to gltf scene>" << std::endl << std::endl;
   std::cout << "\t-h\tDisplay this help information." << std::endl;
   std::cout << "\t-f\tPath to a gltf scene file (absolute or relative to current working directory, e.g. './natural-standin-sky.gltf')." << std::endl;
 }
