@@ -361,7 +361,7 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   # Create the rules to build the PTX and/or OPTIX files.
   if(SAMPLES_INPUT_GENERATE_OPTIXIR)
     CUDA_WRAP_SRCS(${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options})
-    message("generated_files2 are .cu.o files: ${generated_files2}") 
+    message("generated_files2 are .cu.o files: ${generated_files2}")
     list(APPEND generated_files ${generated_files2})
   endif()
   if(SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
@@ -369,7 +369,7 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
     message("generated_files3 contains the PTX files: ${generated_files3}")
     list(APPEND generated_files ${generated_files3})
   endif()
-  
+
   message("-- Parsing ${target_name}...")
   if (${target_name} STREQUAL "EyeRenderer3" OR ${target_name} STREQUAL "compoundray")
     message("---- EyeRenderer/compoundray library detected, appending shared object build targets...")
