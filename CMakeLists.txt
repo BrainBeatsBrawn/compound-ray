@@ -390,7 +390,7 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   endif()
 
   # We link our version of the OptiX samples sutil library
-  target_link_libraries(${target_name} sutil_7_sdk)
+  target_link_libraries(${target_name} compoundray_sutil)
 
   set_target_properties(
     ${target_name} PROPERTIES
@@ -415,9 +415,9 @@ endfunction()
 #  List of subprojects (usually executables) in this project.
 #
 
-set (glad_target glad) # Used by newGuiEyeRenderer
+set(glad_target compoundray_glad) # Used only by gui_example
 
-set (sutil_target sutil_7_sdk)
+set(sutil_target compoundray_sutil)
 
 # Extra link for your cuda toolkit in /usr/local
 link_directories(/usr/local/cuda/lib64)
@@ -426,10 +426,10 @@ link_directories(/usr/local/cuda/lib64)
 #
 # Third-party support libraries.
 add_subdirectory(support)
-# We'll install cuda headers in (e.g.) /usr/local/include/compound-ray/cuda
+# We'll install cuda headers in (e.g.) /usr/local/include/compoundray/cuda
 add_subdirectory(cuda)
 # NVidia's sutil library.  The rules to build it are found in the subdirectory.
-# Its headers will install to (e.g.) /usr/local/include/compound-ray/sutil
+# Its headers will install to (e.g.) /usr/local/include/compoundray/sutil
 add_subdirectory(sutil)
 
 # Insect Eye related directories:

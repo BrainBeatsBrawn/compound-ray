@@ -59,7 +59,7 @@ message ("compoundray_target is ${compoundray_target}")
 
 target_include_directories(${compoundray_target} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compound-ray>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compoundray>"
 )
 
 # Client to link CUDA
@@ -68,18 +68,18 @@ target_link_libraries(${compoundray_target} -lcudart -lrt -ldl)
 # Install the PTX files
 install(FILES ${compoundray_ptx_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
-# Install EyeRender3, compoundray and its dependencies giving it the export name compound-ray-config
-install(TARGETS ${compoundray_target} ${sutil_target} ${glad_target}
-        EXPORT compound-ray-config
+# Install EyeRender3, compoundray and its dependencies giving it the export name compoundray-config
+install(TARGETS ${compoundray_target} ${sutil_target}
+        EXPORT compoundray-config
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray
+        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compoundray
       )
 
 # Install headers
 install(FILES RayComputeTypes.h MulticamScene.h shaders.cu
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compoundray)
 install(FILES
         cameras/DataRecordCamera.h
         cameras/CompoundEye.h
@@ -92,16 +92,16 @@ install(FILES
         cameras/PanoramicCameraDataTypes.h
         cameras/PerspectiveCamera.h
         cameras/PerspectiveCameraDataTypes.h
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cameras)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compoundray/cameras)
 
-# Create the EXPORT so that compound-ray has its own .cmake file and find_package(compound-ray) should work
-export(TARGETS ${compoundray_target} ${sutil_target} ${glad_target}
-    NAMESPACE compound-ray::
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/compound-ray-config.cmake"
+# Create the EXPORT so that compoundray has its own .cmake file and find_package(compoundray) should work
+export(TARGETS ${compoundray_target} ${sutil_target}
+    NAMESPACE compoundray::
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/compoundray-config.cmake"
 )
 
-install(EXPORT compound-ray-config
-        FILE compound-ray-config.cmake
-        NAMESPACE compound-ray::
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/compound-ray"
+install(EXPORT compoundray-config
+        FILE compoundray-config.cmake
+        NAMESPACE compoundray::
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/compoundray"
 )

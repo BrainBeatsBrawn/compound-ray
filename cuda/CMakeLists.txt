@@ -1,2 +1,2 @@
 install(FILES BufferView.h GeometryData.h Light.h LocalGeometry.h 	MaterialData.h 	random.h 	util.h
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cuda)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compoundray/cuda)
