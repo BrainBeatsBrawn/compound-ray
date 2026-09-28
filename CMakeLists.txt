@@ -331,8 +331,8 @@ endmacro()
 # in CMake, functions have their own scope, whereas macros use the scope of the caller.
 function(OPTIX_add_sample_executable target_name_base target_name_var)
 
-  set( target_name ${target_name_base} )
-  set( ${target_name_var} ${target_name} PARENT_SCOPE )
+  set(target_name ${target_name_base})
+  set(${target_name_var} ${target_name} PARENT_SCOPE)
 
   OPTIX_add_source_groups()
 
@@ -356,52 +356,42 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   endforeach()
 
   # Create the rules to build the OBJ from the CUDA files.
-  CUDA_WRAP_SRCS( ${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS "" ) # ${options}
+  CUDA_WRAP_SRCS(${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS "")
 
   # Create the rules to build the PTX and/or OPTIX files.
-  if( SAMPLES_INPUT_GENERATE_OPTIXIR )
-    CUDA_WRAP_SRCS( ${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+  if(SAMPLES_INPUT_GENERATE_OPTIXIR)
+    CUDA_WRAP_SRCS(${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options})
+    message("generated_files2 are .cu.o files: ${generated_files2}") 
     list(APPEND generated_files ${generated_files2})
   endif()
-  if( SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
-    CUDA_WRAP_SRCS( ${target_name} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+  if(SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
+    CUDA_WRAP_SRCS(${target_name} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options})
+    message("generated_files3 contains the PTX files: ${generated_files3}")
     list(APPEND generated_files ${generated_files3})
   endif()
-
+  
   message("-- Parsing ${target_name}...")
   if (${target_name} STREQUAL "EyeRenderer3" OR ${target_name} STREQUAL "compoundray")
     message("---- EyeRenderer/compoundray library detected, appending shared object build targets...")
-    #target_compile_options(${target_name}
-    #                       PUBLIC "-fpic"
-    #                       )
-    add_library(${target_name}
-      ${source_files}
-      ${generated_files}
-      ${cmake_options}
-    )
+    #target_compile_options(${target_name} PUBLIC "-fpic")
+    add_library(${target_name} ${source_files} ${generated_files} ${cmake_options})
   else()
     # Here is where we create the rule to make the executable.  We define a target name and
     # list all the source files used to create the target.  In addition we also pass along
     # the cmake_options parsed out of the arguments.
-    add_executable(${target_name}
-      ${source_files}
-      ${generated_files}
-      ${cmake_options}
-    )
+    add_executable(${target_name} ${source_files} ${generated_files} ${cmake_options})
   endif()
 
-  # Most of the samples link against the sutil library and the optix library.  Here is the
-  # rule that specifies this linkage.
-  target_link_libraries( ${target_name}
-    ${GLFW_LIB_NAME}
-    sutil_7_sdk
+  # We link our version of the OptiX samples sutil library
+  target_link_libraries(${target_name} sutil_7_sdk)
+
+  set_target_properties(
+    ${target_name} PROPERTIES
+    COMPILE_DEFINITIONS
+    "OPTIX_SAMPLE_NAME_DEFINE=${target_name};OPTIX_SAMPLE_DIR_DEFINE=${target_name}"
   )
 
-  set_target_properties( ${target_name} PROPERTIES
-    COMPILE_DEFINITIONS
-    "OPTIX_SAMPLE_NAME_DEFINE=${target_name};OPTIX_SAMPLE_DIR_DEFINE=${target_name}" )
-
-  if( UNIX AND NOT APPLE )
+  if(UNIX AND NOT APPLE)
     # Force using RPATH instead of RUNPATH on Debian
     target_link_libraries( ${target_name} "-Wl,--disable-new-dtags" )
   endif()

@@ -25,6 +25,6 @@ target_include_directories(${target_name} INTERFACE PRIVATE "$<BUILD_INTERFACE:$
 # now links dynamically to -lcudart, rt, dl, as this appeared to be
 # necessary to get a CUDA reduction kernel to run after an Optix ray
 # tracing frame run.
-target_link_libraries(${target_name} -lcudart -lrt -ldl ${glad_target})
+target_link_libraries(${target_name} -lcudart -lrt -ldl ${glad_target} ${GLFW_LIB_NAME})
 
 set_target_properties (${target_name} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
