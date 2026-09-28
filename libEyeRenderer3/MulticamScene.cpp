@@ -59,19 +59,6 @@
 #include <iomanip>
 #include <iostream>
 
-// Using a handful of GL definitions
-#ifndef GL_MIRRORED_REPEAT
-# define GL_MIRRORED_REPEAT 0x8370
-#endif
-
-#ifndef GL_CLAMP_TO_EDGE
-# define GL_CLAMP_TO_EDGE 0x812F
-#endif
-
-#ifndef GL_NEAREST
-# define GL_NEAREST 0x2600
-#endif
-
 // Compile time debugging choices
 static constexpr bool debug_gltf = false;
 static constexpr bool debug_cameras = false;
@@ -784,14 +771,9 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
 
         const auto& gltf_sampler = model.samplers[ gltf_texture.sampler ];
 
-        const cudaTextureAddressMode address_s = gltf_sampler.wrapS == GL_CLAMP_TO_EDGE   ? cudaAddressModeClamp  :
-        gltf_sampler.wrapS == GL_MIRRORED_REPEAT ? cudaAddressModeMirror :
-        cudaAddressModeWrap;
-        const cudaTextureAddressMode address_t = gltf_sampler.wrapT == GL_CLAMP_TO_EDGE   ? cudaAddressModeClamp  :
-        gltf_sampler.wrapT == GL_MIRRORED_REPEAT ? cudaAddressModeMirror :
-        cudaAddressModeWrap;
-        const cudaTextureFilterMode  filter    = gltf_sampler.minFilter == GL_NEAREST     ? cudaFilterModePoint   :
-        cudaFilterModeLinear;
+        const cudaTextureAddressMode address_s = gltf_sampler.wrapS == TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE ? cudaAddressModeClamp : (gltf_sampler.wrapS == TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT ? cudaAddressModeMirror : cudaAddressModeWrap);
+        const cudaTextureAddressMode address_t = gltf_sampler.wrapT == TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE ? cudaAddressModeClamp : (gltf_sampler.wrapT == TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT ? cudaAddressModeMirror : cudaAddressModeWrap);
+        const cudaTextureFilterMode  filter    = gltf_sampler.minFilter == TINYGLTF_TEXTURE_FILTER_NEAREST ? cudaFilterModePoint : cudaFilterModeLinear;
         this->addSampler( address_s, address_t, filter, gltf_texture.source );
     }
 
@@ -996,26 +978,19 @@ void cray::MulticamScene::addImage(
 }
 
 
-void cray::MulticamScene::addSampler(
-    cudaTextureAddressMode address_s,
-    cudaTextureAddressMode address_t,
-    cudaTextureFilterMode  filter,
-    const int32_t          image_idx
-    )
+void cray::MulticamScene::addSampler (cudaTextureAddressMode address_s,
+                                      cudaTextureAddressMode address_t,
+                                      cudaTextureFilterMode  filter,
+                                      const int32_t          image_idx)
 {
     cudaResourceDesc res_desc = {};
     res_desc.resType          = cudaResourceTypeArray;
     res_desc.res.array.array  = getImage( image_idx );
 
     cudaTextureDesc tex_desc     = {};
-    tex_desc.addressMode[0]      = address_s == GL_CLAMP_TO_EDGE   ? cudaAddressModeClamp  :
-    address_s == GL_MIRRORED_REPEAT ? cudaAddressModeMirror :
-    cudaAddressModeWrap;
-    tex_desc.addressMode[1]      = address_t == GL_CLAMP_TO_EDGE   ? cudaAddressModeClamp  :
-    address_t == GL_MIRRORED_REPEAT ? cudaAddressModeMirror :
-    cudaAddressModeWrap;
-    tex_desc.filterMode          = filter    == GL_NEAREST         ? cudaFilterModePoint   :
-    cudaFilterModeLinear;
+    tex_desc.addressMode[0]      = address_s;
+    tex_desc.addressMode[1]      = address_t;
+    tex_desc.filterMode          = filter;
     tex_desc.readMode            = cudaReadModeNormalizedFloat;
     tex_desc.normalizedCoords    = 1;
     tex_desc.maxAnisotropy       = 1;
