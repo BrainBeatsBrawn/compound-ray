@@ -66,23 +66,23 @@ static constexpr bool debug_pipeline = false;
 
 namespace internal
 {
-    float3 make_float3_from_double( double x, double y, double z )
+    float3 make_float3_from_double (double x, double y, double z)
     {
-        return make_float3( static_cast<float>( x ), static_cast<float>( y ), static_cast<float>( z ) );
+        return make_float3 (static_cast<float> (x), static_cast<float> (y), static_cast<float> (z));
     }
 
-    float4 make_float4_from_double( double x, double y, double z, double w )
+    float4 make_float4_from_double (double x, double y, double z, double w)
     {
-        return make_float4( static_cast<float>( x ), static_cast<float>( y ), static_cast<float>( z ), static_cast<float>( w ) );
+        return make_float4 (static_cast<float> (x), static_cast<float> (y), static_cast<float> (z), static_cast<float> (w));
     }
 
     typedef sutil::Record<cray::HitGroupData> HitGroupRecord;
 
     static constexpr bool debug_allow_context_log = false;
-    void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */)
+    void context_log_cb (unsigned int level, const char* tag, const char* message, void* /*cbdata */)
     {
         if constexpr (debug_allow_context_log) {
-            std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: "
+            std::cerr << "[" << std::setw (2) << level << "][" << std::setw (12) << tag << "]: "
                       << message << "\n";
         }
     }
@@ -98,7 +98,7 @@ namespace internal
      * that underlies the BufferViews.
      */
     template<typename T>
-    cuda::BufferView<T> bufferViewFromGLTF(const tinygltf::Model& model, cray::MulticamScene& scene, const int32_t accessor_idx)
+    cuda::BufferView<T> bufferViewFromGLTF (const tinygltf::Model& model, cray::MulticamScene& scene, const int32_t accessor_idx)
     {
         if (accessor_idx == -1) { return cuda::BufferView<T>(); }
 
@@ -151,80 +151,73 @@ namespace internal
     const bool isObjectsExtraValueTrue (const tinygltf::Value& extras, const char* key)
     {
         tinygltf::Value v = extras.Get(key);
-        if(v.IsBool())
-        {
-            return v.Get<bool>();
-        }
+        if (v.IsBool()) { return v.Get<bool>(); }
 
-        if(v.IsString())
-        {
+        if (v.IsString()) {
             std::string valueStr = v.Get<std::string>();
             std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(), [](unsigned char c){ return std::tolower(c); });
             return (valueStr.compare("true") == 0);
         }
         return false;
     }
-    const std::vector<std::string> splitString(const std::string& s, const std::string& deliminator)
+
+    const std::vector<std::string> splitString (const std::string& s, const std::string& deliminator)
     {
         std::vector<std::string> output;
         const size_t delimSize = deliminator.size();
         size_t lastDelimLoc = 0;
-        size_t delimLoc = s.find(deliminator, 0);
-        while(delimLoc != std::string::npos)
-        {
-            if(delimLoc != lastDelimLoc)
-                output.push_back(s.substr(lastDelimLoc, delimLoc-lastDelimLoc));
+        size_t delimLoc = s.find (deliminator, 0);
+        while (delimLoc != std::string::npos) {
+            if (delimLoc != lastDelimLoc) {
+                output.push_back (s.substr (lastDelimLoc, delimLoc - lastDelimLoc));
+            }
             lastDelimLoc = delimLoc + delimSize;
-            delimLoc = s.find(deliminator, lastDelimLoc);
+            delimLoc = s.find (deliminator, lastDelimLoc);
         }
         // Push either the whole thing if it's not found, or the last segment if there were deliminators
-        output.push_back(s.substr(lastDelimLoc, s.size()));
+        output.push_back (s.substr (lastDelimLoc, s.size()));
         return output;
     }
 
     // Global function called from loadScene
-    void processGLTFNode(
-        cray::MulticamScene& scene,
-        const tinygltf::Model& model,
-        const tinygltf::Node& gltf_node,
-        const sutil::Matrix4x4& parent_matrix,
-        const std::string& glTFdir
-        )
+    void processGLTFNode (cray::MulticamScene& scene,
+                          const tinygltf::Model& model,
+                          const tinygltf::Node& gltf_node,
+                          const sutil::Matrix4x4& parent_matrix,
+                          const std::string& glTFdir)
     {
         const sutil::Matrix4x4 translation = gltf_node.translation.empty() ?
         sutil::Matrix4x4::identity() :
-        sutil::Matrix4x4::translate( internal::make_float3_from_double(gltf_node.translation[0],
-                                                                       gltf_node.translation[1],
-                                                                       gltf_node.translation[2]));
+        sutil::Matrix4x4::translate (internal::make_float3_from_double (gltf_node.translation[0],
+                                                                        gltf_node.translation[1],
+                                                                        gltf_node.translation[2]));
 
         const sutil::Matrix4x4 rotation = gltf_node.rotation.empty() ?
         sutil::Matrix4x4::identity() :
-        sutil::Quaternion(static_cast<float>( gltf_node.rotation[3] ),
-                          static_cast<float>( gltf_node.rotation[0] ),
-                          static_cast<float>( gltf_node.rotation[1] ),
-                          static_cast<float>( gltf_node.rotation[2] )).rotationMatrix();
+        sutil::Quaternion(static_cast<float> (gltf_node.rotation[3]),
+                          static_cast<float> (gltf_node.rotation[0]),
+                          static_cast<float> (gltf_node.rotation[1]),
+                          static_cast<float> (gltf_node.rotation[2])).rotationMatrix();
 
         const sutil::Matrix4x4 scale = gltf_node.scale.empty() ?
         sutil::Matrix4x4::identity() :
-        sutil::Matrix4x4::scale( internal::make_float3_from_double(gltf_node.scale[0],
-                                                                   gltf_node.scale[1],
-                                                                   gltf_node.scale[2]));
+        sutil::Matrix4x4::scale (internal::make_float3_from_double (gltf_node.scale[0],
+                                                                    gltf_node.scale[1],
+                                                                    gltf_node.scale[2]));
 
         std::vector<float> gltf_matrix;
-        for( double x : gltf_node.matrix )
-            gltf_matrix.push_back( static_cast<float>( x ) );
+        for (double x : gltf_node.matrix) { gltf_matrix.push_back (static_cast<float> (x)); }
         const sutil::Matrix4x4 matrix = gltf_node.matrix.empty() ?
         sutil::Matrix4x4::identity() :
-        sutil::Matrix4x4( reinterpret_cast<float*>( gltf_matrix.data() ) ).transpose();
+        sutil::Matrix4x4 (reinterpret_cast<float*> (gltf_matrix.data())).transpose();
 
         const sutil::Matrix4x4 node_xform = parent_matrix * matrix * translation * rotation * scale ;
 
-        if( gltf_node.camera != -1 )
-        {
+        if (gltf_node.camera != -1) {
             // We're dealing with cameras
-            const auto& gltf_camera = model.cameras[ gltf_node.camera ];
+            const auto& gltf_camera = model.cameras[gltf_node.camera];
             if constexpr (debug_gltf == true) {
-                std::cout << "============================"<<std::endl<<"Processing camera '" << gltf_camera.name << "'" << std::endl
+                std::cout << "============================\nProcessing camera '" << gltf_camera.name << "'" << std::endl
                           << "\ttype: " << gltf_camera.type << std::endl;
             }
             // Get configured camera information and local axis
@@ -239,16 +232,15 @@ namespace internal
             }
 
             // eye is 'position' - a transform of the origin
-            const float3 eye     = make_float3( node_xform*internal::make_float4_from_double( 0.0f, 0.0f,  0.0f, 1.0f ) );
-            const float  yfov   = static_cast<float>( gltf_camera.perspective.yfov ) * 180.0f / static_cast<float>( M_PI );
+            const float3 eye     = make_float3 (node_xform*internal::make_float4_from_double (0.0f, 0.0f,  0.0f, 1.0f));
+            const float  yfov   = static_cast<float> (gltf_camera.perspective.yfov) * 180.0f / static_cast<float> (M_PI);
             if constexpr (debug_cameras == true) {
                 std::cout << "\teye posn: " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
                 std::cout << "\tfov     : " << yfov     << std::endl;
                 std::cout << "\taspect  : " << gltf_camera.perspective.aspectRatio << std::endl;
             }
             // Form camera objects
-            if( gltf_camera.type == "orthographic" )
-            {
+            if (gltf_camera.type == "orthographic") {
                 cray::OrthographicCamera* camera = new cray::OrthographicCamera(gltf_camera.name);
                 camera->setPosition(eye);
                 camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
@@ -260,8 +252,7 @@ namespace internal
                 return;
             }
 
-            if(isObjectsExtraValueTrue(gltf_camera.extras, "panoramic"))
-            {
+            if (isObjectsExtraValueTrue (gltf_camera.extras, "panoramic")) {
                 if constexpr (debug_cameras == true) {
                     std::cout << "This camera has special indicator 'panoramic' specified, adding panoramic camera..."<<std::endl;
                 }
@@ -275,8 +266,7 @@ namespace internal
                 return;
             }
 
-            if(isObjectsExtraValueTrue(gltf_camera.extras, "compound-eye"))
-            {
+            if (isObjectsExtraValueTrue (gltf_camera.extras, "compound-eye")) {
                 if constexpr (debug_cameras == true) {
                     std::cout << "This camera has special indicator 'compound-eye' specified, adding compound eye based camera..."<<std::endl;
                 }
@@ -287,13 +277,11 @@ namespace internal
                     std::cout << "  Camera eye data path: "<<eyeDataPath<<std::endl;
                 }
 
-                if(eyeDataPath == "")
-                {
+                if (eyeDataPath == "") {
                     std::cerr << "ERROR: Eye data path empty or non-existant." << std::endl;
                     return;
                 }
-                if(projectionShader == "")
-                {
+                if (projectionShader == "") {
                     std::cerr << "ERROR: Projection shader specifier empty or non-existant." << std::endl;
                     return;
                 }
@@ -302,27 +290,25 @@ namespace internal
                 std::ifstream eyeDataFile(eyeDataPath, std::ifstream::in);
                 std::string usedEyeDataPath; // Track the actual complete path that was used
                 std::string eye_data_path = {};
-                if(!eyeDataFile.is_open())
-                {
+                if (!eyeDataFile.is_open()) {
                     if constexpr (debug_cameras == true) {
                         std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative address..."<<std::endl;
                     }
                     // Try and load the file relatively to the gltf file
                     std::string relativeEyeDataPath = glTFdir + eyeDataPath; // Just append the eye data path
                     eyeDataFile.open(relativeEyeDataPath, std::ifstream::in);
-                    if(!eyeDataFile.is_open())
-                    {
+                    if (!eyeDataFile.is_open()) {
                         std::cerr << "ERROR: Unable to open \"" << relativeEyeDataPath << "\", read cancelled."<<std::endl;
                         eye_data_path = relativeEyeDataPath;
                         return;
-                    }else{
+                    } else {
                         if constexpr (debug_cameras == true) {
                             std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
                         }
                         usedEyeDataPath = relativeEyeDataPath;
                         eye_data_path = usedEyeDataPath;
                     }
-                }else{
+                } else {
                     if constexpr (debug_cameras == true) {
                         std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
                     }
@@ -334,28 +320,26 @@ namespace internal
                 std::string line;
                 std::vector<cray::Ommatidium> ommVector;// Stores the ommatidia
                 size_t ommCount = 0;
-                while(std::getline(eyeDataFile, line))
-                {
-                    std::vector<std::string> splitData = splitString(line, " ");// position, direction, angle, offset
+                while (std::getline(eyeDataFile, line)) {
+                    std::vector<std::string> splitData = splitString (line, " ");// position, direction, angle, offset
                     cray::Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
                     ommVector.push_back(o);
                     ommCount++;
                 }
                 std::cout <<  "  Loaded " << ommCount << " ommatidia." << std::endl;
 
-                if(ommCount == 0)
-                {
+                if (ommCount == 0) {
                     std::cerr << "  ERROR: Zero ommatidia loaded. Are you specifying the right path? (Check previous 'Reading from...' output)" << std::endl;
                     return;
                 }
 
                 // Create a new compound eye
                 cray::CompoundEye* camera = new cray::CompoundEye(gltf_camera.name, projectionShader, ommVector.size(), usedEyeDataPath);
-                camera->setPosition(eye);
-                camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
-                int cidx = scene.addCamera(camera);
-                camera->copyOmmatidia(ommVector.data());
-                scene.addCompoundCamera(cidx, camera, ommVector);
+                camera->setPosition (eye);
+                camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
+                int cidx = scene.addCamera (camera);
+                camera->copyOmmatidia (ommVector.data());
+                scene.addCompoundCamera (cidx, camera, ommVector);
 
                 scene.eye_data_paths[cidx] = eye_data_path;
 
@@ -365,16 +349,16 @@ namespace internal
             }
 
             cray::PerspectiveCamera* camera = new cray::PerspectiveCamera (gltf_camera.name);
-            camera->setPosition(eye);
-            camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
-            camera->setYFOV(yfov);
-            int cidx = scene.addCamera( camera );
+            camera->setPosition (eye);
+            camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
+            camera->setYFOV (yfov);
+            int cidx = scene.addCamera (camera);
             if constexpr (debug_cameras == true) {
                 std::cout << "Added perspective camera..." << cidx << std::endl;
             }
-        }
-        else if( gltf_node.mesh != -1 && isObjectsExtraValueTrue(model.meshes[gltf_node.mesh].extras, "hitbox") )
-        {
+
+        } else if (gltf_node.mesh != -1 && isObjectsExtraValueTrue (model.meshes[gltf_node.mesh].extras, "hitbox")) {
+
             // Process a hitbox mesh
             const auto& gltf_mesh = model.meshes[ gltf_node.mesh ];
             if constexpr (debug_gltf == true) {
@@ -390,18 +374,18 @@ namespace internal
             sutil::hitscan::calculateWorldAabbUsingTransformAndObjectAabb(tm);
             //tm.print(); // Print for debugging
             scene.m_hitboxMeshes.push_back(tm); // Add it to the list
-        }
-        else if( gltf_node.mesh != -1 )
-        {
+
+        } else if (gltf_node.mesh != -1) {
+
             const auto& gltf_mesh = model.meshes[ gltf_node.mesh ];
             if constexpr (debug_gltf == true) {
                 std::cerr << "Processing glTF mesh: '" << gltf_mesh.name << "'\n";
                 std::cerr << "\tNum mesh primitive groups: " << gltf_mesh.primitives.size() << std::endl;
             }
-            for( auto& gltf_primitive : gltf_mesh.primitives )
-            {
-                if( gltf_primitive.mode != TINYGLTF_MODE_TRIANGLES ) // Ignore non-triangle meshes
-                {
+            for (auto& gltf_primitive : gltf_mesh.primitives) {
+
+                // Ignore non-triangle meshes
+                if (gltf_primitive.mode != TINYGLTF_MODE_TRIANGLES) {
                     // TODO: Add support for GL_LINE_STRIP mode here.
                     std::cerr << "\tNon-triangle primitive: skipping\n";
                     continue;
@@ -416,46 +400,39 @@ namespace internal
                 }
 
                 mesh->name = gltf_mesh.name;
-                mesh->indices.push_back( bufferViewFromGLTF<uint32_t>( model, scene, gltf_primitive.indices ) );
-                mesh->material_idx.push_back( gltf_primitive.material );
+                mesh->indices.push_back (bufferViewFromGLTF<uint32_t> (model, scene, gltf_primitive.indices));
+                mesh->material_idx.push_back (gltf_primitive.material);
                 mesh->transform = node_xform;
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\t\tNum triangles is indices.count/3: " << mesh->indices.back().count / 3 << std::endl;
                 }
-                assert( gltf_primitive.attributes.find( "POSITION" ) !=  gltf_primitive.attributes.end() );
-                const int32_t pos_accessor_idx =  gltf_primitive.attributes.at( "POSITION" );
-                mesh->positions.push_back( bufferViewFromGLTF<float3>( model, scene, pos_accessor_idx ) );
+                assert (gltf_primitive.attributes.find ("POSITION") !=  gltf_primitive.attributes.end());
+                const int32_t pos_accessor_idx =  gltf_primitive.attributes.at ("POSITION");
+                mesh->positions.push_back (bufferViewFromGLTF<float3> (model, scene, pos_accessor_idx));
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\t\tNum vertices(positions count/3): " << mesh->positions.back().count / 3 << std::endl;
                 }
 
-                const auto& pos_gltf_accessor = model.accessors[ pos_accessor_idx ];
-                mesh->object_aabb = sutil::Aabb(internal::make_float3_from_double(pos_gltf_accessor.minValues[0],
-                                                                                  pos_gltf_accessor.minValues[1],
-                                                                                  pos_gltf_accessor.minValues[2]),
-                                                internal::make_float3_from_double(pos_gltf_accessor.maxValues[0],
-                                                                                  pos_gltf_accessor.maxValues[1],
-                                                                                  pos_gltf_accessor.maxValues[2]));
+                const auto& pos_gltf_accessor = model.accessors[pos_accessor_idx];
+                mesh->object_aabb = sutil::Aabb (internal::make_float3_from_double (pos_gltf_accessor.minValues[0],
+                                                                                    pos_gltf_accessor.minValues[1],
+                                                                                    pos_gltf_accessor.minValues[2]),
+                                                 internal::make_float3_from_double (pos_gltf_accessor.maxValues[0],
+                                                                                    pos_gltf_accessor.maxValues[1],
+                                                                                    pos_gltf_accessor.maxValues[2]));
                 mesh->world_aabb = mesh->object_aabb;
-                mesh->world_aabb.transform( node_xform );
+                mesh->world_aabb.transform (node_xform);
 
-                auto normal_accessor_iter = gltf_primitive.attributes.find( "NORMAL" ) ;
-                if( normal_accessor_iter  !=  gltf_primitive.attributes.end() )
-                {
-                    if constexpr (debug_gltf == true) {
-                        std::cerr << "\t\tHas vertex normals: true\n";
-                    }
-                    mesh->normals.push_back( bufferViewFromGLTF<float3>( model, scene, normal_accessor_iter->second ) );
-                }
-                else
-                {
-                    if constexpr (debug_gltf == true) {
-                        std::cerr << "\t\tHas vertex normals: false\n";
-                    }
-                    mesh->normals.push_back( bufferViewFromGLTF<float3>( model, scene, -1 ) );
+                auto normal_accessor_iter = gltf_primitive.attributes.find ("NORMAL");
+                if (normal_accessor_iter != gltf_primitive.attributes.end()) {
+                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas vertex normals: true\n"; }
+                    mesh->normals.push_back (bufferViewFromGLTF<float3> (model, scene, normal_accessor_iter->second));
+                } else {
+                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas vertex normals: false\n"; }
+                    mesh->normals.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
                 }
 
-                auto texcoord_accessor_iter = gltf_primitive.attributes.find( "TEXCOORD_0" ) ;
+                auto texcoord_accessor_iter = gltf_primitive.attributes.find ("TEXCOORD_0");
 
                 if (texcoord_accessor_iter != gltf_primitive.attributes.end()) {
                     if constexpr (debug_gltf == true) { std::cerr << "\t\tHas texcoords: true\n"; }
@@ -465,16 +442,16 @@ namespace internal
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, -1));
                 }
 
-                auto vertex_colours_accessor_iter = gltf_primitive.attributes.find( "COLOR_0" ) ;
+                auto vertex_colours_accessor_iter = gltf_primitive.attributes.find ("COLOR_0") ;
 
-                if(vertex_colours_accessor_iter != gltf_primitive.attributes.end() ) // TODO: UNFIX
-                {
+                if (vertex_colours_accessor_iter != gltf_primitive.attributes.end()) { // TODO: UNFIX
+
                     if constexpr (debug_gltf == true) {
                         std::cerr << "\t\tHas vertex colours: true (so we're using them)\n";
                     }
                     // TODO: Add support for vec3 vertex colours here.
                     // Check that the vertex colours are 4-component:
-                    const tinygltf::Accessor& vertex_colours_gltf_accessor = model.accessors[ vertex_colours_accessor_iter->second ];
+                    const tinygltf::Accessor& vertex_colours_gltf_accessor = model.accessors[vertex_colours_accessor_iter->second];
 
                     if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC4) {
 
@@ -493,48 +470,48 @@ namespace internal
                             if constexpr (debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is float.\n";
                             }
-                            mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, vertex_colours_accessor_iter->second ) );
+                            mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, vertex_colours_accessor_iter->second));
 
                             // We must populate the other buffers so that indices align
-                            mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
-                            mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
-                            mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1) );
+                            mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
+                            mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
+                            mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
                             break;
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
                             if constexpr (debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is unsigned short.\n";
                             }
-                            mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, vertex_colours_accessor_iter->second ) );
+                            mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, vertex_colours_accessor_iter->second));
 
                             // We must populate the other buffers so that indices align
-                            mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
-                            mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
-                            mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1) );
+                            mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
+                            mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
+                            mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
                             break;
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
                             if constexpr (debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is unsigned byte.\n";
                             }
-                            mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, vertex_colours_accessor_iter->second ) );
+                            mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, vertex_colours_accessor_iter->second));
 
                             // We must populate the other buffers so that indices align
-                            mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
-                            mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
-                            mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
+                            mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
+                            mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
+                            mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
                             break;
                         default:
                             if constexpr (debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is not supported.\n";
                             }
                             // We must populate the other buffers so that indices align
-                            mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
-                            mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
-                            mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
-                            mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
+                            mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
+                            mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
+                            mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
+                            mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
                             componentType = -1;
                             break;
                         }
-                        mesh->host_color_types.push_back(componentType);
+                        mesh->host_color_types.push_back (componentType);
                         if constexpr (debug_gltf == true) {
                             std::cerr << "\t\tmesh->host_color_types.push_back(" << componentType << ");\n";
                         }
@@ -544,9 +521,9 @@ namespace internal
                         if (mesh->host_color_container != 4) {
                             std::cerr << "\t\t\tBAD vec4 colour container size!.\n";
                         }
-                    }
-                    else if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC3)
-                    {
+
+                    } else if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC3) {
+
                         if constexpr (debug_gltf == true) {
                             std::cerr << "\t\t\tWarning: Vertex colours are of type vec3.\n";
                         }
@@ -565,26 +542,26 @@ namespace internal
                             if constexpr (debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec3 component type is float.\n";
                             }
-                            mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, vertex_colours_accessor_iter->second ) );
+                            mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, vertex_colours_accessor_iter->second));
 
                             // We must populate the other buffers so that indices align
-                            mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
-                            mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
-                            mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1) );
+                            mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
+                            mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
+                            mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
                             break;
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
                         default:
                             std::cerr << "\t\t\tThis vec3 component type is not supported.\n";
                             // We must populate the other buffers so that indices align
-                            mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
-                            mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
-                            mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
-                            mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
+                            mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
+                            mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
+                            mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
+                            mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
                             componentType = -1;
                             break;
                         }
-                        mesh->host_color_types.push_back(componentType);
+                        mesh->host_color_types.push_back (componentType);
                         if constexpr (debug_gltf == true) {
                             std::cerr << "\t\tmesh->host_color_types.push_back(" << componentType << ");\n";
                         }
@@ -595,48 +572,46 @@ namespace internal
                         if (mesh->host_color_container != 3) {
                             std::cerr << "\t\t\tBAD vec3 colour container size!.\n";
                         }
-                    }
-                    else
-                    {
+
+                    } else {
+
                         std::cerr << "\t\t\tWarning: Vertex colours are not of type vec3 or vec4. Ignoring vertex colours.\n";
-                        mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
-                        mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
-                        mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
-                        mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
+                        mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
+                        mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
+                        mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
+                        mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
                         if constexpr (debug_gltf == true) {
                             std::cerr << "\t\tmesh->host_color_types.push_back(-1);\n";
                         }
-                        mesh->host_color_types.push_back(-1);
+                        mesh->host_color_types.push_back (-1);
                     }
 
-                }
-                else
-                {
+                } else {
+
                     if constexpr (debug_gltf == true) {
                         std::cerr << "\t\tHas vertex colours: false\n";
                     }
-                    mesh->host_color_types.push_back(-1);
+                    mesh->host_color_types.push_back (-1);
                     if constexpr (debug_gltf == true) {
                         std::cerr << "\t\tmesh->host_color_types.push_back(-1);\n";
                     }
                     // We must populate the other buffers so that indices align
-                    mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
-                    mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
-                    mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
-                    mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
+                    mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
+                    mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
+                    mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
+                    mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
                 }
             }
-        }
-        else if( !gltf_node.children.empty() )
-        {
-            for( int32_t child : gltf_node.children )
-            {
-                processGLTFNode( scene, model, model.nodes[child], node_xform, glTFdir);
+
+        } else if (!gltf_node.children.empty()) {
+
+            for (int32_t child : gltf_node.children) {
+                processGLTFNode (scene, model, model.nodes[child], node_xform, glTFdir);
             }
         }
     }
 
-} // end anon namespace
+} // end namespace internal
 
 void cray::MulticamScene::initLaunchParams()
 {
@@ -649,28 +624,28 @@ void cray::MulticamScene::initLaunchParams()
     std::vector<Light::Point> lights(4);
     lights[0].color     = { 1.0f, 1.0f, 0.8f };
     lights[0].intensity = 5.0f;
-    lights[0].position  = this->aabb().center() + make_float3( loffset );
+    lights[0].position  = this->aabb().center() + make_float3 (loffset);
     lights[0].falloff   = Light::Falloff::QUADRATIC;
     lights[1].color     = { 0.8f, 0.8f, 1.0f };
     lights[1].intensity = 3.0f;
-    lights[1].position  = this->aabb().center() + make_float3( -loffset, 0.5f*loffset, -0.5f*loffset  );
+    lights[1].position  = this->aabb().center() + make_float3 (-loffset, 0.5f * loffset, -0.5f * loffset );
     lights[1].falloff   = Light::Falloff::QUADRATIC;
     lights[2].color     = { 1.0f, 1.0f, 0.8f };
     lights[2].intensity = 5.0f;
-    lights[2].position  = this->aabb().center() + make_float3( 0.0f, 4.0f, -5.0f);
+    lights[2].position  = this->aabb().center() + make_float3 (0.0f, 4.0f, -5.0f);
     lights[2].falloff   = Light::Falloff::QUADRATIC;
     lights[3].color     = { 1.0f, 1.0f, 0.8f };
     lights[3].intensity = 0.5f;
-    lights[3].position  = this->aabb().center() + make_float3( 1.0f, -6.0f, 0.0f);
+    lights[3].position  = this->aabb().center() + make_float3 (1.0f, -6.0f, 0.0f);
     lights[3].falloff   = Light::Falloff::QUADRATIC;
 
-    this->params->lights.count  = static_cast<uint32_t>( lights.size() );
+    this->params->lights.count  = static_cast<uint32_t> (lights.size());
 
     CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&this->params->lights.data), lights.size() * sizeof(Light::Point)));
     CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(this->params->lights.data), lights.data(),
                             lights.size() * sizeof(Light::Point), cudaMemcpyHostToDevice));
 
-    this->params->miss_color = make_float3( 0.1f );
+    this->params->miss_color = make_float3 (0.1f);
     CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(this->d_params)), sizeof(cray::LaunchParams)));
 
     this->params->handle = this->traversableHandle();
@@ -686,34 +661,33 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     std::string err;
     std::string warn;
 
-    bool ret = loader.LoadASCIIFromFile( &model, &err, &warn, filename );
-    if( !warn.empty() )
+    bool ret = loader.LoadASCIIFromFile (&model, &err, &warn, filename);
+    if (!warn.empty()) {
         std::cerr << "glTF WARNING: " << warn << std::endl;
-    if( !ret )
-    {
+    }
+    if (!ret) {
         std::cerr << "Failed to load GLTF scene '" << filename << "': " << err << std::endl;
-        throw sutil::Exception( err.c_str() );
+        throw sutil::Exception (err.c_str());
     }
 
     // Calculate and store the path to the file bar the file iteself for relative includes
     std::string glTFdir = "";
     std::size_t slashPos = filename.find_last_of("/\\")+1; // (+1 to include the slash)
-    if(slashPos != std::string::npos)
+    if (slashPos != std::string::npos) {
         glTFdir = filename.substr(0,slashPos);
+    }
 
     // Retrieve background shader information if it exists
     if constexpr (debug_gltf == true) {
         std::cout << "Searching for background shader..." << std::endl;
     }
-    for(auto modelScene : model.scenes)
-    {
+    for (auto modelScene : model.scenes) {
         std::string bgShader = modelScene.extras.Get("background-shader").Get<std::string>();
         if constexpr (debug_gltf == true) {
             std::cout << "\tBackground shader string detected: \"" << bgShader << "\"" << std::endl;
         }
 
-        if(bgShader != "")
-        {
+        if (bgShader != "") {
             this->m_backgroundShader = "__miss__" + bgShader;
         }
     }
@@ -725,47 +699,38 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     //
     // Process buffer data first -- buffer views will reference this list
     //
-    for( const auto& gltf_buffer : model.buffers )
-    {
+    for (const auto& gltf_buffer : model.buffers) {
         const uint64_t buf_size = gltf_buffer.data.size();
         if constexpr (debug_gltf == true) {
             std::cerr << "Processing glTF buffer '" << gltf_buffer.name << "'\n"
                       << "\tbyte size: " << buf_size << "\n"
                       << "\turi      : " << (buf_size > 128u ? gltf_buffer.uri.substr(0, 128) + std::string("...") : gltf_buffer.uri) << std::endl;
         }
-        this->addBuffer( buf_size,  gltf_buffer.data.data() );
+        this->addBuffer (buf_size,  gltf_buffer.data.data());
     }
 
     //
     // Images -- just load all up front for simplicity
     //
-    for( const auto& gltf_image : model.images )
-    {
+    for (const auto& gltf_image : model.images) {
         if constexpr (debug_gltf == true) {
             std::cerr << "Processing image '" << gltf_image.name << "'\n"
                       << "\t(" << gltf_image.width << "x" << gltf_image.height << ")x" << gltf_image.component << "\n"
                       << "\tbits: " << gltf_image.bits << std::endl;
         }
-        assert( gltf_image.component == 4 );
-        assert( gltf_image.bits      == 8 || gltf_image.bits == 16 );
+        assert (gltf_image.component == 4);
+        assert (gltf_image.bits == 8 || gltf_image.bits == 16);
 
-        this->addImage(
-            gltf_image.width,
-            gltf_image.height,
-            gltf_image.bits,
-            gltf_image.component,
-            gltf_image.image.data()
-            );
+        this->addImage (gltf_image.width,gltf_image.height, gltf_image.bits, gltf_image.component, gltf_image.image.data());
     }
 
     //
     // Textures -- refer to previously loaded images
     //
-    for( const auto& gltf_texture : model.textures )
-    {
-        if( gltf_texture.sampler == -1 )
-        {
-            this->addSampler( cudaAddressModeWrap, cudaAddressModeWrap, cudaFilterModeLinear, gltf_texture.source );
+    for (const auto& gltf_texture : model.textures) {
+
+        if (gltf_texture.sampler == -1) {
+            this->addSampler (cudaAddressModeWrap, cudaAddressModeWrap, cudaFilterModeLinear, gltf_texture.source);
             continue;
         }
 
@@ -774,52 +739,40 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
         const cudaTextureAddressMode address_s = gltf_sampler.wrapS == TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE ? cudaAddressModeClamp : (gltf_sampler.wrapS == TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT ? cudaAddressModeMirror : cudaAddressModeWrap);
         const cudaTextureAddressMode address_t = gltf_sampler.wrapT == TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE ? cudaAddressModeClamp : (gltf_sampler.wrapT == TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT ? cudaAddressModeMirror : cudaAddressModeWrap);
         const cudaTextureFilterMode  filter    = gltf_sampler.minFilter == TINYGLTF_TEXTURE_FILTER_NEAREST ? cudaFilterModePoint : cudaFilterModeLinear;
-        this->addSampler( address_s, address_t, filter, gltf_texture.source );
+        this->addSampler (address_s, address_t, filter, gltf_texture.source);
     }
 
     //
     // Materials
     //
-    for( auto& gltf_material : model.materials )
-    {
+    for (auto& gltf_material : model.materials) {
+
         if constexpr (debug_gltf == true) {
             std::cerr << "Processing glTF material: '" << gltf_material.name << "'\n";
         }
-        MaterialData::Pbr mtl;
 
+        MaterialData::Pbr mtl;
         {
-            const auto base_color_it = gltf_material.values.find( "baseColorFactor" );
-            if( base_color_it != gltf_material.values.end() )
-            {
+            const auto base_color_it = gltf_material.values.find ("baseColorFactor");
+            if (base_color_it != gltf_material.values.end()) {
                 const tinygltf::ColorValue c = base_color_it->second.ColorFactor();
-                mtl.base_color = internal::make_float4_from_double( c[0], c[1], c[2], c[3] );
+                mtl.base_color = internal::make_float4_from_double (c[0], c[1], c[2], c[3]);
                 if constexpr (debug_gltf == true) {
-                    std::cerr
-                    << "\tBase color: ("
-                    << mtl.base_color.x << ", "
-                    << mtl.base_color.y << ", "
-                    << mtl.base_color.z << ")\n";
+                    std::cerr << "\tBase color: (" << mtl.base_color.x << ", " << mtl.base_color.y << ", " << mtl.base_color.z << ")\n";
                 }
-            }
-            else
-            {
-                if constexpr (debug_gltf == true) {
-                    std::cerr << "\tUsing default base color factor\n";
-                }
+            } else {
+                if constexpr (debug_gltf == true) { std::cerr << "\tUsing default base color factor\n"; }
             }
         }
 
         {
-            const auto base_color_it = gltf_material.values.find( "baseColorTexture" );
-            if( base_color_it != gltf_material.values.end() )
-            {
+            const auto base_color_it = gltf_material.values.find ("baseColorTexture");
+            if (base_color_it != gltf_material.values.end()) {
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tFound base color texture: " << base_color_it->second.TextureIndex() << "\n";
                 }
-                mtl.base_color_tex = this->getSampler( base_color_it->second.TextureIndex() );
-            }
-            else
-            {
+                mtl.base_color_tex = this->getSampler (base_color_it->second.TextureIndex());
+            } else {
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tNo base color texture, mtl.base_color_tex = 0\n";
                 }
@@ -828,84 +781,58 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
         }
 
         {
-            const auto roughness_it = gltf_material.values.find( "roughnessFactor" );
-            if( roughness_it != gltf_material.values.end() )
-            {
-                mtl.roughness = static_cast<float>( roughness_it->second.Factor() );
-                if constexpr (debug_gltf == true) {
-                    std::cerr << "\tRougness:  " << mtl.roughness <<  "\n";
-                }
-            }
-            else
-            {
-                if constexpr (debug_gltf == true) {
-                    std::cerr << "\tUsing default roughness factor\n";
-                }
+            const auto roughness_it = gltf_material.values.find ("roughnessFactor");
+            if (roughness_it != gltf_material.values.end()) {
+                mtl.roughness = static_cast<float> (roughness_it->second.Factor());
+                if constexpr (debug_gltf == true) { std::cerr << "\tRoughness:  " << mtl.roughness <<  "\n"; }
+            } else {
+                if constexpr (debug_gltf == true) { std::cerr << "\tUsing default roughness factor\n"; }
             }
         }
 
         {
-            const auto metallic_it = gltf_material.values.find( "metallicFactor" );
-            if( metallic_it != gltf_material.values.end() )
-            {
-                mtl.metallic = static_cast<float>( metallic_it->second.Factor() );
-                if constexpr (debug_gltf == true) {
-                    std::cerr << "\tMetallic:  " << mtl.metallic <<  "\n";
-                }
-            }
-            else
-            {
-                if constexpr (debug_gltf == true) {
-                    std::cerr << "\tUsing default metallic factor\n";
-                }
+            const auto metallic_it = gltf_material.values.find ("metallicFactor");
+            if (metallic_it != gltf_material.values.end()) {
+                mtl.metallic = static_cast<float> (metallic_it->second.Factor());
+                if constexpr (debug_gltf == true) { std::cerr << "\tMetallic:  " << mtl.metallic <<  "\n"; }
+            } else {
+                if constexpr (debug_gltf == true) { std::cerr << "\tUsing default metallic factor\n"; }
             }
         }
 
         {
-            const auto metallic_roughness_it = gltf_material.values.find( "metallicRoughnessTexture" );
-            if( metallic_roughness_it != gltf_material.values.end() )
-            {
+            const auto metallic_roughness_it = gltf_material.values.find ("metallicRoughnessTexture");
+            if (metallic_roughness_it != gltf_material.values.end()) {
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tFound metallic roughness tex: " << metallic_roughness_it->second.TextureIndex() << "\n";
                 }
-                mtl.metallic_roughness_tex = this->getSampler( metallic_roughness_it->second.TextureIndex() );
-            }
-            else
-            {
-                if constexpr (debug_gltf == true) {
-                    std::cerr << "\tNo metallic roughness tex\n";
-                }
+                mtl.metallic_roughness_tex = this->getSampler (metallic_roughness_it->second.TextureIndex());
+            } else {
+                if constexpr (debug_gltf == true) { std::cerr << "\tNo metallic roughness tex\n"; }
             }
         }
 
         {
-            const auto normal_it = gltf_material.additionalValues.find( "normalTexture" );
-            if( normal_it != gltf_material.additionalValues.end() )
-            {
+            const auto normal_it = gltf_material.additionalValues.find ("normalTexture");
+            if (normal_it != gltf_material.additionalValues.end()) {
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tFound normal color tex: " << normal_it->second.TextureIndex() << "\n";
                 }
-                mtl.normal_tex = this->getSampler( normal_it->second.TextureIndex() );
-            }
-            else
-            {
-                if constexpr (debug_gltf == true) {
-                    std::cerr << "\tNo normal tex\n";
-                }
+                mtl.normal_tex = this->getSampler (normal_it->second.TextureIndex());
+            } else {
+                if constexpr (debug_gltf == true) { std::cerr << "\tNo normal tex\n"; }
             }
         }
 
-        this->addMaterial( mtl );
+        this->addMaterial (mtl);
     }
 
     //
     // Process nodes
     //
-    std::vector<int32_t> root_nodes( model.nodes.size(), 1 );
+    std::vector<int32_t> root_nodes (model.nodes.size(), 1);
     for (auto& gltf_node : model.nodes) {
-        for (int32_t child : gltf_node.children) {
-            root_nodes[child] = 0;
-        }
+        for (int32_t child : gltf_node.children) { root_nodes[child] = 0; }
     }
 
     for (size_t i = 0; i < root_nodes.size(); ++i) {
@@ -915,68 +842,47 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     }
 }
 
-
-void cray::MulticamScene::addBuffer( const uint64_t buf_size, const void* data )
+void cray::MulticamScene::addBuffer (const uint64_t buf_size, const void* data)
 {
     CUdeviceptr buffer = 0;
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &buffer ), buf_size ) );
-
-    CUDA_CHECK( cudaMemcpy(
-                    reinterpret_cast<void*>( buffer ),
-                    data,
-                    buf_size,
-                    cudaMemcpyHostToDevice
-                    ) );
-    m_buffers.push_back( buffer );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&buffer), buf_size));
+    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*> (buffer), data, buf_size, cudaMemcpyHostToDevice));
+    m_buffers.push_back (buffer);
 }
 
-
-void cray::MulticamScene::addImage(
-    const int32_t width,
-    const int32_t height,
-    const int32_t bits_per_component,
-    const int32_t num_components,
-    const void* data
-    )
+void cray::MulticamScene::addImage (const int32_t width,
+                                    const int32_t height,
+                                    const int32_t bits_per_component,
+                                    const int32_t num_components,
+                                    const void* data)
 {
     // Allocate CUDA array in device memory
-    int32_t               pitch;
+    int32_t pitch = 0;
     cudaChannelFormatDesc channel_desc;
-    if( bits_per_component == 8 )
-    {
-        pitch        = width*num_components*sizeof(uint8_t);
+    if (bits_per_component == 8) {
+        pitch = width * num_components * sizeof(uint8_t);
         channel_desc = cudaCreateChannelDesc<uchar4>();
-    }
-    else if( bits_per_component == 16 )
-    {
-        pitch        = width*num_components*sizeof(uint16_t);
+    } else if (bits_per_component == 16) {
+        pitch = width * num_components * sizeof(uint16_t);
         channel_desc = cudaCreateChannelDesc<ushort4>();
-    }
-    else
-    {
-        throw sutil::Exception( "Unsupported bits/component in glTF image" );
+    } else {
+        throw sutil::Exception ("Unsupported bits/component in glTF image");
     }
 
 
-    cudaArray_t   cuda_array = nullptr;
-    CUDA_CHECK( cudaMallocArray(
-                &cuda_array,
-                &channel_desc,
-                width,
-                height
-                ) );
+    cudaArray_t cuda_array = nullptr;
+    CUDA_CHECK (cudaMallocArray (&cuda_array, &channel_desc, width, height));
 
-    CUDA_CHECK( cudaMemcpy2DToArray(cuda_array,  // destination
-                                    0,           // X offset
-                                    0,           // Y offset
-                                    data,        // source
-                                    pitch,       // source pitch
-                                    pitch,       // width
-                                    height,      // height
-                                    cudaMemcpyHostToDevice) );
-    m_images.push_back( cuda_array );
+    CUDA_CHECK (cudaMemcpy2DToArray (cuda_array,  // destination
+                                     0,           // X offset
+                                     0,           // Y offset
+                                     data,        // source
+                                     pitch,       // source pitch
+                                     pitch,       // width
+                                     height,      // height
+                                     cudaMemcpyHostToDevice));
+    m_images.push_back (cuda_array);
 }
-
 
 void cray::MulticamScene::addSampler (cudaTextureAddressMode address_s,
                                       cudaTextureAddressMode address_t,
@@ -985,7 +891,7 @@ void cray::MulticamScene::addSampler (cudaTextureAddressMode address_s,
 {
     cudaResourceDesc res_desc = {};
     res_desc.resType          = cudaResourceTypeArray;
-    res_desc.res.array.array  = getImage( image_idx );
+    res_desc.res.array.array  = getImage (image_idx);
 
     cudaTextureDesc tex_desc     = {};
     tex_desc.addressMode[0]      = address_s;
@@ -1002,28 +908,15 @@ void cray::MulticamScene::addSampler (cudaTextureAddressMode address_s,
 
     // Create texture object
     cudaTextureObject_t cuda_tex = 0;
-    CUDA_CHECK( cudaCreateTextureObject(&cuda_tex, &res_desc, &tex_desc, nullptr ) );
-    m_samplers.push_back( cuda_tex );
+    CUDA_CHECK (cudaCreateTextureObject (&cuda_tex, &res_desc, &tex_desc, nullptr));
+    m_samplers.push_back (cuda_tex);
 }
 
+CUdeviceptr cray::MulticamScene::getBuffer (int32_t buffer_index) const { return m_buffers[buffer_index]; }
 
-CUdeviceptr cray::MulticamScene::getBuffer( int32_t buffer_index ) const
-{
-    return m_buffers[ buffer_index ];
-}
+cudaArray_t cray::MulticamScene::getImage (int32_t image_index) const { return m_images[image_index]; }
 
-
-cudaArray_t cray::MulticamScene::getImage( int32_t image_index ) const
-{
-    return m_images[ image_index ];
-}
-
-
-cudaTextureObject_t cray::MulticamScene::getSampler( int32_t sampler_index ) const
-{
-    return m_samplers[ sampler_index ];
-}
-
+cudaTextureObject_t cray::MulticamScene::getSampler (int32_t sampler_index) const { return m_samplers[sampler_index]; }
 
 void cray::MulticamScene::finalize()
 {
@@ -1036,31 +929,28 @@ void cray::MulticamScene::finalize()
     createProgramGroups();
     createPipeline();
     createCompoundPipeline();
-    // Now handle the creation of the standard SBT table:
-    createSBTmissAndHit(m_sbt);
+    // Create the standard SBT table
+    createSBTmissAndHit (m_sbt);
 
-    // Now handle the creation of the compound SBT table
-    cray::CompoundEye::InitiateCompoundRecord(m_compound_sbt, m_compound_raygen_group, c->getRecordPtr());// Initialize the compound record
-    createSBTmissAndHit(m_compound_sbt); // Create the miss and hit bindings
+    // Now handle the creation of the *compound* SBT table. First initialize the compound record
+    cray::CompoundEye::InitiateCompoundRecord (m_compound_sbt, m_compound_raygen_group, c->getRecordPtr());
+    // Then create the miss and hit bindings
+    createSBTmissAndHit (m_compound_sbt);
 
     // Make sure the raygenRecord is pointed at and valid memory:
-    c->forcePackAndCopyRecord(m_raygen_prog_group);
+    c->forcePackAndCopyRecord (m_raygen_prog_group);
     m_sbt.raygenRecord = c->getRecordPtr();
 
     m_scene_aabb.invalidate();
-    for( const auto& mesh: m_meshes ) {
-        m_scene_aabb.include( mesh->world_aabb );
-    }
+    for (const auto& mesh: m_meshes) { m_scene_aabb.include (mesh->world_aabb); }
 
     checkIfCurrentCameraIsCompound();
-    //if( !m_cameras.empty() )
-    //    m_cameras.front().setLookat( m_scene_aabb.center() );
 }
 
 void cray::MulticamScene::cleanup()
 {
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->params->lights.data     ) ) );
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( this->d_params               ) ) );
+    CUDA_CHECK (cudaFree (reinterpret_cast<void*> (this->params->lights.data)));
+    CUDA_CHECK (cudaFree (reinterpret_cast<void*> (this->d_params)));
     cray::CompoundEye::FreeCompoundRecord();
     delete this->params;
 }
@@ -1091,34 +981,25 @@ cray::GenericCamera* cray::MulticamScene::getCamera() const
     return nullptr;
 }
 
-void cray::MulticamScene::setCurrentCamera(const int index)
+void cray::MulticamScene::setCurrentCamera (const int index)
 {
-    const int s = int(getCameraCount());
-    currentCamera = (index%s + s)%s;
+    const int s = static_cast<int>(getCameraCount());
+    currentCamera = (index % s + s) % s;
     checkIfCurrentCameraIsCompound();
 }
 
-const size_t cray::MulticamScene::getCameraCount() const
-{
-    return m_cameras.size();
-}
+const size_t cray::MulticamScene::getCameraCount() const { return m_cameras.size(); }
 
-void cray::MulticamScene::nextCamera()
-{
-    setCurrentCamera(currentCamera+1);
-}
+void cray::MulticamScene::nextCamera() { setCurrentCamera (currentCamera + 1); }
 
-void cray::MulticamScene::previousCamera()
-{
-    setCurrentCamera(currentCamera-1);
-}
+void cray::MulticamScene::previousCamera() { setCurrentCamera (currentCamera - 1); }
 
 //------------------------------------------------------------------------------
 //
 //  COMPOUND EYE FUNCTIONS
 //
 //------------------------------------------------------------------------------
-uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, cray::CompoundEye* cameraPtr, std::vector<cray::Ommatidium>& ommVec)
+uint32_t cray::MulticamScene::addCompoundCamera (int cam_idx, cray::CompoundEye* cameraPtr, std::vector<cray::Ommatidium>& ommVec)
 {
     m_compoundEyes[cam_idx] = cameraPtr;
     m_ommVecs[cam_idx] = ommVec;
@@ -1126,7 +1007,7 @@ uint32_t cray::MulticamScene::addCompoundCamera(int cam_idx, cray::CompoundEye* 
         std::cout << "Inserted ommVec of size " << m_ommVecs[cam_idx].size()
                   << " into m_ommVecs[" << cam_idx << "].\n";
     }
-    return (m_compoundEyes.size()-1);
+    return (m_compoundEyes.size() - 1);
 }
 
 void cray::MulticamScene::checkIfCurrentCameraIsCompound()
@@ -1145,15 +1026,13 @@ void cray::MulticamScene::checkIfCurrentCameraIsCompound()
 
 void cray::MulticamScene::createContext()
 {
-    // Initialize CUDA
-    CUDA_CHECK( cudaFree( nullptr ) );
-
-    CUcontext          cuCtx = nullptr;  // zero means take the current context
-    OPTIX_CHECK( optixInit() );
+    CUDA_CHECK (cudaFree (nullptr));
+    CUcontext cuCtx = nullptr;  // zero means take the current context
+    OPTIX_CHECK (optixInit());
     OptixDeviceContextOptions options = {};
-    options.logCallbackFunction       = &internal::context_log_cb;
-    options.logCallbackLevel          = 4;
-    OPTIX_CHECK( optixDeviceContextCreate( cuCtx, &options, &m_context ) );
+    options.logCallbackFunction = &internal::context_log_cb;
+    options.logCallbackLevel = 4;
+    OPTIX_CHECK (optixDeviceContextCreate (cuCtx, &options, &m_context));
 }
 
 namespace internal
@@ -1162,69 +1041,64 @@ namespace internal
     class CuBuffer
     {
     public:
-        CuBuffer( size_t count = 0 ) { alloc( count ); }
+        CuBuffer (size_t count = 0) { alloc (count); }
         ~CuBuffer() { free(); }
-        void alloc( size_t count )
+        void alloc (size_t count)
         {
             free();
             m_allocCount = m_count = count;
-            if( m_count )
-            {
-                CUDA_CHECK( cudaMalloc( &m_ptr, m_allocCount * sizeof( T ) ) );
-            }
+            if (m_count) { CUDA_CHECK (cudaMalloc (&m_ptr, m_allocCount * sizeof (T))); }
         }
-        void allocIfRequired( size_t count )
+        void allocIfRequired (size_t count)
         {
-            if( count <= m_count )
-            {
+            if (count <= m_count) {
                 m_count = count;
                 return;
             }
-            alloc( count );
+            alloc (count);
         }
-        CUdeviceptr get() const { return reinterpret_cast<CUdeviceptr>( m_ptr ); }
-        CUdeviceptr get( size_t index ) const { return reinterpret_cast<CUdeviceptr>( m_ptr + index ); }
-        void        free()
+        CUdeviceptr get() const { return reinterpret_cast<CUdeviceptr> (m_ptr); }
+        CUdeviceptr get (size_t index) const { return reinterpret_cast<CUdeviceptr> (m_ptr + index); }
+        void free()
         {
-            m_count      = 0;
+            m_count = 0;
             m_allocCount = 0;
-            CUDA_CHECK( cudaFree( m_ptr ) );
+            CUDA_CHECK (cudaFree (m_ptr));
             m_ptr = nullptr;
         }
         CUdeviceptr release()
         {
-            CUdeviceptr current = reinterpret_cast<CUdeviceptr>( m_ptr );
-            m_count             = 0;
-            m_allocCount        = 0;
-            m_ptr               = nullptr;
+            CUdeviceptr current = reinterpret_cast<CUdeviceptr> (m_ptr);
+            m_count = 0;
+            m_allocCount = 0;
+            m_ptr = nullptr;
             return current;
         }
-        void upload( const T* data )
+        void upload (const T* data)
         {
-            CUDA_CHECK( cudaMemcpy( m_ptr, data, m_count * sizeof( T ), cudaMemcpyHostToDevice ) );
+            CUDA_CHECK (cudaMemcpy (m_ptr, data, m_count * sizeof (T), cudaMemcpyHostToDevice));
         }
-
-        void download( T* data ) const
+        void download (T* data) const
         {
-            CUDA_CHECK( cudaMemcpy( data, m_ptr, m_count * sizeof( T ), cudaMemcpyDeviceToHost ) );
+            CUDA_CHECK (cudaMemcpy (data, m_ptr, m_count * sizeof (T), cudaMemcpyDeviceToHost));
         }
-        void downloadSub( size_t count, size_t offset, T* data ) const
+        void downloadSub (size_t count, size_t offset, T* data) const
         {
-            assert( count + offset < m_allocCount );
-            CUDA_CHECK( cudaMemcpy( data, m_ptr + offset, count * sizeof( T ), cudaMemcpyDeviceToHost ) );
+            assert (count + offset < m_allocCount);
+            CUDA_CHECK (cudaMemcpy (data, m_ptr + offset, count * sizeof (T), cudaMemcpyDeviceToHost));
         }
         size_t count() const { return m_count; }
         size_t reservedCount() const { return m_allocCount; }
-        size_t byteSize() const { return m_allocCount * sizeof( T ); }
+        size_t byteSize() const { return m_allocCount * sizeof (T); }
 
     private:
-        size_t m_count      = 0;
-        size_t m_allocCount = 0;
-        T*     m_ptr        = nullptr;
+        size_t m_count = 0u;
+        size_t m_allocCount = 0u;
+        T* m_ptr = nullptr;
     };
 }  // namespace
 
-void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
+void cray::MulticamScene::buildMeshAccels (uint32_t triangle_input_flags)
 {
     // Problem:
     // The memory requirements of a compacted GAS are unknown prior to building the GAS.
@@ -1300,8 +1174,8 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
     //////////////////////////////////////////////////////////////////////////
 
     OptixAccelBuildOptions accel_options = {};
-    accel_options.buildFlags             = OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
-    accel_options.operation              = OPTIX_BUILD_OPERATION_BUILD;
+    accel_options.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+    accel_options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
     struct GASInfo {
         std::vector<OptixBuildInput> buildInputs;
@@ -1311,22 +1185,19 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
     std::multimap<size_t, GASInfo> gases;
     size_t totalTempOutputSize = 0;
 
-    for(size_t i=0; i<m_meshes.size(); ++i)
-    {
+    for (size_t i=0; i<m_meshes.size(); ++i) {
         auto& mesh = m_meshes[i];
 
         const size_t num_subMeshes =  mesh->indices.size();
         std::vector<OptixBuildInput> buildInputs(num_subMeshes);
 
-        assert(mesh->positions.size() == num_subMeshes &&
-               mesh->normals.size()   == num_subMeshes &&
-               mesh->texcoords.size() == num_subMeshes);// &&
-        //mesh->vertex_colours.size() == num_subMeshes);
+        assert (mesh->positions.size() == num_subMeshes &&
+                mesh->normals.size()   == num_subMeshes &&
+                mesh->texcoords.size() == num_subMeshes);
 
-        for(size_t i = 0; i < num_subMeshes; ++i)
-        {
+        for (size_t i = 0; i < num_subMeshes; ++i) {
             OptixBuildInput& triangle_input                      = buildInputs[i];
-            memset(&triangle_input, 0, sizeof(OptixBuildInput));
+            memset (&triangle_input, 0, sizeof(OptixBuildInput));
             triangle_input.type                                  = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
             triangle_input.triangleArray.vertexFormat            = OPTIX_VERTEX_FORMAT_FLOAT3;
             triangle_input.triangleArray.vertexStrideInBytes     = mesh->positions[i].byte_stride ? mesh->positions[i].byte_stride : sizeof(float3),
@@ -1341,12 +1212,12 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
         }
 
         OptixAccelBufferSizes gas_buffer_sizes;
-        OPTIX_CHECK( optixAccelComputeMemoryUsage( m_context, &accel_options, buildInputs.data(),
-                                                   static_cast<unsigned int>( num_subMeshes ), &gas_buffer_sizes ) );
+        OPTIX_CHECK (optixAccelComputeMemoryUsage (m_context, &accel_options, buildInputs.data(),
+                                                   static_cast<unsigned int> (num_subMeshes), &gas_buffer_sizes));
 
         totalTempOutputSize += gas_buffer_sizes.outputSizeInBytes;
-        GASInfo g = {std::move( buildInputs ), gas_buffer_sizes, mesh};
-        gases.emplace( gas_buffer_sizes.outputSizeInBytes, g );
+        GASInfo g = { std::move (buildInputs), gas_buffer_sizes, mesh };
+        gases.emplace (gas_buffer_sizes.outputSizeInBytes, g);
     }
 
     size_t totalTempOutputProcessedSize = 0;
@@ -1360,13 +1231,12 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
     OptixAccelEmitDesc emitProperty = {};
     emitProperty.type = OPTIX_PROPERTY_TYPE_COMPACTED_SIZE;
 
-    while( !gases.empty() )
-    {
+    while (!gases.empty()) {
+
         // The estimated total output size that we end up with when using compaction.
         // It defines the minimum peak memory consumption, but is unknown before actually building all GASes.
         // Working only within these memory constraints results in an actual peak memory consumption that is very close to the minimal peak memory consumption.
-        size_t remainingEstimatedTotalOutputSize =
-        ( size_t )( ( totalTempOutputSize - totalTempOutputProcessedSize ) * compactionRatio );
+        size_t remainingEstimatedTotalOutputSize = (size_t)((totalTempOutputSize - totalTempOutputProcessedSize) * compactionRatio);
         size_t availableMemPoolSize = remainingEstimatedTotalOutputSize + additionalAvailableMemory;
         // We need to fit the following things into availableMemPoolSize:
         // - temporary buffer for building a GAS (only during build, can be cleared before compaction)
@@ -1374,39 +1244,41 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
         // - size (actual number) of a compacted GAS as output of a build
         // - compacted GAS
 
-        size_t batchNGASes                    = 0;
-        size_t batchBuildOutputRequirement    = 0;
-        size_t batchBuildMaxTempRequirement   = 0;
+        size_t batchNGASes = 0;
+        size_t batchBuildOutputRequirement = 0;
+        size_t batchBuildMaxTempRequirement = 0;
         size_t batchBuildCompactedRequirement = 0;
-        for( auto it = gases.rbegin(); it != gases.rend(); it++ )
-        {
+        for (auto it = gases.rbegin(); it != gases.rend(); it++) {
             batchBuildOutputRequirement += it->second.gas_buffer_sizes.outputSizeInBytes;
-            batchBuildCompactedRequirement += ( size_t )( it->second.gas_buffer_sizes.outputSizeInBytes * compactionRatio );
+            batchBuildCompactedRequirement +=  (size_t) (it->second.gas_buffer_sizes.outputSizeInBytes * compactionRatio);
             // roughly account for the storage of the compacted size, although that goes into a separate buffer
             batchBuildOutputRequirement += 8ull;
             // make sure that all further output pointers are 256 byte aligned
-            batchBuildOutputRequirement = roundUp<size_t>( batchBuildOutputRequirement, 256ull );
+            batchBuildOutputRequirement = roundUp<size_t> (batchBuildOutputRequirement, 256ull);
             // temp buffer is shared for all builds in the batch
-            batchBuildMaxTempRequirement = std::max( batchBuildMaxTempRequirement, it->second.gas_buffer_sizes.tempSizeInBytes );
+            batchBuildMaxTempRequirement = std::max (batchBuildMaxTempRequirement, it->second.gas_buffer_sizes.tempSizeInBytes);
             batchNGASes++;
-            if( ( batchBuildOutputRequirement + batchBuildMaxTempRequirement + batchBuildCompactedRequirement ) > availableMemPoolSize )
+            if ((batchBuildOutputRequirement + batchBuildMaxTempRequirement + batchBuildCompactedRequirement) > availableMemPoolSize) {
                 break;
+            }
         }
 
         // d_temp may still be available from a previous batch, but is freed later if it is "too big"
-        d_temp.allocIfRequired( batchBuildMaxTempRequirement );
+        d_temp.allocIfRequired (batchBuildMaxTempRequirement);
 
         // trash existing buffer if it is more than 10% bigger than what we need
         // if it is roughly the same, we keep it
-        if( d_temp_output.byteSize() > batchBuildOutputRequirement * 1.1 )
+        if (d_temp_output.byteSize() > batchBuildOutputRequirement * 1.1) {
             d_temp_output.free();
-        d_temp_output.allocIfRequired( batchBuildOutputRequirement );
+        }
+        d_temp_output.allocIfRequired (batchBuildOutputRequirement);
 
         // this buffer is assumed to be very small
         // trash d_temp_compactedSizes if it is at least 20MB in size and at least double the size than required for the next run
-        if( d_temp_compactedSizes.reservedCount() > batchNGASes * 2 && d_temp_compactedSizes.byteSize() > 20 * 1024 * 1024 )
+        if (d_temp_compactedSizes.reservedCount() > batchNGASes * 2 && d_temp_compactedSizes.byteSize() > 20 * 1024 * 1024) {
             d_temp_compactedSizes.free();
-        d_temp_compactedSizes.allocIfRequired( batchNGASes );
+        }
+        d_temp_compactedSizes.allocIfRequired (batchNGASes);
 
         // sum of build output size of GASes, excluding alignment
         // size_t batchTempOutputSize = 0; // unused
@@ -1414,35 +1286,31 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
         size_t batchCompactedSize = 0;
 
         auto it = gases.rbegin();
-        for( size_t i = 0, tempOutputAlignmentOffset = 0; i < batchNGASes; ++i )
-        {
-            emitProperty.result = d_temp_compactedSizes.get( i );
+        for (size_t i = 0, tempOutputAlignmentOffset = 0; i < batchNGASes; ++i) {
+            emitProperty.result = d_temp_compactedSizes.get (i);
             GASInfo& info = it->second;
-
-            OPTIX_CHECK( optixAccelBuild( m_context, 0,   // CUDA stream
+            OPTIX_CHECK (optixAccelBuild (m_context, 0,   // CUDA stream
                                           &accel_options,
                                           info.buildInputs.data(),
-                                          static_cast<unsigned int>( info.buildInputs.size() ),
+                                          static_cast<unsigned int> (info.buildInputs.size()),
                                           d_temp.get(),
                                           d_temp.byteSize(),
-                                          d_temp_output.get( tempOutputAlignmentOffset ),
+                                          d_temp_output.get (tempOutputAlignmentOffset),
                                           info.gas_buffer_sizes.outputSizeInBytes,
                                           &info.mesh->gas_handle,
                                           &emitProperty,  // emitted property list
-                                          1               // num emitted properties
-                             ) );
+                                          1));            // num emitted properties
 
-            tempOutputAlignmentOffset += roundUp<size_t>( info.gas_buffer_sizes.outputSizeInBytes, 256ull );
+            tempOutputAlignmentOffset += roundUp<size_t> (info.gas_buffer_sizes.outputSizeInBytes, 256ull);
             it++;
         }
 
         // trash d_temp if it is at least 20MB in size
-        if( d_temp.byteSize() > 20 * 1024 * 1024 )
-            d_temp.free();
+        if (d_temp.byteSize() > 20 * 1024 * 1024) { d_temp.free(); }
 
         // download all compacted sizes to allocate final output buffers for these GASes
-        std::vector<size_t> h_compactedSizes( batchNGASes );
-        d_temp_compactedSizes.download( h_compactedSizes.data() );
+        std::vector<size_t> h_compactedSizes (batchNGASes);
+        d_temp_compactedSizes.download (h_compactedSizes.data());
 
         //////////////////////////////////////////////////////////////////////////
         // TODO:
@@ -1450,51 +1318,46 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
         // Based on that we could shrink the batch if the compaction ratio is bad and we need to strictly fit into the/any available memory pool.
         bool canCompact = false;
         it = gases.rbegin();
-        for( size_t i = 0; i < batchNGASes; ++i )
-        {
+        for (size_t i = 0; i < batchNGASes; ++i) {
             GASInfo& info = it->second;
-            if( info.gas_buffer_sizes.outputSizeInBytes > h_compactedSizes[i] )
-            {
+            if (info.gas_buffer_sizes.outputSizeInBytes > h_compactedSizes[i]) {
                 canCompact = true;
                 break;
             }
             it++;
         }
 
-        if( canCompact )
-        {
-            //////////////////////////////////////////////////////////////////////////
+        if (canCompact) {
+
             // "batch allocate" the compacted buffers
             it = gases.rbegin();
-            for( size_t i = 0; i < batchNGASes; ++i )
-            {
+            for (size_t i = 0; i < batchNGASes; ++i) {
                 GASInfo& info = it->second;
                 batchCompactedSize += h_compactedSizes[i];
-                CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &info.mesh->d_gas_output ), h_compactedSizes[i] ) );
+                CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&info.mesh->d_gas_output), h_compactedSizes[i]));
                 totalTempOutputProcessedSize += info.gas_buffer_sizes.outputSizeInBytes;
                 it++;
             }
 
             it = gases.rbegin();
-            for( size_t i = 0; i < batchNGASes; ++i )
-            {
+            for (size_t i = 0; i < batchNGASes; ++i) {
                 GASInfo& info = it->second;
-                OPTIX_CHECK( optixAccelCompact( m_context, 0, info.mesh->gas_handle, info.mesh->d_gas_output,
-                                                h_compactedSizes[i], &info.mesh->gas_handle ) );
+                OPTIX_CHECK (optixAccelCompact (m_context, 0, info.mesh->gas_handle, info.mesh->d_gas_output,
+                                                h_compactedSizes[i], &info.mesh->gas_handle));
                 it++;
             }
-        }
-        else
-        {
+
+        } else {
+
             it = gases.rbegin();
-            for( size_t i = 0, tempOutputAlignmentOffset = 0; i < batchNGASes; ++i )
+            for (size_t i = 0, tempOutputAlignmentOffset = 0; i < batchNGASes; ++i)
             {
                 GASInfo& info = it->second;
-                info.mesh->d_gas_output = d_temp_output.get( tempOutputAlignmentOffset );
+                info.mesh->d_gas_output = d_temp_output.get (tempOutputAlignmentOffset);
                 batchCompactedSize += h_compactedSizes[i];
                 totalTempOutputProcessedSize += info.gas_buffer_sizes.outputSizeInBytes;
 
-                tempOutputAlignmentOffset += roundUp<size_t>( info.gas_buffer_sizes.outputSizeInBytes, 256ull );
+                tempOutputAlignmentOffset += roundUp<size_t> (info.gas_buffer_sizes.outputSizeInBytes, 256ull);
                 it++;
             }
             d_temp_output.release();
@@ -1502,7 +1365,7 @@ void cray::MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
 
         usedCompactedOutputSize += batchCompactedSize;
 
-        gases.erase( it.base(), gases.end() );
+        gases.erase (it.base(), gases.end());
     }
 }
 
@@ -1513,84 +1376,68 @@ struct Instance
     float transform[12];
 };
 
-void cray::MulticamScene::buildInstanceAccel( int rayTypeCount )
+void cray::MulticamScene::buildInstanceAccel (int rayTypeCount)
 {
     const size_t num_instances = m_meshes.size();
 
-    std::vector<OptixInstance> optix_instances( num_instances );
+    std::vector<OptixInstance> optix_instances (num_instances);
 
     unsigned int sbt_offset = 0;
-    for( size_t i = 0; i < m_meshes.size(); ++i )
-    {
+    for (size_t i = 0; i < m_meshes.size(); ++i) {
         auto  mesh = m_meshes[i];
         auto& optix_instance = optix_instances[i];
-        memset( &optix_instance, 0, sizeof( OptixInstance ) );
+        memset (&optix_instance, 0, sizeof (OptixInstance));
 
-        optix_instance.flags             = OPTIX_INSTANCE_FLAG_NONE;
-        optix_instance.instanceId        = static_cast<unsigned int>( i );
-        optix_instance.sbtOffset         = sbt_offset;
-        optix_instance.visibilityMask    = 1;
+        optix_instance.flags = OPTIX_INSTANCE_FLAG_NONE;
+        optix_instance.instanceId = static_cast<unsigned int> (i);
+        optix_instance.sbtOffset = sbt_offset;
+        optix_instance.visibilityMask = 1;
         optix_instance.traversableHandle = mesh->gas_handle;
-        memcpy( optix_instance.transform, mesh->transform.getData(), sizeof( float ) * 12 );
+        memcpy (optix_instance.transform, mesh->transform.getData(), sizeof (float) * 12);
 
-        sbt_offset += static_cast<unsigned int>( mesh->indices.size() ) * rayTypeCount;  // one sbt record per GAS build input per RAY_TYPE
+        sbt_offset += static_cast<unsigned int> (mesh->indices.size()) * rayTypeCount;  // one sbt record per GAS build input per RAY_TYPE
     }
 
-    const size_t instances_size_in_bytes = sizeof( OptixInstance ) * num_instances;
+    const size_t instances_size_in_bytes = sizeof (OptixInstance) * num_instances;
     CUdeviceptr  d_instances;
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &d_instances ), instances_size_in_bytes ) );
-    CUDA_CHECK( cudaMemcpy(
-                    reinterpret_cast<void*>( d_instances ),
-                    optix_instances.data(),
-                    instances_size_in_bytes,
-                    cudaMemcpyHostToDevice
-                    ) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&d_instances), instances_size_in_bytes));
+    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*> (d_instances), optix_instances.data(), instances_size_in_bytes, cudaMemcpyHostToDevice));
 
     OptixBuildInput instance_input = {};
-    instance_input.type                       = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
-    instance_input.instanceArray.instances    = d_instances;
-    instance_input.instanceArray.numInstances = static_cast<unsigned int>( num_instances );
+    instance_input.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
+    instance_input.instanceArray.instances = d_instances;
+    instance_input.instanceArray.numInstances = static_cast<unsigned int> (num_instances);
 
     OptixAccelBuildOptions accel_options = {};
     accel_options.buildFlags                  = OPTIX_BUILD_FLAG_NONE;
     accel_options.operation                   = OPTIX_BUILD_OPERATION_BUILD;
 
     OptixAccelBufferSizes ias_buffer_sizes;
-    OPTIX_CHECK( optixAccelComputeMemoryUsage(
-                     m_context,
-                     &accel_options,
-                     &instance_input,
-                     1, // num build inputs
-                     &ias_buffer_sizes
-                     ) );
+    OPTIX_CHECK (optixAccelComputeMemoryUsage (m_context,
+                                               &accel_options,
+                                               &instance_input,
+                                               1, // num build inputs
+                                               &ias_buffer_sizes));
 
     CUdeviceptr d_temp_buffer;
-    CUDA_CHECK( cudaMalloc(
-                    reinterpret_cast<void**>( &d_temp_buffer ),
-                    ias_buffer_sizes.tempSizeInBytes
-                    ) );
-    CUDA_CHECK( cudaMalloc(
-                    reinterpret_cast<void**>( &m_d_ias_output_buffer ),
-                    ias_buffer_sizes.outputSizeInBytes
-                    ) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&d_temp_buffer), ias_buffer_sizes.tempSizeInBytes));
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&m_d_ias_output_buffer), ias_buffer_sizes.outputSizeInBytes));
 
-    OPTIX_CHECK( optixAccelBuild(
-                     m_context,
-                     nullptr,                  // CUDA stream
-                     &accel_options,
-                     &instance_input,
-                     1,                  // num build inputs
-                     d_temp_buffer,
-                     ias_buffer_sizes.tempSizeInBytes,
-                     m_d_ias_output_buffer,
-                     ias_buffer_sizes.outputSizeInBytes,
-                     &m_ias_handle,
-                     nullptr,            // emitted property list
-                     0                   // num emitted properties
-                     ) );
+    OPTIX_CHECK (optixAccelBuild (m_context,
+                                  nullptr,                  // CUDA stream
+                                  &accel_options,
+                                  &instance_input,
+                                  1,                  // num build inputs
+                                  d_temp_buffer,
+                                  ias_buffer_sizes.tempSizeInBytes,
+                                  m_d_ias_output_buffer,
+                                  ias_buffer_sizes.outputSizeInBytes,
+                                  &m_ias_handle,
+                                  nullptr,            // emitted property list
+                                  0));                // num emitted properties
 
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( d_temp_buffer ) ) );
-    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( d_instances   ) ) );
+    CUDA_CHECK (cudaFree (reinterpret_cast<void*> (d_temp_buffer)));
+    CUDA_CHECK (cudaFree (reinterpret_cast<void*> (d_instances)));
 }
 
 void cray::MulticamScene::createPTXModule()
@@ -1600,58 +1447,53 @@ void cray::MulticamScene::createPTXModule()
     module_compile_options.optLevel   = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
 
     m_pipeline_compile_options = {};
-    m_pipeline_compile_options.usesMotionBlur            = false;
-    m_pipeline_compile_options.traversableGraphFlags     = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING;
-    m_pipeline_compile_options.numPayloadValues          = cray::NUM_PAYLOAD_VALUES;
-    m_pipeline_compile_options.numAttributeValues        = 2; // todo
-    m_pipeline_compile_options.exceptionFlags            = OPTIX_EXCEPTION_FLAG_NONE; // should be optix_exception_flag_stack_overflow;
+    m_pipeline_compile_options.usesMotionBlur = false;
+    m_pipeline_compile_options.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING;
+    m_pipeline_compile_options.numPayloadValues = cray::NUM_PAYLOAD_VALUES;
+    m_pipeline_compile_options.numAttributeValues = 2; // todo
+    m_pipeline_compile_options.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE; // should be optix_exception_flag_stack_overflow;
     m_pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
 
     // This needs to find the right shaders.cu. This may be installed
     // (e.g. /usr/local/lib/) or in a code repo.
-    //const std::string ptx = sutil::getPtxString( "EyeRenderer3", "shaders.cu" );
-    const std::string ptx = sutil::getPtxString( "compoundray", "shaders.cu" );
+    const std::string ptx = sutil::getPtxString ("compoundray", "shaders.cu");
 
     m_ptx_module  = {};
     char log[2048];
-    size_t sizeof_log = sizeof( log );
-    OPTIX_CHECK_LOG( optixModuleCreate(m_context,
-                                       &module_compile_options,
-                                       &m_pipeline_compile_options,
-                                       ptx.c_str(),
-                                       ptx.size(),
-                                       log,
-                                       &sizeof_log,
-                                       &m_ptx_module) );
+    size_t sizeof_log = sizeof (log);
+    OPTIX_CHECK_LOG (optixModuleCreate (m_context,
+                                        &module_compile_options,
+                                        &m_pipeline_compile_options,
+                                        ptx.c_str(),
+                                        ptx.size(),
+                                        log,
+                                        &sizeof_log,
+                                        &m_ptx_module));
 }
-
 
 void cray::MulticamScene::createProgramGroups()
 {
     char log[2048];
-    size_t sizeof_log = sizeof( log );
+    size_t sizeof_log = sizeof (log);
 
     {
         // Create the ommatidial raygen group
-        OptixProgramGroupDesc compound_prog_group_desc    = {};
-        compound_prog_group_desc.kind                     = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
-        compound_prog_group_desc.raygen.module            = m_ptx_module;
+        OptixProgramGroupDesc compound_prog_group_desc = {};
+        compound_prog_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
+        compound_prog_group_desc.raygen.module = m_ptx_module;
         compound_prog_group_desc.raygen.entryFunctionName = "__raygen__ommatidium";
 
         if constexpr (debug_pipeline) {
             std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
                       << compound_prog_group_desc.raygen.entryFunctionName << std::endl;
         }
-        OPTIX_CHECK_LOG( optixProgramGroupCreate(
-                             m_context,
-                             &compound_prog_group_desc,
-                             1,                             // num program groups
-                             &program_group_options,
-                             log,
-                             &sizeof_log,
-                             &m_compound_raygen_group
-                             )
-            );
+        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
+                                                  &compound_prog_group_desc,
+                                                  1, // num program groups
+                                                  &program_group_options,
+                                                  log,
+                                                  &sizeof_log,
+                                                  &m_compound_raygen_group));
     }
 
     {
@@ -1663,54 +1505,44 @@ void cray::MulticamScene::createProgramGroups()
             std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
                       << raygen_prog_group_desc.raygen.entryFunctionName << std::endl;
         }
-        OPTIX_CHECK_LOG( optixProgramGroupCreate(
-                             m_context,
-                             &raygen_prog_group_desc,
-                             1,                             // num program groups
-                             &program_group_options,
-                             log,
-                             &sizeof_log,
-                             &m_raygen_prog_group
-                             )
-            );
+        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
+                                                  &raygen_prog_group_desc,
+                                                  1, // num program groups
+                                                  &program_group_options,
+                                                  log,
+                                                  &sizeof_log,
+                                                  &m_raygen_prog_group));
     }
-
 
     //
     // Miss
     //
     {
         OptixProgramGroupDesc miss_prog_group_desc = {};
-        miss_prog_group_desc.kind                   = OPTIX_PROGRAM_GROUP_KIND_MISS;
-        miss_prog_group_desc.miss.module            = m_ptx_module;
+        miss_prog_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
+        miss_prog_group_desc.miss.module = m_ptx_module;
         miss_prog_group_desc.miss.entryFunctionName = m_backgroundShader.c_str();
-        sizeof_log = sizeof( log );
-        OPTIX_CHECK_LOG( optixProgramGroupCreate(
-                             m_context,
-                             &miss_prog_group_desc,
-                             1,                             // num program groups
-                             &program_group_options,
-                             log,
-                             &sizeof_log,
-                             &m_radiance_miss_group
-                             )
-            );
+        sizeof_log = sizeof (log);
+        OPTIX_CHECK_LOG (optixProgramGroupCreate(m_context,
+                                                 &miss_prog_group_desc,
+                                                 1, // num program groups
+                                                 &program_group_options,
+                                                 log,
+                                                 &sizeof_log,
+                                                 &m_radiance_miss_group));
 
-        memset( &miss_prog_group_desc, 0, sizeof( OptixProgramGroupDesc ) );
-        miss_prog_group_desc.kind                   = OPTIX_PROGRAM_GROUP_KIND_MISS;
-        miss_prog_group_desc.miss.module            = nullptr;  // NULL miss program for occlusion rays
+        memset (&miss_prog_group_desc, 0, sizeof (OptixProgramGroupDesc));
+        miss_prog_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
+        miss_prog_group_desc.miss.module = nullptr;  // NULL miss program for occlusion rays
         miss_prog_group_desc.miss.entryFunctionName = nullptr;
-        sizeof_log = sizeof( log );
-        OPTIX_CHECK_LOG( optixProgramGroupCreate(
-                             m_context,
-                             &miss_prog_group_desc,
-                             1,                             // num program groups
-                             &program_group_options,
-                             log,
-                             &sizeof_log,
-                             &m_occlusion_miss_group
-                             )
-            );
+        sizeof_log = sizeof (log);
+        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
+                                                  &miss_prog_group_desc,
+                                                  1, // num program groups
+                                                  &program_group_options,
+                                                  log,
+                                                  &sizeof_log,
+                                                  &m_occlusion_miss_group));
     }
 
     //
@@ -1718,39 +1550,32 @@ void cray::MulticamScene::createProgramGroups()
     //
     {
         OptixProgramGroupDesc hit_prog_group_desc = {};
-        hit_prog_group_desc.kind                         = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
-        hit_prog_group_desc.hitgroup.moduleCH            = m_ptx_module;
+        hit_prog_group_desc.kind  = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
+        hit_prog_group_desc.hitgroup.moduleCH = m_ptx_module;
         hit_prog_group_desc.hitgroup.entryFunctionNameCH = "__closesthit__radiance";
-        sizeof_log = sizeof( log );
-        OPTIX_CHECK_LOG( optixProgramGroupCreate(
-                             m_context,
-                             &hit_prog_group_desc,
-                             1,                             // num program groups
-                             &program_group_options,
-                             log,
-                             &sizeof_log,
-                             &m_radiance_hit_group
-                             )
-            );
+        sizeof_log = sizeof (log);
+        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
+                                                  &hit_prog_group_desc,
+                                                  1, // num program groups
+                                                  &program_group_options,
+                                                  log,
+                                                  &sizeof_log,
+                                                  &m_radiance_hit_group));
 
-        memset( &hit_prog_group_desc, 0, sizeof( OptixProgramGroupDesc ) );
-        hit_prog_group_desc.kind                         = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
-        hit_prog_group_desc.hitgroup.moduleCH            = m_ptx_module;
+        memset (&hit_prog_group_desc, 0, sizeof (OptixProgramGroupDesc));
+        hit_prog_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
+        hit_prog_group_desc.hitgroup.moduleCH = m_ptx_module;
         hit_prog_group_desc.hitgroup.entryFunctionNameCH = "__closesthit__occlusion";
-        sizeof_log = sizeof( log );
-        OPTIX_CHECK( optixProgramGroupCreate(
-                         m_context,
-                         &hit_prog_group_desc,
-                         1,                             // num program groups
-                         &program_group_options,
-                         log,
-                         &sizeof_log,
-                         &m_occlusion_hit_group
-                         )
-            );
+        sizeof_log = sizeof (log);
+        OPTIX_CHECK (optixProgramGroupCreate (m_context,
+                                              &hit_prog_group_desc,
+                                              1, // num program groups
+                                              &program_group_options,
+                                              log,
+                                              &sizeof_log,
+                                              &m_occlusion_hit_group));
     }
 }
-
 
 void cray::MulticamScene::createPipeline()
 {
@@ -1767,20 +1592,18 @@ void cray::MulticamScene::createPipeline()
     };
 
     OptixPipelineLinkOptions pipeline_link_options = {};
-    pipeline_link_options.maxTraceDepth          = 2;
+    pipeline_link_options.maxTraceDepth = 2;
 
     char log[2048];
-    size_t sizeof_log = sizeof( log );
-    OPTIX_CHECK_LOG( optixPipelineCreate(
-                         m_context,
-                         &m_pipeline_compile_options,
-                         &pipeline_link_options,
-                         program_groups,
-                         sizeof( program_groups ) / sizeof( program_groups[0] ),
-                         log,
-                         &sizeof_log,
-                         &m_pipeline
-                         ) );
+    size_t sizeof_log = sizeof (log);
+    OPTIX_CHECK_LOG (optixPipelineCreate (m_context,
+                                          &m_pipeline_compile_options,
+                                          &pipeline_link_options,
+                                          program_groups,
+                                          sizeof (program_groups) / sizeof (program_groups[0]),
+                                          log,
+                                          &sizeof_log,
+                                          &m_pipeline));
 }
 
 void cray::MulticamScene::createCompoundPipeline()
@@ -1798,63 +1621,57 @@ void cray::MulticamScene::createCompoundPipeline()
     };
 
     OptixPipelineLinkOptions pipeline_link_options = {};
-    pipeline_link_options.maxTraceDepth          = 2;
+    pipeline_link_options.maxTraceDepth = 2;
 
     char log[2048];
-    size_t sizeof_log = sizeof( log );
-    OPTIX_CHECK_LOG( optixPipelineCreate(
-                         m_context,
-                         &m_pipeline_compile_options,
-                         &pipeline_link_options,
-                         program_groups,
-                         sizeof( program_groups ) / sizeof( program_groups[0] ),
-                         log,
-                         &sizeof_log,
-                         &m_compound_pipeline
-                         ) );
+    size_t sizeof_log = sizeof (log);
+    OPTIX_CHECK_LOG (optixPipelineCreate (m_context,
+                                          &m_pipeline_compile_options,
+                                          &pipeline_link_options,
+                                          program_groups,
+                                          sizeof (program_groups) / sizeof (program_groups[0]),
+                                          log,
+                                          &sizeof_log,
+                                          &m_compound_pipeline));
 }
 
 void cray::MulticamScene::reconfigureSBTforCurrentCamera(bool force)
 {
     GenericCamera* c = getCamera();
     char log[2048];
-    size_t sizeof_log = sizeof( log );
+    size_t sizeof_log = sizeof (log);
 
     // Here, we regenerate the raygen pipeline if the camera has changed types:
-    if(getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == std::numeric_limits<size_t>::max() || force)
-    {
-        lastPipelinedCamera = currentCamera;// update the pointer
+    if (getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == std::numeric_limits<size_t>::max() || force) {
+        lastPipelinedCamera = currentCamera; // update the pointer
         raygen_prog_group_desc.raygen.entryFunctionName = c->getEntryFunctionName();
         if constexpr (debug_pipeline == true) {
             std::cout<< "ALERT: Regenerating pipeline with raygen entry function '"<<c->getEntryFunctionName()<<"'."<<std::endl;
         }
         // THIS is where the projection shader is set up
-        optixProgramGroupDestroy(m_raygen_prog_group);
-        OPTIX_CHECK_LOG( optixProgramGroupCreate(
-                             m_context,
-                             &raygen_prog_group_desc,
-                             1,                             // num program groups
-                             &program_group_options,
-                             log,
-                             &sizeof_log,
-                             &m_raygen_prog_group
-                             )
-            );
+        optixProgramGroupDestroy (m_raygen_prog_group);
+        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
+                                                  &raygen_prog_group_desc,
+                                                  1, // num program groups
+                                                  &program_group_options,
+                                                  log,
+                                                  &sizeof_log,
+                                                  &m_raygen_prog_group));
 
-        c->forcePackAndCopyRecord(m_raygen_prog_group);
+        c->forcePackAndCopyRecord (m_raygen_prog_group);
         m_sbt.raygenRecord = c->getRecordPtr();
 
         // Redirect the static compound eye pipeline record toward the current camera's record since the currently selected camera has changed
         // TODO: The raygen group reference might not be needed here. Find out.
-        cray::CompoundEye::RedirectCompoundDataPointer(m_compound_raygen_group, c->getRecordPtr());
+        cray::CompoundEye::RedirectCompoundDataPointer (m_compound_raygen_group, c->getRecordPtr());
 
-        optixPipelineDestroy(m_pipeline);
+        optixPipelineDestroy (m_pipeline);
         createPipeline();
         //createCompoundPipeline(); // but only if something?
 
     } else {
         // Just sync the camera's on-device memory (but only on a host-side change):
-        c->packAndCopyRecordIfChanged(m_raygen_prog_group);
+        c->packAndCopyRecordIfChanged (m_raygen_prog_group);
     }
 }
 
@@ -1864,40 +1681,33 @@ void cray::MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
 
     // Miss Record
     {
-        const size_t miss_record_size = sizeof( sutil::EmptyRecord );
-        CUDA_CHECK( cudaMalloc(
-                        reinterpret_cast<void**>( &sbt.missRecordBase ),
-                        miss_record_size*cray::RAY_TYPE_COUNT
-                        ) );
+        const size_t miss_record_size = sizeof (sutil::EmptyRecord);
+        CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&sbt.missRecordBase), miss_record_size * cray::RAY_TYPE_COUNT));
 
         sutil::EmptyRecord ms_sbt[ cray::RAY_TYPE_COUNT ];
-        OPTIX_CHECK( optixSbtRecordPackHeader( m_radiance_miss_group,  &ms_sbt[0] ) );
-        OPTIX_CHECK( optixSbtRecordPackHeader( m_occlusion_miss_group, &ms_sbt[1] ) );
+        OPTIX_CHECK (optixSbtRecordPackHeader (m_radiance_miss_group,  &ms_sbt[0]));
+        OPTIX_CHECK (optixSbtRecordPackHeader (m_occlusion_miss_group, &ms_sbt[1]));
 
-        CUDA_CHECK( cudaMemcpy(
-                        reinterpret_cast<void*>( sbt.missRecordBase ),
-                        ms_sbt,
-                        miss_record_size*cray::RAY_TYPE_COUNT,
-                        cudaMemcpyHostToDevice
-                        ) );
-        sbt.missRecordStrideInBytes = static_cast<uint32_t>( miss_record_size );
-        sbt.missRecordCount     = cray::RAY_TYPE_COUNT;
+        CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*> (sbt.missRecordBase),
+                                ms_sbt,
+                                miss_record_size * cray::RAY_TYPE_COUNT,
+                                cudaMemcpyHostToDevice));
+        sbt.missRecordStrideInBytes = static_cast<uint32_t> (miss_record_size);
+        sbt.missRecordCount = cray::RAY_TYPE_COUNT;
     }
 
     // Hitgroup Records
     {
         std::vector<internal::HitGroupRecord> hitgroup_records;
-        for( const auto& mesh : m_meshes )
-        {
-            for( size_t i = 0; i < mesh->material_idx.size(); ++i )
-            {
+        for (const auto& mesh : m_meshes) {
+            for (size_t i = 0; i < mesh->material_idx.size(); ++i) {
                 internal::HitGroupRecord rec = {};
-                OPTIX_CHECK( optixSbtRecordPackHeader( m_radiance_hit_group, &rec ) );
-                rec.data.geometry_data.type                    = GeometryData::TRIANGLE_MESH;
+                OPTIX_CHECK (optixSbtRecordPackHeader (m_radiance_hit_group, &rec));
+                rec.data.geometry_data.type = GeometryData::TRIANGLE_MESH;
                 rec.data.geometry_data.triangle_mesh.positions = mesh->positions[i];
-                rec.data.geometry_data.triangle_mesh.normals   = mesh->normals[i];
+                rec.data.geometry_data.triangle_mesh.normals = mesh->normals[i];
                 rec.data.geometry_data.triangle_mesh.texcoords = mesh->texcoords[i];
-                rec.data.geometry_data.triangle_mesh.indices   = mesh->indices[i];
+                rec.data.geometry_data.triangle_mesh.indices = mesh->indices[i];
 
                 rec.data.geometry_data.triangle_mesh.dev_color_type = mesh->host_color_types[i];
                 rec.data.geometry_data.triangle_mesh.color_container = mesh->host_color_container; // specifies vec3 or vec4 colors
@@ -1906,93 +1716,95 @@ void cray::MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
                 rec.data.geometry_data.triangle_mesh.dev_colors_us4 = mesh->host_colors_us4[i];
                 rec.data.geometry_data.triangle_mesh.dev_colors_uc4 = mesh->host_colors_uc4[i];
 
-                const int32_t mat_idx  = mesh->material_idx[i];
-                if( mat_idx >= 0 )
-                    rec.data.material_data.pbr = m_materials[ mat_idx ];
-                else
+                const int32_t mat_idx = mesh->material_idx[i];
+                if (mat_idx >= 0) {
+                    rec.data.material_data.pbr = m_materials[mat_idx];
+                } else {
                     rec.data.material_data.pbr = MaterialData::Pbr();
-                hitgroup_records.push_back( rec );
+                }
+                hitgroup_records.push_back (rec);
 
-                OPTIX_CHECK( optixSbtRecordPackHeader( m_occlusion_hit_group, &rec ) );
-                hitgroup_records.push_back( rec );
+                OPTIX_CHECK (optixSbtRecordPackHeader (m_occlusion_hit_group, &rec));
+                hitgroup_records.push_back (rec);
             }
         }
 
-        const size_t hitgroup_record_size = sizeof( internal::HitGroupRecord );
-        CUDA_CHECK( cudaMalloc(
-                        reinterpret_cast<void**>( &sbt.hitgroupRecordBase ),
-                        hitgroup_record_size*hitgroup_records.size()
-                        ) );
+        const size_t hitgroup_record_size = sizeof (internal::HitGroupRecord);
+        CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&sbt.hitgroupRecordBase), hitgroup_record_size * hitgroup_records.size()));
 
-        CUDA_CHECK( cudaMemcpy(
-                        reinterpret_cast<void*>( sbt.hitgroupRecordBase ),
-                        hitgroup_records.data(),
-                        hitgroup_record_size*hitgroup_records.size(),
-                        cudaMemcpyHostToDevice
-                        ) );
+        CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*> (sbt.hitgroupRecordBase),
+                                hitgroup_records.data(),
+                                hitgroup_record_size*hitgroup_records.size(),
+                                cudaMemcpyHostToDevice));
 
-        sbt.hitgroupRecordStrideInBytes = static_cast<unsigned int>( hitgroup_record_size );
-        sbt.hitgroupRecordCount         = static_cast<unsigned int>( hitgroup_records.size() );
+        sbt.hitgroupRecordStrideInBytes = static_cast<unsigned int> (hitgroup_record_size);
+        sbt.hitgroupRecordCount = static_cast<unsigned int> (hitgroup_records.size());
     }
 }
 
 //// Additional scene features
-bool cray::MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool debug)
+bool cray::MulticamScene::isInsideHitGeometry (float3 worldPos, std::string name, bool debug)
 {
-    if(debug) { std::cout << "Atempting hitscan against \"" << name << "\"\n"; }
+    if (debug) { std::cout << "Atempting hitscan against \"" << name << "\"\n"; }
 
     // Search through each of the m_hitboxMeshes until we find the hitbox mesh we care about
     sutil::hitscan::TriangleMesh* hitboxMesh = nullptr;
 
-    for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
-    {
-        if(m_hitboxMeshes[i].name == name)
-        {
+    for (unsigned int i = 0u; i<m_hitboxMeshes.size(); i++) {
+        if (m_hitboxMeshes[i].name == name) {
             hitboxMesh = &m_hitboxMeshes[i];
             break;
         }
     }
 
-    if(hitboxMesh == nullptr)
-    {
+    if (hitboxMesh == nullptr) {
         std::cerr << "WARNING: No hitbox with the given name \"" << name << "\" is present in the scene." << std::endl;
         return false;
     }
 
-    if(debug) { std::cout << "\tMesh acquired.\n"; }
+    if (debug) { std::cout << "\tMesh acquired.\n"; }
 
     // First quickly check if the point is within the mesh's AABB:
     //if(!hitboxMesh->worldAabb.contains(worldPos))
     //  return false; // If it doesn't contain it, then it certainly ain't gunna be in the model.
 
-    if(debug) { std::cout << "\tPoint within mesh bounds.\n"; }
+    if (debug) { std::cout << "\tPoint within mesh bounds.\n"; }
 
     // Perform a within-mesh hitscan against the selected mesh
-    return sutil::hitscan::isPointWithinMesh(*hitboxMesh, worldPos);
+    return sutil::hitscan::isPointWithinMesh (*hitboxMesh, worldPos);
 }
 
 // TODO: Each of these below (and the one above) should share a "get geometry by name" method.
-float3 cray::MulticamScene::getGeometryMaxBounds(std::string name)
+float3 cray::MulticamScene::getGeometryMaxBounds (std::string name)
 {
-    for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
-        if(m_hitboxMeshes[i].name == name)
+    for (unsigned int i = 0u; i < m_hitboxMeshes.size(); i++) {
+        if (m_hitboxMeshes[i].name == name) {
             return m_hitboxMeshes[i].worldAabb.m_max;
+        }
+    }
 
-    for(unsigned int i = 0u; i<m_meshes.size(); i++)
-        if(m_meshes[i]->name == name)
+    for (unsigned int i = 0u; i < m_meshes.size(); i++) {
+        if (m_meshes[i]->name == name) {
             return m_meshes[i]->world_aabb.m_max;
+        }
+    }
 
     return make_float3(0.0f);
 }
+
 float3 cray::MulticamScene::getGeometryMinBounds(std::string name)
 {
-    for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
-        if(m_hitboxMeshes[i].name == name)
+    for (unsigned int i = 0u; i < m_hitboxMeshes.size(); i++) {
+        if (m_hitboxMeshes[i].name == name) {
             return m_hitboxMeshes[i].worldAabb.m_min;
+        }
+    }
 
-    for(unsigned int i = 0u; i<m_meshes.size(); i++)
-        if(m_meshes[i]->name == name)
+    for (unsigned int i = 0u; i < m_meshes.size(); i++) {
+        if (m_meshes[i]->name == name) {
             return m_meshes[i]->world_aabb.m_min;
+        }
+    }
 
-    return make_float3(0.0f);
+    return make_float3 (0.0f);
 }
