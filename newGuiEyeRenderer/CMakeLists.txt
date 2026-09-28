@@ -16,7 +16,7 @@ OPTIX_add_sample_executable (newGuiEyeRenderer target_name ${gui_eye_renderer_so
 # #include <glad/glad.h> to come from ../support/
 target_include_directories(${target_name} INTERFACE PRIVATE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/../support")
 # libEyeRenderer.cpp needs access to MulticamScene.h etc
-target_include_directories(${target_name} INTERFACE PRIVATE "../libEyeRenderer3")
+target_include_directories(${target_name} INTERFACE PRIVATE "../src")
 
 # Note that we link dynamically to -lcudart, rt, dl, as this appeared
 # to be necessary to get a CUDA reduction kernel to run after an Optix

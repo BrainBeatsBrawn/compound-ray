@@ -422,7 +422,7 @@ set (sutil_target sutil_7_sdk)
 # Extra link for your cuda toolkit in /usr/local
 link_directories(/usr/local/cuda/lib64)
 
-# add_subdirectory() for sutil, support and cuda should come before libEyeRenderer3
+# add_subdirectory() for sutil, support and cuda should come before src
 #
 # Third-party support libraries.
 add_subdirectory(support)
@@ -434,8 +434,8 @@ add_subdirectory(sutil)
 
 # Insect Eye related directories:
 
-# The installable library
-add_subdirectory( libEyeRenderer3 )
+# The source code for the libcompoundray library
+add_subdirectory(src)
 
 # An example eye renderer gui program
 add_subdirectory( newGuiEyeRenderer )
