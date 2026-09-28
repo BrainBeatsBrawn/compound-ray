@@ -2,21 +2,24 @@
 
 [CompoundRay](https://elifesciences.org/articles/73893) is a hardware-accelerated compound eye perspective rendering system and API built on top of the NVidia OptiX raytracing engine.
 
+This is a substantially modified version of the original [upstream version](https://github.com/BrainsOnBoard/compound-ray) of CompoundRay which was written by Blayze Millward. This version removes the C API, modifies the C++ API, removes the Python bindings.
+
+It now builds just the rendering engine library (libcompoundray). There is also an example GUI program.
 
 ## Building
 
-To build the software you must first install [NVidia CUDA](https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html) and
+To build the library you must first install [NVidia CUDA](https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html) and
 the [Nvidia OptiX framework](https://developer.nvidia.com/designworks/optix/download). You can use OptiX 8.0/CUDA 12 or OptiX 9.1/CUDA 13.
 
 ### Packaged dependencies
 
-You will need these packages to build compound-ray. Here is the Ubuntu apt install command:
+You will need these packages to build libcompoundray. Here is the Ubuntu apt install command:
 
 ```bash
 sudo apt install freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev glfw3 build-essential
 ```
 
-Note that glfw3 and OpenGL are required only to build the `newGuiEyeRenderer` target.
+Note that glfw3 and OpenGL are required only to build the `gui_example` target.
 
 ### Build process
 
