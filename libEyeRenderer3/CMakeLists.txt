@@ -85,6 +85,7 @@ target_link_libraries(${EyeRenderer3_target} -lcudart -lrt -ldl)
 
 # libcompoundray is a new library that will only have MulticamScene in it (and *no* libEyeRenderer C API)
 OPTIX_add_sample_executable(compoundray compoundray_target ${multicam_sources} OPTIONS -rdc true)
+message("generated ptx files for compoundray: ${compoundray_ptx_files}")
 
 target_include_directories(${compoundray_target} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
@@ -93,6 +94,10 @@ target_include_directories(${compoundray_target} PUBLIC
 
 # Client to link CUDA
 target_link_libraries(${compoundray_target} -lcudart -lrt -ldl)
+
+# Install the PTX files
+install(FILES ${compoundray_ptx_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+install(FILES ${EyeRenderer3_ptx_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 # Install EyeRender3, compoundray and its dependencies giving it the export name compound-ray-config
 install(TARGETS ${EyeRenderer3_target} ${compoundray_target} ${sutil_target} ${glad_target}

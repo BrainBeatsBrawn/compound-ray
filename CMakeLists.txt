@@ -60,7 +60,7 @@
 # If you have any questions, don't feel shy about posting to the OptiX forums:
 # https://devtalk.nvidia.com/default/board/90/
 
-cmake_minimum_required(VERSION 3.14.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25.0 FATAL_ERROR)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -97,6 +97,11 @@ endif()
 if( POLICY CMP0074 )
   # find_package uses <PackageName>_ROOT variables.
   cmake_policy(SET CMP0074 NEW)
+endif()
+
+# Use of return() in function(). The ``return()`` command checks its parameters.
+if(POLICY CMP0140)
+  cmake_policy(SET CMP0140 NEW)
 endif()
 
 # Add paths to our CMake code to the module path, so they can be found automatically by
@@ -264,6 +269,7 @@ set(SAMPLES_INPUT_GENERATE_PTX ON)
 # SUtil compilation
 
 set(SAMPLES_PTX_DIR "${CMAKE_BINARY_DIR}/lib/ptx")
+set(INSTALL_PTX_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(CUDA_GENERATED_OUTPUT_DIR ${SAMPLES_PTX_DIR})
@@ -333,7 +339,7 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
 
   set(target_name ${target_name_base})
   set(${target_name_var} ${target_name} PARENT_SCOPE)
-
+  set(target_ptx_files "${target_name}_ptx_files")
   OPTIX_add_source_groups()
 
   # Separate the sources from the CMake and CUDA options fed to the macro.  This code
@@ -361,12 +367,13 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   # Create the rules to build the PTX and/or OPTIX files.
   if(SAMPLES_INPUT_GENERATE_OPTIXIR)
     CUDA_WRAP_SRCS(${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options})
-    message("generated_files2 are .cu.o files: ${generated_files2}")
+    #message("generated_files2 are .cu.o files: ${generated_files2}")
     list(APPEND generated_files ${generated_files2})
   endif()
   if(SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
     CUDA_WRAP_SRCS(${target_name} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options})
-    message("generated_files3 contains the PTX files: ${generated_files3}")
+    #message("generated_files3 contains the PTX files: ${generated_files3}")
+    set(${target_ptx_files} ${generated_files3})
     list(APPEND generated_files ${generated_files3})
   endif()
 
@@ -399,6 +406,9 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   if(USING_GNU_CXX)
     target_link_libraries( ${target_name} m ) # Explicitly link against math library (C samples don't do that by default)
   endif()
+
+  # Return the list of generated ptx files so it can be installed.
+  return(PROPAGATE ${target_ptx_files})
 endfunction()
 
 #########################################################

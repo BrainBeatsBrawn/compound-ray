@@ -456,7 +456,7 @@ static std::string samplePTXFilePath( const char* sampleName, const char* fileNa
     static const char* directories[] =
     {
         SAMPLES_PTX_DIR,
-        // INSTALL_PTX_DIR, // This would be the location where we will install ptx files.
+        INSTALL_PTX_DIR,
         "."
     };
     for( const char* directory : directories )

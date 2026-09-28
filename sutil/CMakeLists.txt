@@ -84,7 +84,6 @@ if(USING_GNU_C OR USING_GNU_CXX)
   endif()
 endif()
 
-
 if(CUDA_NVRTC_ENABLED)
   target_link_libraries(${sutil_target} LINK_PRIVATE ${CUDA_nvrtc_LIBRARY})
 endif()

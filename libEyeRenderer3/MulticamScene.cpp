@@ -1608,7 +1608,7 @@ void cray::MulticamScene::createPTXModule()
     m_pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
 
     // This needs to find the right shaders.cu. This may be installed
-    // (e.g. /usr/local/include/compound-ray/) or in a code repo.
+    // (e.g. /usr/local/lib/) or in a code repo.
     //const std::string ptx = sutil::getPtxString( "EyeRenderer3", "shaders.cu" );
     const std::string ptx = sutil::getPtxString( "compoundray", "shaders.cu" );
 
