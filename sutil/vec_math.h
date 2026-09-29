@@ -124,7 +124,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float clamp(const float f, const float a, const fl
 /* float2 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 make_float2(const float s)
@@ -147,7 +147,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float2 operator-(const float2& a)
   return make_float2(-a.x, -a.y);
 }
 
-/** min 
+/** min
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 fminf(const float2& a, const float2& b)
@@ -160,7 +160,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float fminf(const float2& a)
 }
 /** @} */
 
-/** max 
+/** max
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 fmaxf(const float2& a, const float2& b)
@@ -173,7 +173,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float fmaxf(const float2& a)
 }
 /** @} */
 
-/** add 
+/** add
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 operator+(const float2& a, const float2& b)
@@ -194,7 +194,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator+=(float2& a, const float2& b)
 }
 /** @} */
 
-/** subtract 
+/** subtract
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 operator-(const float2& a, const float2& b)
@@ -215,7 +215,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator-=(float2& a, const float2& b)
 }
 /** @} */
 
-/** multiply 
+/** multiply
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 operator*(const float2& a, const float2& b)
@@ -240,7 +240,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator*=(float2& a, const float s)
 }
 /** @} */
 
-/** divide 
+/** divide
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 operator/(const float2& a, const float2& b)
@@ -276,7 +276,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float2 bilerp(const float2& x00, const float2& x10
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 clamp(const float2& v, const float a, const float b)
@@ -322,7 +322,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float2 reflect(const float2& i, const float2& n)
 }
 
 /** Faceforward
-* Returns N if dot(i, nref) > 0; else -N; 
+* Returns N if dot(i, nref) > 0; else -N;
 * Typical usage is N = faceforward(N, -ray.dir, N);
 * Note that this is opposite of what faceforward does in Cg and GLSL */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 faceforward(const float2& n, const float2& i, const float2& nref)
@@ -341,7 +341,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float getByIndex(const float2& v, int i)
 {
   return ((float*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(float2& v, int i, float x)
 {
@@ -352,7 +352,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(float2& v, int i, float x)
 /* float3 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 make_float3(const float s)
@@ -379,7 +379,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float3 operator-(const float3& a)
   return make_float3(-a.x, -a.y, -a.z);
 }
 
-/** min 
+/** min
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 fminf(const float3& a, const float3& b)
@@ -392,7 +392,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float fminf(const float3& a)
 }
 /** @} */
 
-/** max 
+/** max
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 fmaxf(const float3& a, const float3& b)
@@ -405,7 +405,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float fmaxf(const float3& a)
 }
 /** @} */
 
-/** add 
+/** add
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 operator+(const float3& a, const float3& b)
@@ -426,7 +426,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator+=(float3& a, const float3& b)
 }
 /** @} */
 
-/** subtract 
+/** subtract
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 operator-(const float3& a, const float3& b)
@@ -447,7 +447,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator-=(float3& a, const float3& b)
 }
 /** @} */
 
-/** multiply 
+/** multiply
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 operator*(const float3& a, const float3& b)
@@ -472,7 +472,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator*=(float3& a, const float s)
 }
 /** @} */
 
-/** divide 
+/** divide
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 operator/(const float3& a, const float3& b)
@@ -508,7 +508,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float3 bilerp(const float3& x00, const float3& x10
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 clamp(const float3& v, const float a, const float b)
@@ -579,17 +579,17 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float getByIndex(const float3& v, int i)
 {
   return ((float*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(float3& v, int i, float x)
 {
   ((float*)(&v))[i] = x;
 }
-  
+
 /* float4 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 make_float4(const float s)
@@ -616,7 +616,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float4 operator-(const float4& a)
   return make_float4(-a.x, -a.y, -a.z, -a.w);
 }
 
-/** min 
+/** min
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 fminf(const float4& a, const float4& b)
@@ -629,7 +629,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float fminf(const float4& a)
 }
 /** @} */
 
-/** max 
+/** max
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 fmaxf(const float4& a, const float4& b)
@@ -642,7 +642,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float fmaxf(const float4& a)
 }
 /** @} */
 
-/** add 
+/** add
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 operator+(const float4& a, const float4& b)
@@ -663,7 +663,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator+=(float4& a, const float4& b)
 }
 /** @} */
 
-/** subtract 
+/** subtract
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 operator-(const float4& a, const float4& b)
@@ -684,7 +684,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator-=(float4& a, const float4& b)
 }
 /** @} */
 
-/** multiply 
+/** multiply
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 operator*(const float4& a, const float4& s)
@@ -709,7 +709,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator*=(float4& a, const float s)
 }
 /** @} */
 
-/** divide 
+/** divide
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 operator/(const float4& a, const float4& b)
@@ -745,7 +745,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float4 bilerp(const float4& x00, const float4& x10
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 clamp(const float4& v, const float a, const float b)
@@ -790,11 +790,11 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float4 reflect(const float4& i, const float4& n)
   return i - 2.0f * n * dot(n,i);
 }
 
-/** 
+/**
 * Faceforward
 * Returns N if dot(i, nref) > 0; else -N;
 * Typical usage is N = faceforward(N, -ray.dir, N);
-* Note that this is opposite of what faceforward does in Cg and GLSL 
+* Note that this is opposite of what faceforward does in Cg and GLSL
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 faceforward(const float4& n, const float4& i, const float4& nref)
 {
@@ -818,8 +818,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(float4& v, int i, float x)
 {
   ((float*)(&v))[i] = x;
 }
-  
-  
+
+
 /* int functions */
 /******************************************************************************/
 
@@ -834,18 +834,18 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int getByIndex(const int1& v, int i)
 {
   return ((int*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(int1& v, int i, int x)
 {
   ((int*)(&v))[i] = x;
 }
-  
+
 
 /* int2 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int2 make_int2(const int s)
@@ -876,7 +876,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int2 max(const int2& a, const int2& b)
   return make_int2(max(a.x,b.x), max(a.y,b.y));
 }
 
-/** add 
+/** add
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int2 operator+(const int2& a, const int2& b)
@@ -889,7 +889,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator+=(int2& a, const int2& b)
 }
 /** @} */
 
-/** subtract 
+/** subtract
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int2 operator-(const int2& a, const int2& b)
@@ -906,7 +906,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator-=(int2& a, const int2& b)
 }
 /** @} */
 
-/** multiply 
+/** multiply
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int2 operator*(const int2& a, const int2& b)
@@ -927,7 +927,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator*=(int2& a, const int s)
 }
 /** @} */
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int2 clamp(const int2& v, const int a, const int b)
@@ -941,7 +941,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int2 clamp(const int2& v, const int2& a, const int
 }
 /** @} */
 
-/** equality 
+/** equality
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE bool operator==(const int2& a, const int2& b)
@@ -960,18 +960,18 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int getByIndex(const int2& v, int i)
 {
   return ((int*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(int2& v, int i, int x)
 {
   ((int*)(&v))[i] = x;
 }
-  
+
 
 /* int3 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int3 make_int3(const int s)
@@ -1002,7 +1002,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int3 max(const int3& a, const int3& b)
   return make_int3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
 }
 
-/** add 
+/** add
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int3 operator+(const int3& a, const int3& b)
@@ -1015,7 +1015,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator+=(int3& a, const int3& b)
 }
 /** @} */
 
-/** subtract 
+/** subtract
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int3 operator-(const int3& a, const int3& b)
@@ -1029,7 +1029,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator-=(int3& a, const int3& b)
 }
 /** @} */
 
-/** multiply 
+/** multiply
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int3 operator*(const int3& a, const int3& b)
@@ -1050,7 +1050,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator*=(int3& a, const int s)
 }
 /** @} */
 
-/** divide 
+/** divide
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int3 operator/(const int3& a, const int3& b)
@@ -1071,7 +1071,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(int3& a, const int s)
 }
 /** @} */
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int3 clamp(const int3& v, const int a, const int b)
@@ -1085,7 +1085,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int3 clamp(const int3& v, const int3& a, const int
 }
 /** @} */
 
-/** equality 
+/** equality
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE bool operator==(const int3& a, const int3& b)
@@ -1104,18 +1104,18 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int getByIndex(const int3& v, int i)
 {
   return ((int*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(int3& v, int i, int x)
 {
   ((int*)(&v))[i] = x;
 }
-  
+
 
 /* int4 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int4 make_int4(const int s)
@@ -1146,7 +1146,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int4 max(const int4& a, const int4& b)
   return make_int4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
 }
 
-/** add 
+/** add
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int4 operator+(const int4& a, const int4& b)
@@ -1159,7 +1159,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator+=(int4& a, const int4& b)
 }
 /** @} */
 
-/** subtract 
+/** subtract
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int4 operator-(const int4& a, const int4& b)
@@ -1173,7 +1173,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator-=(int4& a, const int4& b)
 }
 /** @} */
 
-/** multiply 
+/** multiply
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int4 operator*(const int4& a, const int4& b)
@@ -1194,7 +1194,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator*=(int4& a, const int s)
 }
 /** @} */
 
-/** divide 
+/** divide
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int4 operator/(const int4& a, const int4& b)
@@ -1215,7 +1215,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(int4& a, const int s)
 }
 /** @} */
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int4 clamp(const int4& v, const int a, const int b)
@@ -1229,7 +1229,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int4 clamp(const int4& v, const int4& a, const int
 }
 /** @} */
 
-/** equality 
+/** equality
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE bool operator==(const int4& a, const int4& b)
@@ -1248,13 +1248,13 @@ SUTIL_INLINE SUTIL_HOSTDEVICE int getByIndex(const int4& v, int i)
 {
   return ((int*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(int4& v, int i, int x)
 {
   ((int*)(&v))[i] = x;
 }
-  
+
 
 /* uint functions */
 /******************************************************************************/
@@ -1270,18 +1270,18 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned int getByIndex(const uint1& v, unsigned i
 {
   return ((unsigned int*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(uint1& v, int i, unsigned int x)
 {
   ((unsigned int*)(&v))[i] = x;
 }
-  
+
 
 /* uint2 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint2 make_uint2(const unsigned int s)
@@ -1390,18 +1390,18 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned int getByIndex(const uint2& v, unsigned i
 {
   return ((unsigned int*)(&v))[i];
 }
-  
+
 /** If used on the device, this could place the the 'v' in local memory */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(uint2& v, int i, unsigned int x)
 {
   ((unsigned int*)(&v))[i] = x;
 }
-  
+
 
 /* uint3 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint3 make_uint3(const unsigned int s)
@@ -1426,7 +1426,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE uint3 max(const uint3& a, const uint3& b)
   return make_uint3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
 }
 
-/** add 
+/** add
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint3 operator+(const uint3& a, const uint3& b)
@@ -1495,7 +1495,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(uint3& a, const unsigned int s)
 }
 /** @} */
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint3 clamp(const uint3& v, const unsigned int a, const unsigned int b)
@@ -1509,7 +1509,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE uint3 clamp(const uint3& v, const uint3& a, const 
 }
 /** @} */
 
-/** equality 
+/** equality
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE bool operator==(const uint3& a, const uint3& b)
@@ -1523,25 +1523,25 @@ SUTIL_INLINE SUTIL_HOSTDEVICE bool operator!=(const uint3& a, const uint3& b)
 }
 /** @} */
 
-/** If used on the device, this could place the the 'v' in local memory 
+/** If used on the device, this could place the the 'v' in local memory
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE unsigned int getByIndex(const uint3& v, unsigned int i)
 {
   return ((unsigned int*)(&v))[i];
 }
-  
-/** If used on the device, this could place the the 'v' in local memory 
+
+/** If used on the device, this could place the the 'v' in local memory
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(uint3& v, int i, unsigned int x)
 {
   ((unsigned int*)(&v))[i] = x;
 }
-  
+
 
 /* uint4 functions */
 /******************************************************************************/
 
-/** additional constructors 
+/** additional constructors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint4 make_uint4(const unsigned int s)
@@ -1563,7 +1563,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE uint4 min(const uint4& a, const uint4& b)
 }
 /** @} */
 
-/** max 
+/** max
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint4 max(const uint4& a, const uint4& b)
@@ -1585,7 +1585,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator+=(uint4& a, const uint4& b)
 }
 /** @} */
 
-/** subtract 
+/** subtract
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint4 operator-(const uint4& a, const uint4& b)
@@ -1620,7 +1620,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator*=(uint4& a, const unsigned int s)
 }
 /** @} */
 
-/** divide 
+/** divide
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint4 operator/(const uint4& a, const uint4& b)
@@ -1641,7 +1641,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(uint4& a, const unsigned int s)
 }
 /** @} */
 
-/** clamp 
+/** clamp
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE uint4 clamp(const uint4& v, const unsigned int a, const unsigned int b)
@@ -1655,7 +1655,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE uint4 clamp(const uint4& v, const uint4& a, const 
 }
 /** @} */
 
-/** equality 
+/** equality
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE bool operator==(const uint4& a, const uint4& b)
@@ -1669,14 +1669,14 @@ SUTIL_INLINE SUTIL_HOSTDEVICE bool operator!=(const uint4& a, const uint4& b)
 }
 /** @} */
 
-/** If used on the device, this could place the the 'v' in local memory 
+/** If used on the device, this could place the the 'v' in local memory
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE unsigned int getByIndex(const uint4& v, unsigned int i)
 {
   return ((unsigned int*)(&v))[i];
 }
-  
-/** If used on the device, this could place the the 'v' in local memory 
+
+/** If used on the device, this could place the the 'v' in local memory
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(uint4& v, int i, unsigned int x)
 {
@@ -1974,7 +1974,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(longlong3& v, int i, int x)
     ((long long*)(&v))[i] = x;
 }
 
-
+#if 0
 /* longlong4 functions */
 /******************************************************************************/
 
@@ -2117,6 +2117,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(longlong4& v, int i, long long x)
 {
     ((long long*)(&v))[i] = x;
 }
+#endif
 
 /* ulonglong functions */
 /******************************************************************************/
@@ -2400,6 +2401,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(ulonglong3& v, int i, unsigned lon
 }
 
 
+#if 0
 /* ulonglong4 functions */
 /******************************************************************************/
 
@@ -2544,7 +2546,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void setByIndex(ulonglong4& v, int i, unsigned lon
 {
     ((unsigned long long*)(&v))[i] = x;
 }
-
+#endif
 
 /******************************************************************************/
 
@@ -2558,17 +2560,21 @@ SUTIL_INLINE SUTIL_HOSTDEVICE uint2 make_uint2(const uint3& v0) { return make_ui
 SUTIL_INLINE SUTIL_HOSTDEVICE uint2 make_uint2(const uint4& v0) { return make_uint2( v0.x, v0.y ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE uint3 make_uint3(const uint4& v0) { return make_uint3( v0.x, v0.y, v0.z ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong2 make_longlong2(const longlong3& v0) { return make_longlong2( v0.x, v0.y ); }
+#if 0
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong2 make_longlong2(const longlong4& v0) { return make_longlong2( v0.x, v0.y ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong3 make_longlong3(const longlong4& v0) { return make_longlong3( v0.x, v0.y, v0.z ); }
+#endif
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong2 make_ulonglong2(const ulonglong3& v0) { return make_ulonglong2( v0.x, v0.y ); }
+#if 0
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong2 make_ulonglong2(const ulonglong4& v0) { return make_ulonglong2( v0.x, v0.y ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong3 make_ulonglong3(const ulonglong4& v0) { return make_ulonglong3( v0.x, v0.y, v0.z ); }
+#endif
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 make_float2(const float3& v0) { return make_float2( v0.x, v0.y ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 make_float2(const float4& v0) { return make_float2( v0.x, v0.y ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 make_float3(const float4& v0) { return make_float3( v0.x, v0.y, v0.z ); }
 /** @} */
 
-/** Assemble functions from smaller vectors 
+/** Assemble functions from smaller vectors
 * @{
 */
 SUTIL_INLINE SUTIL_HOSTDEVICE int3 make_int3(const int v0, const int2& v1) { return make_int3( v0, v1.x, v1.y ); }
@@ -2589,20 +2595,24 @@ SUTIL_INLINE SUTIL_HOSTDEVICE uint4 make_uint4(const uint3& v0, const unsigned i
 SUTIL_INLINE SUTIL_HOSTDEVICE uint4 make_uint4(const uint2& v0, const uint2& v1) { return make_uint4( v0.x, v0.y, v1.x, v1.y ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong3 make_longlong3(const long long v0, const longlong2& v1) { return make_longlong3(v0, v1.x, v1.y); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong3 make_longlong3(const longlong2& v0, const long long v1) { return make_longlong3(v0.x, v0.y, v1); }
+#if 0
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong4 make_longlong4(const long long v0, const long long v1, const longlong2& v2) { return make_longlong4(v0, v1, v2.x, v2.y); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong4 make_longlong4(const long long v0, const longlong2& v1, const long long v2) { return make_longlong4(v0, v1.x, v1.y, v2); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong4 make_longlong4(const longlong2& v0, const long long v1, const long long v2) { return make_longlong4(v0.x, v0.y, v1, v2); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong4 make_longlong4(const long long v0, const longlong3& v1) { return make_longlong4(v0, v1.x, v1.y, v1.z); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong4 make_longlong4(const longlong3& v0, const long long v1) { return make_longlong4(v0.x, v0.y, v0.z, v1); }
 SUTIL_INLINE SUTIL_HOSTDEVICE longlong4 make_longlong4(const longlong2& v0, const longlong2& v1) { return make_longlong4(v0.x, v0.y, v1.x, v1.y); }
+#endif
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong3 make_ulonglong3(const unsigned long long v0, const ulonglong2& v1) { return make_ulonglong3(v0, v1.x, v1.y); }
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong3 make_ulonglong3(const ulonglong2& v0, const unsigned long long v1) { return make_ulonglong3(v0.x, v0.y, v1); }
+#if 0
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong4 make_ulonglong4(const unsigned long long v0, const unsigned long long v1, const ulonglong2& v2) { return make_ulonglong4(v0, v1, v2.x, v2.y); }
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong4 make_ulonglong4(const unsigned long long v0, const ulonglong2& v1, const unsigned long long v2) { return make_ulonglong4(v0, v1.x, v1.y, v2); }
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong4 make_ulonglong4(const ulonglong2& v0, const unsigned long long v1, const unsigned long long v2) { return make_ulonglong4(v0.x, v0.y, v1, v2); }
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong4 make_ulonglong4(const unsigned long long v0, const ulonglong3& v1) { return make_ulonglong4(v0, v1.x, v1.y, v1.z); }
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong4 make_ulonglong4(const ulonglong3& v0, const unsigned long long v1) { return make_ulonglong4(v0.x, v0.y, v0.z, v1); }
 SUTIL_INLINE SUTIL_HOSTDEVICE ulonglong4 make_ulonglong4(const ulonglong2& v0, const ulonglong2& v1) { return make_ulonglong4(v0.x, v0.y, v1.x, v1.y); }
+#endif
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 make_float3(const float2& v0, const float v1) { return make_float3(v0.x, v0.y, v1); }
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 make_float3(const float v0, const float2& v1) { return make_float3( v0, v1.x, v1.y ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 make_float4(const float v0, const float v1, const float2& v2) { return make_float4( v0, v1, v2.x, v2.y ); }
@@ -2612,5 +2622,3 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float4 make_float4(const float v0, const float3& v
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 make_float4(const float3& v0, const float v1) { return make_float4( v0.x, v0.y, v0.z, v1 ); }
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 make_float4(const float2& v0, const float2& v1) { return make_float4( v0.x, v0.y, v1.x, v1.y ); }
 /** @} */
-
-

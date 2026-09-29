@@ -60,7 +60,7 @@
 # If you have any questions, don't feel shy about posting to the OptiX forums:
 # https://devtalk.nvidia.com/default/board/90/
 
-cmake_minimum_required(VERSION 3.14.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25.0 FATAL_ERROR)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -97,6 +97,11 @@ endif()
 if( POLICY CMP0074 )
   # find_package uses <PackageName>_ROOT variables.
   cmake_policy(SET CMP0074 NEW)
+endif()
+
+# Use of return() in function(). The ``return()`` command checks its parameters.
+if(POLICY CMP0140)
+  cmake_policy(SET CMP0140 NEW)
 endif()
 
 # Add paths to our CMake code to the module path, so they can be found automatically by
@@ -264,6 +269,7 @@ set(SAMPLES_INPUT_GENERATE_PTX ON)
 # SUtil compilation
 
 set(SAMPLES_PTX_DIR "${CMAKE_BINARY_DIR}/lib/ptx")
+set(INSTALL_PTX_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(CUDA_GENERATED_OUTPUT_DIR ${SAMPLES_PTX_DIR})
@@ -331,9 +337,9 @@ endmacro()
 # in CMake, functions have their own scope, whereas macros use the scope of the caller.
 function(OPTIX_add_sample_executable target_name_base target_name_var)
 
-  set( target_name ${target_name_base} )
-  set( ${target_name_var} ${target_name} PARENT_SCOPE )
-
+  set(target_name ${target_name_base})
+  set(${target_name_var} ${target_name} PARENT_SCOPE)
+  set(target_ptx_files "${target_name}_ptx_files")
   OPTIX_add_source_groups()
 
   # Separate the sources from the CMake and CUDA options fed to the macro.  This code
@@ -356,52 +362,43 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   endforeach()
 
   # Create the rules to build the OBJ from the CUDA files.
-  CUDA_WRAP_SRCS( ${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS "" ) # ${options}
+  CUDA_WRAP_SRCS(${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS "")
 
   # Create the rules to build the PTX and/or OPTIX files.
-  if( SAMPLES_INPUT_GENERATE_OPTIXIR )
-    CUDA_WRAP_SRCS( ${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+  if(SAMPLES_INPUT_GENERATE_OPTIXIR)
+    CUDA_WRAP_SRCS(${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options})
+    #message("generated_files2 are .cu.o files: ${generated_files2}")
     list(APPEND generated_files ${generated_files2})
   endif()
-  if( SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
-    CUDA_WRAP_SRCS( ${target_name} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+  if(SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
+    CUDA_WRAP_SRCS(${target_name} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options})
+    #message("generated_files3 contains the PTX files: ${generated_files3}")
+    set(${target_ptx_files} ${generated_files3})
     list(APPEND generated_files ${generated_files3})
   endif()
 
   message("-- Parsing ${target_name}...")
-  if (${target_name} STREQUAL "EyeRenderer3")
-    message("---- EyeRenderer library detected, appending shared object build targets...")
-    #target_compile_options(${target_name}
-    #                       PUBLIC "-fpic"
-    #                       )
-    add_library(${target_name}
-      ${source_files}
-      ${generated_files}
-      ${cmake_options}
-    )
+  if (${target_name} STREQUAL "EyeRenderer3" OR ${target_name} STREQUAL "compoundray")
+    message("---- EyeRenderer/compoundray library detected, appending shared object build targets...")
+    #target_compile_options(${target_name} PUBLIC "-fpic")
+    add_library(${target_name} ${source_files} ${generated_files} ${cmake_options})
   else()
     # Here is where we create the rule to make the executable.  We define a target name and
     # list all the source files used to create the target.  In addition we also pass along
     # the cmake_options parsed out of the arguments.
-    add_executable(${target_name}
-      ${source_files}
-      ${generated_files}
-      ${cmake_options}
-    )
+    add_executable(${target_name} ${source_files} ${generated_files} ${cmake_options})
   endif()
 
-  # Most of the samples link against the sutil library and the optix library.  Here is the
-  # rule that specifies this linkage.
-  target_link_libraries( ${target_name}
-    ${GLFW_LIB_NAME}
-    sutil_7_sdk
+  # We link our version of the OptiX samples sutil library
+  target_link_libraries(${target_name} compoundray_sutil)
+
+  set_target_properties(
+    ${target_name} PROPERTIES
+    COMPILE_DEFINITIONS
+    "OPTIX_SAMPLE_NAME_DEFINE=${target_name};OPTIX_SAMPLE_DIR_DEFINE=${target_name}"
   )
 
-  set_target_properties( ${target_name} PROPERTIES
-    COMPILE_DEFINITIONS
-    "OPTIX_SAMPLE_NAME_DEFINE=${target_name};OPTIX_SAMPLE_DIR_DEFINE=${target_name}" )
-
-  if( UNIX AND NOT APPLE )
+  if(UNIX AND NOT APPLE)
     # Force using RPATH instead of RUNPATH on Debian
     target_link_libraries( ${target_name} "-Wl,--disable-new-dtags" )
   endif()
@@ -409,36 +406,39 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   if(USING_GNU_CXX)
     target_link_libraries( ${target_name} m ) # Explicitly link against math library (C samples don't do that by default)
   endif()
+
+  # Return the list of generated ptx files so it can be installed.
+  return(PROPAGATE ${target_ptx_files})
 endfunction()
 
 #########################################################
 #  List of subprojects (usually executables) in this project.
 #
 
-set (glad_target glad) # Used by newGuiEyeRenderer
+set(glad_target compoundray_glad) # Used only by gui_example
 
-set (sutil_target sutil_7_sdk)
+set(sutil_target compoundray_sutil)
 
 # Extra link for your cuda toolkit in /usr/local
 link_directories(/usr/local/cuda/lib64)
 
-# add_subdirectory() for sutil, support and cuda should come before libEyeRenderer3
+# add_subdirectory() for sutil, support and cuda should come before src
 #
 # Third-party support libraries.
 add_subdirectory(support)
-# We'll install cuda headers in (e.g.) /usr/local/include/compound-ray/cuda
+# We'll install cuda headers in (e.g.) /usr/local/include/compoundray/cuda
 add_subdirectory(cuda)
 # NVidia's sutil library.  The rules to build it are found in the subdirectory.
-# Its headers will install to (e.g.) /usr/local/include/compound-ray/sutil
+# Its headers will install to (e.g.) /usr/local/include/compoundray/sutil
 add_subdirectory(sutil)
 
 # Insect Eye related directories:
 
-# The installable library
-add_subdirectory( libEyeRenderer3 )
+# The source code for the libcompoundray library
+add_subdirectory(src)
 
 # An example eye renderer gui program
-add_subdirectory( newGuiEyeRenderer )
+add_subdirectory(gui_example)
 
 #################################################################
 

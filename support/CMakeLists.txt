@@ -58,13 +58,3 @@ target_link_libraries( ${glad_target} PUBLIC ${OPENGL_LIBRARIES} )
 
 # Set IDE folders for targets
 set_property( TARGET ${glad_target} PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
-
-# NB: install() of libglad.so and libimgui.a are carried out in
-# libEyeRenderer/CMakeLists.txt as libEyeRender.so is exported along
-# with glad, imgui and sutil_7_sdk
-
-# Install headers
-install(FILES glad/glad.h
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray/glad)
-install(FILES KHR/khrplatform.h
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray/KHR)

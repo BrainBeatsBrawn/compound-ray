@@ -30,7 +30,7 @@
 #define __samples_util_sutilapi_h__
 
 #ifndef SUTILAPI
-#  if sutil_7_sdk_EXPORTS /* Set by CMAKE */
+#  if compoundray_sutil_EXPORTS /* Set by CMAKE */
 #    if defined( _WIN32 ) || defined( _WIN64 )
 #      define SUTILAPI __declspec(dllexport)
 #      define SUTILCLASSAPI
@@ -44,7 +44,7 @@
 #      error "CODE FOR THIS OS HAS NOT YET BEEN DEFINED"
 #    endif
 
-#  else /* sutil_7_sdk_EXPORTS */
+#  else /* compoundray_sutil_EXPORTS */
 
 #    if defined( _WIN32 ) || defined( _WIN64 )
 #      define SUTILAPI __declspec(dllimport)
@@ -59,7 +59,7 @@
 #      error "CODE FOR THIS OS HAS NOT YET BEEN DEFINED"
 #    endif
 
-#  endif /* sutil_7_sdk_EXPORTS */
+#  endif /* compoundray_sutil_EXPORTS */
 #endif
 
 #endif /* __samples_util_sutilapi_h__ */

@@ -1,1 +1,0 @@
-This folder contains code to generate images from different eye models in a given environment

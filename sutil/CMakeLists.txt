@@ -26,15 +26,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# For compoundray, build a library of the sutil features that we use.
 set(sources
-    ${CMAKE_CURRENT_BINARY_DIR}/../sampleConfig.h
-    ${SAMPLES_CUDA_DIR}/whitted.cu
-    ${SAMPLES_CUDA_DIR}/BufferView.h
-    ${SAMPLES_CUDA_DIR}/GeometryData.h
-    ${SAMPLES_CUDA_DIR}/Light.h
-    ${SAMPLES_CUDA_DIR}/LocalGeometry.h
-    ${SAMPLES_CUDA_DIR}/MaterialData.h
-    ${SAMPLES_CUDA_DIR}/util.h
+#    ${CMAKE_CURRENT_BINARY_DIR}/../sampleConfig.h # Don't appear to need to compile these into libsutil
+#    ${SAMPLES_CUDA_DIR}/whitted.cu
+#    ${SAMPLES_CUDA_DIR}/BufferView.h
+#    ${SAMPLES_CUDA_DIR}/GeometryData.h
+#    ${SAMPLES_CUDA_DIR}/Light.h
+#    ${SAMPLES_CUDA_DIR}/LocalGeometry.h
+#    ${SAMPLES_CUDA_DIR}/MaterialData.h
+#    ${SAMPLES_CUDA_DIR}/util.h
     Aabb.h
     Camera.cpp
     Camera.h
@@ -55,8 +56,6 @@ set(sources
     hitscanprocessing.h
     hitscanprocessing.cpp
     )
-
-
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -85,7 +84,6 @@ if(USING_GNU_C OR USING_GNU_CXX)
   endif()
 endif()
 
-
 if(CUDA_NVRTC_ENABLED)
   target_link_libraries(${sutil_target} LINK_PRIVATE ${CUDA_nvrtc_LIBRARY})
 endif()
@@ -98,13 +96,13 @@ set(sutil_sources "${sources}" PARENT_SCOPE)
 
 set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 
-# NB: install() of libsutil_7_sdk.so is carried out in
+# NB: install() of libcompoundray_sutil.so is carried out in
 # libEyeRenderer/CMakeLists.txt as libEyeRender.so is exported along
-# with glad and sutil_7_sdk
+# with compoundray_sutil
 
 # Install headers
 install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h
         hitscanprocessing.h Matrix.h PPMLoader.h Preprocessor.h
         Quaternion.h Record.h sutilapi.h sutil.h Trackball.h vec_math.h
         WorkDistribution.h
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray/sutil)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compoundray/sutil)

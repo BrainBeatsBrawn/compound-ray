@@ -25,20 +25,50 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-
 #pragma once
 
-#define SAMPLES_DIR "@SAMPLES_DIR@"
-#define SAMPLES_PTX_DIR "@SAMPLES_PTX_DIR@"
-#define INSTALL_PTX_DIR "@INSTALL_PTX_DIR@"
-#define SAMPLES_CUDA_DIR "@SAMPLES_CUDA_DIR@"
+#include <vector_types.h>
+#include <cstdint>
 
-// Include directories
-#define SAMPLES_RELATIVE_INCLUDE_DIRS @SAMPLES_RELATIVE_INCLUDE_DIRS@
-#define SAMPLES_ABSOLUTE_INCLUDE_DIRS @SAMPLES_ABSOLUTE_INCLUDE_DIRS@
+#include <cuda/BufferView.h>
+#include <cuda/GeometryData.h>
+#include <cuda/Light.h>
+#include <cuda/MaterialData.h>
 
-// Signal whether to use NVRTC or not
-#cmakedefine01 CUDA_NVRTC_ENABLED
+// Types that have to do with raycasting (and possibly tracing)
+namespace cray
+{
+    constexpr std::uint32_t NUM_PAYLOAD_VALUES = 4u;
 
-// NVRTC compiler options
-#define CUDA_NVRTC_OPTIONS @CUDA_NVRTC_OPTIONS@
+    struct HitGroupData
+    {
+        GeometryData geometry_data;
+        MaterialData material_data;
+    };
+
+    enum RayType
+    {
+        RAY_TYPE_RADIANCE = 0,
+        RAY_TYPE_OCCLUSION = 1,
+        RAY_TYPE_COUNT = 2
+    };
+
+    struct LaunchParams
+    {
+        uchar4* frame_buffer;    // An output buffer for non-compound eye cameras
+        std::int32_t max_depth;
+        std::uint32_t frame;     // The current frame
+        bool lighting;
+        cuda::BufferView<Light::Point> lights;
+        float3 miss_color;
+        OptixTraversableHandle handle;
+    };
+
+    struct PayloadRadiance
+    {
+        float3 result;
+        float importance;
+        std::int32_t depth;
+    };
+
+} // end namespace
