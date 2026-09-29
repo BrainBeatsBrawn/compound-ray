@@ -53,10 +53,10 @@ void cray::CompoundEye::reconfigureOmmatidialCount (size_t count)
 // Copies the averages in specializedData.d_compoundAvgBuffer to this->ommatidial_average
 void cray::CompoundEye::copyOmmatidialDataToHost()
 {
-    CUDA_CHECK( cudaMemcpy(this->ommatidial_average, // destination
-                           reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer), // source
-                           sizeof(float3) * specializedData.ommatidialCount,
-                           cudaMemcpyDeviceToHost) );
+    CUDA_CHECK (cudaMemcpy (this->ommatidial_average, // destination
+                            reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer), // source
+                            sizeof(float3) * specializedData.ommatidialCount,
+                            cudaMemcpyDeviceToHost));
     CUDA_SYNC_CHECK();
 }
 
@@ -80,16 +80,16 @@ void cray::CompoundEye::averageRecordFrame()
 
 void cray::CompoundEye::zeroRecordFrame()
 {
-    CUDA_CHECK( cudaMemset(reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer), 0, sizeof(float3) * specializedData.ommatidialCount) );
+    CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer), 0, sizeof(float3) * specializedData.ommatidialCount));
     CUDA_SYNC_CHECK();
 }
 
 void cray::CompoundEye::copyOmmatidia (cray::Ommatidium* ommatidia)
 {
-    CUDA_CHECK( cudaMemcpy(reinterpret_cast<void*>(specializedData.d_ommatidialArray),
-                           ommatidia,
-                           sizeof(cray::Ommatidium) * specializedData.ommatidialCount,
-                           cudaMemcpyHostToDevice) );
+    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(specializedData.d_ommatidialArray),
+                            ommatidia,
+                            sizeof(cray::Ommatidium) * specializedData.ommatidialCount,
+                            cudaMemcpyHostToDevice));
     CUDA_SYNC_CHECK();
 }
 
@@ -98,13 +98,13 @@ void cray::CompoundEye::allocateOmmatidialMemory()
     size_t memSize = sizeof(cray::Ommatidium) * specializedData.ommatidialCount;
     if constexpr (debug_memory == true) {
         std::cout << "Clearing and allocating ommatidial data on device. "
-                  << "(size: "<<memSize<<", "<<specializedData.ommatidialCount<<" blocks)"<<std::endl;
+                  << "(size: " << memSize << ", " << specializedData.ommatidialCount << " blocks)"<<std::endl;
     }
     freeOmmatidialMemory();
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_ommatidialArray) ), memSize) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(specializedData.d_ommatidialArray)), memSize));
 
     if constexpr (debug_memory == true) {
-        CUDA_CHECK( cudaMemset(reinterpret_cast<void*>(specializedData.d_ommatidialArray), 0, memSize) );
+        CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(specializedData.d_ommatidialArray), 0, memSize));
     }
 
     if constexpr (debug_memory == true) { std::cout << "\t...allocated at " << specializedData.d_ommatidialArray << std::endl; }
@@ -122,7 +122,7 @@ void cray::CompoundEye::freeOmmatidialMemory()
     }
     if(specializedData.d_ommatidialArray != 0)
     {
-        CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_ommatidialArray)) );
+        CUDA_CHECK (cudaFree (reinterpret_cast<void*>(specializedData.d_ommatidialArray)));
         specializedData.d_ommatidialArray = 0;
         if constexpr (debug_memory == true) { std::cout << "Ommatidial memory freed!" << std::endl; }
     } else{
@@ -140,16 +140,16 @@ void cray::CompoundEye::freeOmmatidialMemory()
 void cray::CompoundEye::allocateOmmatidialRandomStates()
 {
     size_t blockCount = specializedData.ommatidialCount * specializedData.samplesPerOmmatidium;// The number of cuRand states
-    size_t memSize = sizeof(curandState)*blockCount;
+    size_t memSize = sizeof(curandState) * blockCount;
     if constexpr (debug_memory == true) {
         std::cout << "[CAMERA: " << getCameraName() << "] Clearing and allocating per-ommatidium random states on device. (size: "
                   << memSize << ", " << blockCount << " blocks)" << std::endl;
     }
     freeOmmatidialRandomStates();
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_randomStates) ), memSize) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(specializedData.d_randomStates)), memSize));
 
     if constexpr (debug_memory == true) {
-        CUDA_CHECK( cudaMemset(reinterpret_cast<void*>(specializedData.d_randomStates), 0, memSize) );
+        CUDA_CHECK (cudaMemset(reinterpret_cast<void*>(specializedData.d_randomStates), 0, memSize));
     }
 
     if constexpr (debug_memory == true) { std::cout << "\t...allocated at " << specializedData.d_randomStates << std::endl; }
@@ -165,9 +165,8 @@ void cray::CompoundEye::freeOmmatidialRandomStates()
     if constexpr (debug_memory == true) {
         std::cout << "[CAMERA: " << getCameraName() << "] Freeing ommatidial random states... ";
     }
-    if(specializedData.d_randomStates != 0)
-    {
-        CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_randomStates)) );
+    if (specializedData.d_randomStates != 0) {
+        CUDA_CHECK (cudaFree (reinterpret_cast<void*>(specializedData.d_randomStates)));
         specializedData.d_randomStates = 0;
         if constexpr (debug_memory == true) { std::cout << "Ommatidial random states freed!" << std::endl; }
     } else {
@@ -179,7 +178,7 @@ void cray::CompoundEye::freeOmmatidialRandomStates()
 void cray::CompoundEye::allocateCompoundRenderingBuffer()
 {
     size_t blockCount = specializedData.ommatidialCount * specializedData.samplesPerOmmatidium;
-    size_t memSize = sizeof(float3)*blockCount;
+    size_t memSize = sizeof(float3) * blockCount;
     if constexpr (debug_memory == true) {
         std::cout << "[CAMERA: " << getCameraName() << "] Allocating compound render buffer (size: "
                   << sizeof(float3) << " x " << specializedData.ommatidialCount
@@ -188,10 +187,10 @@ void cray::CompoundEye::allocateCompoundRenderingBuffer()
                   << "(size: "<<memSize<<", "<<blockCount<<" blocks)"<<std::endl;
     }
     freeCompoundRenderingBuffer();
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_compoundBuffer) ), memSize) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(specializedData.d_compoundBuffer)), memSize));
 
     if constexpr (debug_memory == true) {
-        CUDA_CHECK( cudaMemset(reinterpret_cast<void*>(specializedData.d_compoundBuffer), 0, memSize) );
+        CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(specializedData.d_compoundBuffer), 0, memSize));
     }
 
     if constexpr (debug_memory == true) { std::cout << "...allocated at " << specializedData.d_compoundBuffer << std::endl; }
@@ -203,12 +202,11 @@ void cray::CompoundEye::freeCompoundRenderingBuffer()
     if constexpr (debug_memory == true) {
         std::cout << "[CAMERA: " << getCameraName() << "] Freeing compound render buffer... ";
     }
-    if(specializedData.d_compoundBuffer != 0)
-    {
-        CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_compoundBuffer)) );
-        specializedData.d_compoundBuffer= 0;
+    if (specializedData.d_compoundBuffer != 0) {
+        CUDA_CHECK (cudaFree (reinterpret_cast<void*>(specializedData.d_compoundBuffer)));
+        specializedData.d_compoundBuffer = 0;
         if constexpr (debug_memory == true) { std::cout << "freed!" << std::endl; }
-    } else{
+    } else {
         if constexpr (debug_memory == true) { std::cout << "already free, skipping..." << std::endl; }
     }
     CUDA_SYNC_CHECK();
@@ -217,7 +215,7 @@ void cray::CompoundEye::freeCompoundRenderingBuffer()
 void cray::CompoundEye::allocateCompoundRenderingAvgBuffer()
 {
     size_t blockCount = specializedData.ommatidialCount;
-    size_t memSize = sizeof(float3)*blockCount;
+    size_t memSize = sizeof(float3) * blockCount;
     if constexpr (debug_memory == true) {
         std::cout << "[CAMERA: " << getCameraName() << "] "
                   << "Allocating compound render AVG buffer "
@@ -228,23 +226,23 @@ void cray::CompoundEye::allocateCompoundRenderingAvgBuffer()
                   << "(size: " << memSize << ", " << blockCount << " blocks)" << std::endl;
     }
     freeCompoundRenderingAvgBuffer();
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_compoundAvgBuffer) ), memSize) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(specializedData.d_compoundAvgBuffer)), memSize));
 
     if constexpr (debug_memory == true) {
-        CUDA_CHECK( cudaMemset(reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer), 0, memSize) );
+        CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer), 0, memSize));
     }
 
     if constexpr (debug_memory == true) { std::cout << "[CAMERA: " << getCameraName() << "] Compound AVG buffer re-allocated\n"; }
     CUDA_SYNC_CHECK();
 }
+
 void cray::CompoundEye::freeCompoundRenderingAvgBuffer()
 {
     if constexpr (debug_memory == true) {
         std::cout << "[CAMERA: " << getCameraName() << "] Freeing compound AVG render buffer... ";
     }
-    if(specializedData.d_compoundAvgBuffer != 0)
-    {
-        CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer)) );
+    if (specializedData.d_compoundAvgBuffer != 0) {
+        CUDA_CHECK (cudaFree (reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer)));
         specializedData.d_compoundAvgBuffer = 0;
         if constexpr (debug_memory == true) { std::cout << "buffer freed!" << std::endl; }
     } else {
@@ -253,9 +251,9 @@ void cray::CompoundEye::freeCompoundRenderingAvgBuffer()
     CUDA_SYNC_CHECK();
 }
 
-void cray::CompoundEye::setSamplesPerOmmatidium(int32_t s)
+void cray::CompoundEye::setSamplesPerOmmatidium (int32_t s)
 {
-    specializedData.samplesPerOmmatidium = max(static_cast<int32_t>(1),s);
+    specializedData.samplesPerOmmatidium = max (1, s);
     allocateOmmatidialRandomStates();
     allocateCompoundRenderingBuffer();
     allocateCompoundRenderingAvgBuffer();
@@ -263,18 +261,19 @@ void cray::CompoundEye::setSamplesPerOmmatidium(int32_t s)
         std::cout << "Set samples per ommatidium to " << specializedData.samplesPerOmmatidium << std::endl;
     }
 }
+
 void cray::CompoundEye::changeSamplesPerOmmatidiumBy(int32_t d)
 {
     std::cout << "Changing samples per ommatidium from " << specializedData.samplesPerOmmatidium << " to "
               << (specializedData.samplesPerOmmatidium + d) << std::endl;
-    setSamplesPerOmmatidium(specializedData.samplesPerOmmatidium + d);
+    setSamplesPerOmmatidium (specializedData.samplesPerOmmatidium + d);
 }
 
 // ----------------------------------------------------------------
 //    Compound record handling
 // ----------------------------------------------------------------
 
-void cray::CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, OptixProgramGroup& compoundProgramGroup, const CUdeviceptr& targetRecord)
+void cray::CompoundEye::InitiateCompoundRecord (OptixShaderBindingTable& compoundSbt, OptixProgramGroup& compoundProgramGroup, const CUdeviceptr& targetRecord)
 {
     // Allocate compound record (pointer to a camera) on device VRAM
     if constexpr (debug_memory == true) {
@@ -289,13 +288,11 @@ void cray::CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compound
 
     FreeCompoundRecord();
 
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>(&s_d_compoundRecordPtrRecord), sizeof(s_compoundRecordPtrRecord)) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&s_d_compoundRecordPtrRecord), sizeof(s_compoundRecordPtrRecord)));
 
     if constexpr (debug_memory == true) {
-        CUDA_CHECK( cudaMemset(reinterpret_cast<void*>(s_d_compoundRecordPtrRecord),
-                               0, sizeof(s_compoundRecordPtrRecord)) );
+        CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(s_d_compoundRecordPtrRecord), 0, sizeof(s_compoundRecordPtrRecord)));
     }
-
 
     if constexpr (debug_memory == true) { std::cout << "...allocated at " << s_d_compoundRecordPtrRecord << std::endl; }
 
@@ -307,27 +304,28 @@ void cray::CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compound
     // Bind the record to the SBT
     compoundSbt.raygenRecord = s_d_compoundRecordPtrRecord;
 }
+
 void cray::CompoundEye::FreeCompoundRecord()
 {
     if constexpr (debug_memory == true) { std::cout << "Freeing compound SBT record... "; }
     if(s_d_compoundRecordPtrRecord != 0) {
-        CUDA_CHECK( cudaFree(reinterpret_cast<void*>(s_d_compoundRecordPtrRecord)) );
+        CUDA_CHECK (cudaFree (reinterpret_cast<void*>(s_d_compoundRecordPtrRecord)));
         s_d_compoundRecordPtrRecord = 0;
         if constexpr (debug_memory == true) { std::cout << "done!" << std::endl; }
     } else { if constexpr (debug_memory == true) { std::cout << "record already freed!" << std::endl; } }
 }
 
-void cray::CompoundEye::RedirectCompoundDataPointer(OptixProgramGroup& programGroup, const CUdeviceptr& targetRecord)
+void cray::CompoundEye::RedirectCompoundDataPointer (OptixProgramGroup& programGroup, const CUdeviceptr& targetRecord)
 {
     if constexpr (debug_memory == true) { std::cout << "Redirecting compound record pointer..." << std::endl; }
     s_compoundRecordPtrRecord.data.d_record = targetRecord;
     if constexpr (debug_memory == true) { std::cout << "\tPacking header..." << std::endl; }
-    OPTIX_CHECK( optixSbtRecordPackHeader(programGroup, &s_compoundRecordPtrRecord) );
+    OPTIX_CHECK (optixSbtRecordPackHeader (programGroup, &s_compoundRecordPtrRecord));
     if constexpr (debug_memory == true) { std::cout << "\tCopying to VRAM..."; }
-    CUDA_CHECK( cudaMemcpy(reinterpret_cast<void*>(s_d_compoundRecordPtrRecord),
-                           &s_compoundRecordPtrRecord,
-                           sizeof(s_compoundRecordPtrRecord),
-                           cudaMemcpyHostToDevice) );
+    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(s_d_compoundRecordPtrRecord),
+                            &s_compoundRecordPtrRecord,
+                            sizeof(s_compoundRecordPtrRecord),
+                            cudaMemcpyHostToDevice));
     if constexpr (debug_memory == true) {
         std::cout << "\t...Copy complete!\n\tCompound record redirected to " << targetRecord << std::endl;
     }

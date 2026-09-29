@@ -259,7 +259,7 @@ namespace cray
                 camera->setRandomsAsConfigured(); // Make sure that random stream initialization is only ever done once
 
                 if constexpr (sum_average_with_getCameraData == false) {
-                    // After the compoundray pipeline, can call the sample-summing CUDA kernel here
+                    // After the compoundray pipeline, we usually call the sample-summing CUDA kernel here
                     camera->averageRecordFrame();
                     CUDA_SYNC_CHECK();
                 }
