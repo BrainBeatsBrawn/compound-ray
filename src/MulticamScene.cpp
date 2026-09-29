@@ -221,9 +221,9 @@ namespace internal
                           << "\ttype: " << gltf_camera.type << std::endl;
             }
             // Get configured camera information and local axis
-            const float3 upAxis      = make_float3 (node_xform * internal::make_float4_from_double (0.0f, 1.0f,  0.0f, 0.0f)); //  uy
+            const float3 upAxis = make_float3 (node_xform * internal::make_float4_from_double (0.0f, 1.0f,  0.0f, 0.0f));      //  uy
             const float3 forwardAxis = make_float3 (node_xform * internal::make_float4_from_double (0.0f, 0.0f, -1.0f, 0.0f)); // -uz
-            const float3 rightAxis   = make_float3 (node_xform * internal::make_float4_from_double (1.0f, 0.0f,  0.0f, 0.0f)); //  ux
+            const float3 rightAxis = make_float3 (node_xform * internal::make_float4_from_double (1.0f, 0.0f,  0.0f, 0.0f));   //  ux
 
             if constexpr (debug_cameras == true) {
                 std::cout << "\tUP axis: (" << upAxis.x <<"," << upAxis.y << "," << upAxis.z << ")" << std::endl;
@@ -232,8 +232,8 @@ namespace internal
             }
 
             // eye is 'position' - a transform of the origin
-            const float3 eye     = make_float3 (node_xform*internal::make_float4_from_double (0.0f, 0.0f,  0.0f, 1.0f));
-            const float  yfov   = static_cast<float> (gltf_camera.perspective.yfov) * 180.0f / static_cast<float> (M_PI);
+            const float3 eye = make_float3 (node_xform*internal::make_float4_from_double (0.0f, 0.0f,  0.0f, 1.0f));
+            const float  yfov = static_cast<float> (gltf_camera.perspective.yfov) * 180.0f / static_cast<float> (M_PI);
             if constexpr (debug_cameras == true) {
                 std::cout << "\teye posn: " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
                 std::cout << "\tfov     : " << yfov     << std::endl;
@@ -250,7 +250,7 @@ namespace internal
                     std::cout << "Added orthographic camera " << cidx << std::endl;
                 }
                 return;
-            }
+            } // else all other cameras are of type "perspective", but they can have extra specifier "panoramic" or "compound-eye"
 
             if (isObjectsExtraValueTrue (gltf_camera.extras, "panoramic")) {
                 if constexpr (debug_cameras == true) {
@@ -348,6 +348,7 @@ namespace internal
                 return;
             }
 
+            // Neither panoramic nor compound-eye, so create a plain PerspectiveCamera.
             cray::PerspectiveCamera* camera = new cray::PerspectiveCamera (gltf_camera.name);
             camera->setPosition (eye);
             camera->setLocalSpace (rightAxis, upAxis, forwardAxis);

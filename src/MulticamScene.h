@@ -395,6 +395,7 @@ namespace cray
 
         void createCompoundPipeline();
 
+        // Maybe we make m_cameras a map of the cameras that were defined int he gltf. Then, we only *enable* one or some of those cameras.
         std::map<int, GenericCamera*>        m_cameras; // cameras is a map of pointers to Camera objects.
         std::vector<std::shared_ptr<MeshGroup> > m_meshes;
         std::vector<MaterialData::Pbr>       m_materials;
