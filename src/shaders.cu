@@ -110,7 +110,7 @@ static __forceinline__ __device__ void traceRadiance (OptixTraversableHandle han
                                                       float                  tmax,
                                                       cray::PayloadRadiance* payload)
 {
-    uint32_t u0=0, u1=0, u2=0, u3=0;
+    uint32_t u0 = 0u, u1 = 0u, u2 = 0u, u3 = 0u;
     optixTrace (handle,
                 ray_origin, ray_direction,
                 tmin,
@@ -335,8 +335,8 @@ extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples(
 extern "C" __global__ void __raygen__compound_projection_single_dimension()
 {
     auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
-    const uint3  launch_idx = optixGetLaunchIndex();
-    const uint3  launch_dims = optixGetLaunchDimensions();
+    const uint3 launch_idx = optixGetLaunchIndex();
+    const uint3 launch_dims = optixGetLaunchDimensions();
     const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
     // Scale the x coordinate by the number of ommatidia (we don't want to be reading too far off the edge of the assigned ommatidia)
@@ -370,8 +370,8 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension_fast()
 extern "C" __global__ void __raygen__compound_projection_spherical_positionwise()
 {
     auto posedData = (cray::RaygenPosedContainer<cray::CompoundEyeData>*)optixGetSbtDataPointer();
-    const uint3  launch_idx = optixGetLaunchIndex();
-    const uint3  launch_dims = optixGetLaunchDimensions();
+    const uint3 launch_idx = optixGetLaunchIndex();
+    const uint3 launch_dims = optixGetLaunchDimensions();
     const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
     // Project the 2D coordinates of the display window to spherical coordinates
@@ -431,7 +431,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
         }
     }
 
-    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+    const uint32_t image_index = launch_idx.y * launch_dims.x + launch_idx.x;
     // This is summing into the frame buffer. I want to do this just for data, with index as per ommatidial indices
     params.frame_buffer[image_index] = make_color (getSummedOmmatidiumData (closestIndex, posedData->specializedData));
 }
@@ -460,9 +460,9 @@ extern "C" __global__ void __raygen__compound_projection_spherical_split_orienta
     const float cosY = cos (angles.y);
     const float3 unitSpherePosition= make_float3 (cos(angles.x) * cosY, sin(angles.y), sin(angles.x) * cosY);
 
-    // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
-    // (ALSO NOTE: In this, the "split" version, those points on the positive x axis are considered only by pixels on the right,
-    //             the inverse is true of those on the left)
+    // Finds the closest ommatidium (NOTE: This is explicitly based on orientation) (ALSO NOTE: In
+    // this, the "split" version, those points on the positive x axis are considered only by pixels
+    // on the right, the inverse is true of those on the left)
     cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData->specializedData.d_ommatidialArray);
     float smallestAngle = acos (dot (allOmmatidia->relativeDirection, unitSpherePosition) / (length (allOmmatidia->relativeDirection) * length (unitSpherePosition)));
     float angle = 0.0f;
@@ -554,10 +554,10 @@ extern "C" __global__ void __raygen__compound_projection_spherical_positionwise_
         }
     }
 
-    const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-    const uint8_t id_red   = closestIndex >> 24;
+    const uint32_t image_index = launch_idx.y * launch_dims.x + launch_idx.x;
+    const uint8_t id_red = closestIndex >> 24;
     const uint8_t id_green = (closestIndex >> 16) & 0xff;
-    const uint8_t id_blue  = (closestIndex >> 8) & 0xff;
+    const uint8_t id_blue = (closestIndex >> 8) & 0xff;
     const uint8_t id_alpha = closestIndex & 0xff;
     params.frame_buffer[image_index] = make_uchar4(id_red, id_green, id_blue, id_alpha);
 }
@@ -589,6 +589,13 @@ __device__ float3 generateOffsetRay (const float ommatidialAxisAngle, const floa
     return rotatePoint (splayedAxis, ommatidialAxisAngle, ommatidialAxis);
 }
 
+/*
+ * The ommatidium raycaster. This is selected in MulticamScene.cpp where an "ommatidial raygen
+ * group" (a program group) is created. The entryFunctionName is set to "__raygen_ommatidium" which
+ * results in this OptiX program being used. This function is part of a "compoundPipeline" in
+ * MulticamScene which is launched by MulticamScene::launchFrame IF the scene has compoundeye
+ * cameras and the current camera is of type cray::CompoundEye.
+ */
 extern "C" __global__ void __raygen__ommatidium()
 {
     const uint3 launch_idx = optixGetLaunchIndex();
@@ -624,21 +631,16 @@ extern "C" __global__ void __raygen__ommatidium()
     float splayAngle = curand_normal (&localState) * standardDeviation;
     // Angle around the ommatidial axis (note that it only needs to rotate through 180 degrees because splayAngle can be negative)
     float ommatidialAxisAngle = curand_uniform (&localState) * M_PIf;
-
     // Copy the RNG state back into the buffer for use next time
     sharedState = localState;
-
     // Generate a pair of angles away from the ommatidial axis
     const float3 relativeDir = generateOffsetRay (ommatidialAxisAngle, splayAngle, relativeOmmatidialAxis);
-
     // Move the start of the ray into the eye along the ommatidial axis by focalPointOffset
     const float3 relativePos = relativeOmmatidialPosition - normalize (relativeOmmatidialAxis) * ommatidium.focalPointOffset;
-
     // Transform ray information into world-space
     const float3 ray_origin = posedData.position + posedData.localSpace.xAxis * relativePos.x + posedData.localSpace.yAxis * relativePos.y + posedData.localSpace.zAxis * relativePos.z;
     const float3 ray_direction = posedData.localSpace.xAxis * relativeDir.x + posedData.localSpace.yAxis * relativeDir.y + posedData.localSpace.zAxis * relativeDir.z;
 
-    // Transmit the ray
     cray::PayloadRadiance payload;
     payload.result = make_float3 (0.0f);
     payload.importance = 1.0f;

@@ -61,13 +61,13 @@
 //#define TINYGLTF_IMPLEMENTATION
 //#define STB_IMAGE_IMPLEMENTATION
 //#define STB_IMAGE_WRITE_IMPLEMENTATION
-#if defined( WIN32 )
-#pragma warning( push )
-#pragma warning( disable : 4267 )
+#if defined(WIN32)
+#pragma warning(push)
+#pragma warning(disable : 4267)
 #endif
 #include <support/tinygltf/tiny_gltf.h>
-#if defined( WIN32 )
-#pragma warning( pop )
+#if defined(WIN32)
+#pragma warning(pop)
 #endif
 
 namespace cray
@@ -84,13 +84,13 @@ namespace cray
             sutil::Matrix4x4 transform;
 
             std::vector<cuda::BufferView<uint32_t>> indices;
-            std::vector<cuda::BufferView<float3> > positions;
-            std::vector<cuda::BufferView<float3> > normals;
-            std::vector<cuda::BufferView<float2> > texcoords;
-            std::vector<cuda::BufferView<float3 >> host_colors_f3;
-            std::vector<cuda::BufferView<float4 >> host_colors_f4;
+            std::vector<cuda::BufferView<float3>> positions;
+            std::vector<cuda::BufferView<float3>> normals;
+            std::vector<cuda::BufferView<float2>> texcoords;
+            std::vector<cuda::BufferView<float3>> host_colors_f3;
+            std::vector<cuda::BufferView<float4>> host_colors_f4;
             std::vector<cuda::BufferView<ushort4>> host_colors_us4;
-            std::vector<cuda::BufferView<uchar4 >> host_colors_uc4;
+            std::vector<cuda::BufferView<uchar4>> host_colors_uc4;
             std::vector<int> host_color_types; // -1 = doesn't use vertex colours, 5126 = float4, 5123 = ushort4, 5121 = uchar4
             int host_color_container = -1; // -1 for unknown. 3 for vec3 (and use host_colors_f3)  4 for vec4 (use host_colors_f4 or _us4 or _uc4)
 
@@ -139,14 +139,14 @@ namespace cray
         void setCurrentEyeSamplesPerOmmatidium (int s)
         {
             if (this->isCompoundEyeActive()) {
-                ((cray::CompoundEye*)this->getCamera())->setSamplesPerOmmatidium(s);
+                ((cray::CompoundEye*)this->getCamera())->setSamplesPerOmmatidium (s);
             }
         }
 
         int getCurrentEyeSamplesPerOmmatidium()
         {
             if (this->isCompoundEyeActive()) {
-                return(((cray::CompoundEye*)this->getCamera())->getSamplesPerOmmatidium());
+                return (((cray::CompoundEye*)this->getCamera())->getSamplesPerOmmatidium());
             }
             return -1;
         }
@@ -154,7 +154,7 @@ namespace cray
         void changeCurrentEyeSamplesPerOmmatidiumBy (int s)
         {
             if (this->isCompoundEyeActive()) {
-                ((cray::CompoundEye*)this->getCamera())->changeSamplesPerOmmatidiumBy(s);
+                ((cray::CompoundEye*)this->getCamera())->changeSamplesPerOmmatidiumBy (s);
             }
         }
 
@@ -235,8 +235,8 @@ namespace cray
                 auto cpl = this->compoundPipeline();
                 auto ole = optixLaunch (cpl,                               // pipeline
                                         0,                                 // stream
-                                        reinterpret_cast<CUdeviceptr>( this->d_params ), // pipelineParams
-                                        sizeof( cray::LaunchParams ),  // pipelineParamsSize
+                                        reinterpret_cast<CUdeviceptr> (this->d_params), // pipelineParams
+                                        sizeof (cray::LaunchParams),       // pipelineParamsSize
                                         csbt,                              // shader buffer table
                                         camera->getOmmatidialCount(),      // launch width
                                         camera->getSamplesPerOmmatidium(), // launch height
@@ -256,7 +256,7 @@ namespace cray
                 } // this is more or less CUDA_SYNC_CHECK();
 
                 this->params->frame++; // Increase the frame number
-                camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
+                camera->setRandomsAsConfigured(); // Make sure that random stream initialization is only ever done once
 
                 if constexpr (sum_average_with_getCameraData == false) {
                     // After the compoundray pipeline, can call the sample-summing CUDA kernel here
@@ -307,12 +307,12 @@ namespace cray
         }
 
         // Return index of the added camera
-        int addCamera  ( GenericCamera* cameraPtr  );
+        int addCamera (GenericCamera* cameraPtr);
         // Returns the position of the compound camera in the array for later reference
         uint32_t addCompoundCamera  (int camera_index, cray::CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
         uint32_t addMesh (std::shared_ptr<MeshGroup> mesh)
         {
-            m_meshes.push_back( mesh );
+            m_meshes.push_back (mesh);
             return (this->m_meshes.size() - 1u);
         }
         void addMaterial (const MaterialData::Pbr& mtl) { m_materials.push_back (mtl); }
@@ -358,7 +358,7 @@ namespace cray
         void buildMeshAccels (uint32_t triangle_input_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
         void buildInstanceAccel (int rayTypeCount = cray::RAY_TYPE_COUNT);
 
-        // Changes the SBT to refelct the current camera (assumes all camera records are allocated)
+        // Changes the Shader Binding Table to reflect the current camera (assumes all camera records are allocated)
         void reconfigureSBTforCurrentCamera (bool force);
 
         // OptixPipeline is a ptr to an opaque struct
@@ -395,7 +395,7 @@ namespace cray
 
         void createCompoundPipeline();
 
-        std::map<int, GenericCamera*>        m_cameras;// cameras is a map of pointers to Camera objects.
+        std::map<int, GenericCamera*>        m_cameras; // cameras is a map of pointers to Camera objects.
         std::vector<std::shared_ptr<MeshGroup> > m_meshes;
         std::vector<MaterialData::Pbr>       m_materials;
         std::vector<CUdeviceptr>             m_buffers;
@@ -411,8 +411,7 @@ namespace cray
 
         // Compound eye stuff (A lot of these are stored precomp values so they don't have to be recomputed every frame)
 
-        // Contains pointers to all compound eyes (shared with the m_cameras vector). Might make more
-        // sense for this to be map<int, CompoundEye*>
+        // Contains pointers to all compound eyes (shared with the m_cameras map).
         std::map<int, cray::CompoundEye*>    m_compoundEyes;
 
         OptixShaderBindingTable              m_compound_sbt             = {};

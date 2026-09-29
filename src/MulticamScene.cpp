@@ -929,10 +929,10 @@ void cray::MulticamScene::finalize()
     createProgramGroups();
     createPipeline();
     createCompoundPipeline();
-    // Create the standard SBT table
+    // Create the standard SBT (shader binding table)
     createSBTmissAndHit (m_sbt);
 
-    // Now handle the creation of the *compound* SBT table. First initialize the compound record
+    // Now handle the creation of the *compound* Shader Binding Table. First initialize the compound record
     cray::CompoundEye::InitiateCompoundRecord (m_compound_sbt, m_compound_raygen_group, c->getRecordPtr());
     // Then create the miss and hit bindings
     createSBTmissAndHit (m_compound_sbt);
@@ -1484,8 +1484,8 @@ void cray::MulticamScene::createProgramGroups()
         compound_prog_group_desc.raygen.entryFunctionName = "__raygen__ommatidium";
 
         if constexpr (debug_pipeline) {
-            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
-                      << compound_prog_group_desc.raygen.entryFunctionName << std::endl;
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for the main Ommatidial renderer "
+                      << compound_prog_group_desc.raygen.entryFunctionName << " (m_compound_raygen_group)" << std::endl;
         }
         OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
                                                   &compound_prog_group_desc,
@@ -1502,8 +1502,8 @@ void cray::MulticamScene::createProgramGroups()
         raygen_prog_group_desc.raygen.entryFunctionName = GenericCamera::DEFAULT_RAYGEN_PROGRAM;
 
         if constexpr (debug_pipeline) {
-            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
-                      << raygen_prog_group_desc.raygen.entryFunctionName << std::endl;
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for DEFAULT_RAYGEN_PROGRAM "
+                      << raygen_prog_group_desc.raygen.entryFunctionName << " (m_raygen_prog_group)" << std::endl;
         }
         OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
                                                   &raygen_prog_group_desc,
@@ -1518,19 +1518,26 @@ void cray::MulticamScene::createProgramGroups()
     // Miss
     //
     {
+        if constexpr (debug_pipeline) {
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for miss program "
+                      << m_backgroundShader.c_str() << " (m_radiance_miss_group)" << std::endl;
+        }
         OptixProgramGroupDesc miss_prog_group_desc = {};
         miss_prog_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
         miss_prog_group_desc.miss.module = m_ptx_module;
         miss_prog_group_desc.miss.entryFunctionName = m_backgroundShader.c_str();
         sizeof_log = sizeof (log);
-        OPTIX_CHECK_LOG (optixProgramGroupCreate(m_context,
-                                                 &miss_prog_group_desc,
-                                                 1, // num program groups
-                                                 &program_group_options,
-                                                 log,
-                                                 &sizeof_log,
-                                                 &m_radiance_miss_group));
+        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
+                                                  &miss_prog_group_desc,
+                                                  1, // num program groups
+                                                  &program_group_options,
+                                                  log,
+                                                  &sizeof_log,
+                                                  &m_radiance_miss_group));
 
+        if constexpr (debug_pipeline) {
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for miss program (nullptr) (m_occlusion_miss_group)" << std::endl;
+        }
         memset (&miss_prog_group_desc, 0, sizeof (OptixProgramGroupDesc));
         miss_prog_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
         miss_prog_group_desc.miss.module = nullptr;  // NULL miss program for occlusion rays
@@ -1549,6 +1556,11 @@ void cray::MulticamScene::createProgramGroups()
     // Hit group
     //
     {
+        if constexpr (debug_pipeline) {
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for closesthit radiance and occlusion "
+                      << "(m_radiance_hit_group and m_occlusion_hit_group)" << std::endl;
+        }
+
         OptixProgramGroupDesc hit_prog_group_desc = {};
         hit_prog_group_desc.kind  = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
         hit_prog_group_desc.hitgroup.moduleCH = m_ptx_module;
@@ -1635,7 +1647,7 @@ void cray::MulticamScene::createCompoundPipeline()
                                           &m_compound_pipeline));
 }
 
-void cray::MulticamScene::reconfigureSBTforCurrentCamera(bool force)
+void cray::MulticamScene::reconfigureSBTforCurrentCamera (bool force)
 {
     GenericCamera* c = getCamera();
     char log[2048];
@@ -1646,7 +1658,7 @@ void cray::MulticamScene::reconfigureSBTforCurrentCamera(bool force)
         lastPipelinedCamera = currentCamera; // update the pointer
         raygen_prog_group_desc.raygen.entryFunctionName = c->getEntryFunctionName();
         if constexpr (debug_pipeline == true) {
-            std::cout<< "ALERT: Regenerating pipeline with raygen entry function '"<<c->getEntryFunctionName()<<"'."<<std::endl;
+            std::cout<< "ALERT: Regenerating pipeline with raygen entry function '" << c->getEntryFunctionName() << "'.\n";
         }
         // THIS is where the projection shader is set up
         optixProgramGroupDestroy (m_raygen_prog_group);
@@ -1675,7 +1687,7 @@ void cray::MulticamScene::reconfigureSBTforCurrentCamera(bool force)
     }
 }
 
-void cray::MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
+void cray::MulticamScene::createSBTmissAndHit (OptixShaderBindingTable& sbt)
 {
     // Per-camera raygen Records are handled by each camera
 
