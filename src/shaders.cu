@@ -63,39 +63,34 @@ __constant__ cray::LaunchParams params;
 //
 //------------------------------------------------------------------------------
 
-__device__ float3 schlick( const float3 spec_color, const float V_dot_H )
+__device__ float3 schlick (const float3 spec_color, const float V_dot_H)
 {
-    return spec_color + ( make_float3( 1.0f ) - spec_color ) * powf( 1.0f - V_dot_H, 5.0f );
+    return spec_color + (make_float3 (1.0f) - spec_color) * powf (1.0f - V_dot_H, 5.0f);
 }
 
 
-__device__ float vis( const float N_dot_L, const float N_dot_V, const float alpha )
+__device__ float vis (const float N_dot_L, const float N_dot_V, const float alpha)
 {
-    const float alpha_sq = alpha*alpha;
-
-    const float ggx0 = N_dot_L * sqrtf( N_dot_V*N_dot_V * ( 1.0f - alpha_sq ) + alpha_sq );
-    const float ggx1 = N_dot_V * sqrtf( N_dot_L*N_dot_L * ( 1.0f - alpha_sq ) + alpha_sq );
-
-    return 2.0f * N_dot_L * N_dot_V / (ggx0+ggx1);
+    const float alpha_sq = alpha * alpha;
+    const float ggx0 = N_dot_L * sqrtf (N_dot_V * N_dot_V * (1.0f - alpha_sq) + alpha_sq);
+    const float ggx1 = N_dot_V * sqrtf (N_dot_L * N_dot_L * (1.0f - alpha_sq) + alpha_sq);
+    return 2.0f * N_dot_L * N_dot_V / (ggx0 + ggx1);
 }
 
 
-__device__ float ggxNormal( const float N_dot_H, const float alpha )
+__device__ float ggxNormal (const float N_dot_H, const float alpha)
 {
-    const float alpha_sq   = alpha*alpha;
-    const float N_dot_H_sq = N_dot_H*N_dot_H;
-    const float x          = N_dot_H_sq*( alpha_sq - 1.0f ) + 1.0f;
-    return alpha_sq/( M_PIf*x*x );
+    const float alpha_sq = alpha * alpha;
+    const float N_dot_H_sq = N_dot_H * N_dot_H;
+    const float x = N_dot_H_sq * (alpha_sq - 1.0f) + 1.0f;
+    return alpha_sq / (M_PIf * x * x);
 }
 
 
-__device__ float3 linearize( float3 c )
+// Gamma correction
+__device__ float3 linearize (float3 c)
 {
-    return make_float3(
-            powf( c.x, 2.2f ),
-            powf( c.y, 2.2f ),
-            powf( c.z, 2.2f )
-            );
+    return make_float3 (powf (c.x, 2.2f), powf (c.y, 2.2f), powf (c.z, 2.2f));
 }
 
 
@@ -119,16 +114,16 @@ static __forceinline__ __device__ void traceRadiance (OptixTraversableHandle han
                 tmin,
                 tmax,
                 0.0f,                     // rayTime
-                OptixVisibilityMask( 1 ),
+                OptixVisibilityMask (1),
                 OPTIX_RAY_FLAG_NONE,
                 cray::RAY_TYPE_RADIANCE,        // SBT offset
                 cray::RAY_TYPE_COUNT,           // SBT stride
                 cray::RAY_TYPE_RADIANCE,        // missSBTIndex
                 u0, u1, u2, u3);
 
-     payload->result.x = __int_as_float( u0 );
-     payload->result.y = __int_as_float( u1 );
-     payload->result.z = __int_as_float( u2 );
+     payload->result.x = __int_as_float (u0);
+     payload->result.y = __int_as_float (u1);
+     payload->result.z = __int_as_float (u2);
      payload->depth    = u3;
 }
 
@@ -146,7 +141,7 @@ static __forceinline__ __device__ bool traceOcclusion (OptixTraversableHandle ha
                 tmin,
                 tmax,
                 0.0f,                    // rayTime
-                OptixVisibilityMask( 1 ),
+                OptixVisibilityMask (1),
                 OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
                 cray::RAY_TYPE_OCCLUSION,      // SBT offset
                 cray::RAY_TYPE_COUNT,          // SBT stride
@@ -448,7 +443,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
 
     // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
     cray::Ommatidium* allOmmatidia = (cray::Ommatidium*)(posedData->specializedData.d_ommatidialArray);
-    float smallestAngle = acos( dot (allOmmatidia->relativeDirection, unitSpherePosition) / (length (allOmmatidia->relativeDirection) * length (unitSpherePosition)));
+    float smallestAngle = acos (dot (allOmmatidia->relativeDirection, unitSpherePosition) / (length (allOmmatidia->relativeDirection) * length (unitSpherePosition)));
     float angle = 0.0f;
     uint32_t i = 0u;
     uint32_t closestIndex = 0u;
@@ -770,11 +765,11 @@ extern "C" __global__ void __miss__lightgrey_but_black_down()
 
 //extern "C" __global__ void __miss__sky_and_grass()
 //{
-//    const float3 dir = normalize(optixGetWorldRayDirection());
-//    const float mix = min(max(0.0f, (asin(dir.y)*2.0f)/M_PIf), 1.0f);
-//    const float3 upper = make_float3(1.0f, 31.0f, 117.0f)/255.0f;
-//    const float3 lower = make_float3(143.0f, 179.0f, 203.0f)/255.0f * 0.8f;
-//    setPayloadResult( lower*(1.0f-mix) + upper*mix );
+//    const float3 dir = normalize (optixGetWorldRayDirection());
+//    const float mix = min (max (0.0f, (asin (dir.y) * 2.0f) / M_PIf), 1.0f);
+//    const float3 upper = make_float3 (1.0f, 31.0f, 117.0f) / 255.0f;
+//    const float3 lower = make_float3 (143.0f, 179.0f, 203.0f) / 255.0f * 0.8f;
+//    setPayloadResult (lower * (1.0f - mix) + upper * mix);
 //}
 
 //------------------------------------------------------------------------------
@@ -797,8 +792,12 @@ extern "C" __global__ void __closesthit__radiance()
     float3 base_color = make_float3 (0.0f, 0.0f, 1.0f); // initialize to fully blue
 
     if (geom.UC) {
-        // If we must 'use color' then we just convert the color specified in geom.C
-        base_color = linearize (make_float3 (geom.C.x, geom.C.y, geom.C.z));
+        // If we must 'use color' then we just convert (gamma-correct) the color specified in geom.C
+        // Either with a call to this function: base_color = linearize (make_float3 (geom.C.x, geom.C.y, geom.C.z));
+        // or, just inline right here (without creating an intermediate float3):
+        base_color.x = powf (geom.C.x, 2.2f);
+        base_color.y = powf (geom.C.y, 2.2f);
+        base_color.z = powf (geom.C.z, 2.2f);
 
     } else if (hit_group_data != nullptr) {
         // No 'use color' commandment, but we have hit_group_data
