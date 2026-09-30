@@ -141,7 +141,7 @@ void launchFrame (cray::MulticamScene* _scene)
                                cudaMemcpyHostToDevice,
                                0)); // stream
 
-    if (_scene->hasCompoundEyes() && _scene->isCompoundEyeActive()) {
+    if (_scene->getCamera() != nullptr) {
         cray::CompoundEye* camera = (cray::CompoundEye*) _scene->getCamera();
 
         auto csbt = _scene->compoundSbt();
@@ -179,8 +179,8 @@ void launchFrame (cray::MulticamScene* _scene)
         }
     }
 
-    // Launch non-compound render (if required)
-    if (_scene->require_noncompound_pipeline == true && width > 0 && height > 0) {
+    // The GUI exmaple needs the non-compound pipeline to render to the outputBuffer
+    if (width > 0 && height > 0) {
         OPTIX_CHECK (optixLaunch (_scene->pipeline(),
                                   0,      // stream
                                   reinterpret_cast<CUdeviceptr>(_scene->d_params),
@@ -191,7 +191,7 @@ void launchFrame (cray::MulticamScene* _scene)
                                   1));    // launch depth is 1
     }
 
-    if (outputBuffer&& (outputBuffer->width() * outputBuffer->height() > 0)) {
+    if (outputBuffer && (outputBuffer->width() * outputBuffer->height() > 0)) {
         outputBuffer->unmap();
     }
 
@@ -258,11 +258,6 @@ unsigned char* getFramePointer()
 {
     if(notificationsActive) { std::cout << "[PyEye] Retrieving frame pointer...\n"; }
     return (unsigned char*)outputBuffer->getHostPointer();
-}
-
-void setRequireNoncompoundPipeline (const bool require_ncp)
-{
-    scene->require_noncompound_pipeline = require_ncp;
 }
 
 // Currently not revealed in libEyeRenderer.h...
@@ -395,7 +390,7 @@ void getCameraData (std::vector<std::array<float, 3>>& cameraData) { scene->getC
 //------------------------------------------------------------------------------
 // Ommatidial Camera Control
 //------------------------------------------------------------------------------
-bool isCompoundEyeActive() { return scene->isCompoundEyeActive(); }
+bool isCompoundEyeActive() { return scene->getCameraCount() > 0; }
 std::string getEyeDataPath() { return scene->getEyeDataPath(); }
 void setCurrentEyeSamplesPerOmmatidium (int s) { scene->setCurrentEyeSamplesPerOmmatidium (s); }
 int getCurrentEyeSamplesPerOmmatidium() { return scene->getCurrentEyeSamplesPerOmmatidium(); }
@@ -405,7 +400,7 @@ size_t getCurrentEyeOmmatidialCount() { return scene->getCurrentEyeOmmatidialCou
 void setOmmatidia (OmmatidiumPacket* omms, size_t count)
 {
     // Break out if the current eye isn't compound
-    if (!scene->isCompoundEyeActive()) { return; }
+    if (scene->getCameraCount() == 0) { return; }
 
     // First convert the OmmatidiumPacket list into an array of Ommatidium objects
     std::vector<cray::Ommatidium> ommVector(count);
@@ -423,7 +418,7 @@ void setOmmatidia (OmmatidiumPacket* omms, size_t count)
 
 const char* getCurrentEyeDataPath()
 {
-    if (scene->isCompoundEyeActive()) {
+    if (scene->getCamera() != nullptr) {
         return ((cray::CompoundEye*)scene->getCamera())->eyeDataPath.c_str();
     }
     return "\0";
@@ -431,7 +426,7 @@ const char* getCurrentEyeDataPath()
 
 void setCurrentEyeShaderName (char* name)
 {
-    if (scene->isCompoundEyeActive()) {
+    if (scene->getCamera() != nullptr) {
         ((cray::CompoundEye*)scene->getCamera())->setShaderName (std::string(name)); // Set the shader
         scene->reconfigureSBTforCurrentCamera (true); // Reconfigure for the new shader
     }

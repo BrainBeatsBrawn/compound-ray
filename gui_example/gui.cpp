@@ -131,13 +131,11 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
             if (key == GLFW_KEY_N) {
                 std::cout << "switch to next camera...";
                 nextCamera();
-                std::cout << " " << getCurrentCameraName()
-                          << (isCompoundEyeActive() ? " which is compound\n" : " which is isn't compound\n");
+                std::cout << " " << getCurrentCameraName() << "\n";
             } else if (key == GLFW_KEY_B) {
                 std::cout << "switch to prev camera...";
                 previousCamera();
-                std::cout << " " << getCurrentCameraName()
-                          << (isCompoundEyeActive() ? " which is is compound\n" : " which is isn't compound\n");
+                std::cout << " " << getCurrentCameraName() << "\n";
             } else if (key == GLFW_KEY_PAGE_UP) {
                 int csamp = getCurrentEyeSamplesPerOmmatidium();
                 if (csamp < 32000) {
@@ -198,9 +196,6 @@ int main (int argc, char* argv[])
     // Allocates a scene, launch params and output buffer in libEyeRenderer
     multicamAlloc();
 
-    // We DO require the noncompound OptiX pipeline in this program:
-    setRequireNoncompoundPipeline (true);
-
     gl_display = new sutil::GLDisplay();
 
     // Parse Inputs
@@ -234,8 +229,8 @@ int main (int argc, char* argv[])
         std::cout << "Loading file \"" << path << "\"..." << std::endl;
         loadGlTFscene(path.c_str(), sutil::Matrix4x4::identity());
 
-        std::cout << "Initial camera is " << getCurrentCameraName()
-                  << (isCompoundEyeActive() ? " which is compound\n" : " which isn't compound\n");
+        std::cout << getCameraCount() << " cameras\n";
+        std::cout << "Initial camera is " << getCurrentCameraName() << std::endl;
 
         // The main loop
         do {
@@ -254,11 +249,8 @@ int main (int argc, char* argv[])
             // Render and display the frame if anything's changed (movement or window resize etc)
             // also re-render the frame if the current camera is a compound eye in order to get a
             // better feeling of the stochastic spread encountered.
-            if (dirtyUI || isCompoundEyeActive()) {
-                renderFrame();
-                displayFrame();
-                dirtyUI = false; // Comment this out to force constant re-rendering
-            }
+            renderFrame();
+            displayFrame();
 
         } while (!glfwWindowShouldClose (window));
         stop();

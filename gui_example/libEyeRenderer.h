@@ -97,7 +97,6 @@ extern "C"
     void setCameraPoseMatrix (const sutil::Matrix4x4& camera_localspace);
     // Compound-specific
 
-    bool isCompoundEyeActive();
     // Changes the current eye samples per ommatidium. WARNING: This resets the random seed
     // values. A render must be called to regenerate them, this will take significantly longer than
     // a frame render.

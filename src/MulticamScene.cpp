@@ -59,11 +59,6 @@
 #include <iomanip>
 #include <iostream>
 
-// Compile time debugging choices
-static constexpr bool debug_gltf = false;
-static constexpr bool debug_cameras = false;
-static constexpr bool debug_pipeline = false;
-
 namespace internal
 {
     float3 make_float3_from_double (double x, double y, double z)
@@ -216,7 +211,7 @@ namespace internal
         if (gltf_node.camera != -1) {
             // We're dealing with cameras
             const auto& gltf_camera = model.cameras[gltf_node.camera];
-            if constexpr (debug_gltf == true) {
+            if constexpr (cray::debug_gltf == true) {
                 std::cout << "============================\nProcessing camera '" << gltf_camera.name << "'" << std::endl
                           << "\ttype: " << gltf_camera.type << std::endl;
             }
@@ -225,7 +220,7 @@ namespace internal
             const float3 forwardAxis = make_float3 (node_xform * internal::make_float4_from_double (0.0f, 0.0f, -1.0f, 0.0f)); // -uz
             const float3 rightAxis = make_float3 (node_xform * internal::make_float4_from_double (1.0f, 0.0f,  0.0f, 0.0f));   //  ux
 
-            if constexpr (debug_cameras == true) {
+            if constexpr (cray::debug_cameras == true) {
                 std::cout << "\tUP axis: (" << upAxis.x <<"," << upAxis.y << "," << upAxis.z << ")" << std::endl;
                 std::cout << "\tFWD axis: (" << forwardAxis.x <<"," << forwardAxis.y << "," << forwardAxis.z << ")" << std::endl;
                 std::cout << "\tR axis: (" << rightAxis.x <<"," << rightAxis.y << "," << rightAxis.z << ")" << std::endl;
@@ -234,45 +229,29 @@ namespace internal
             // eye is 'position' - a transform of the origin
             const float3 eye = make_float3 (node_xform*internal::make_float4_from_double (0.0f, 0.0f,  0.0f, 1.0f));
             const float  yfov = static_cast<float> (gltf_camera.perspective.yfov) * 180.0f / static_cast<float> (M_PI);
-            if constexpr (debug_cameras == true) {
+            if constexpr (cray::debug_cameras == true) {
                 std::cout << "\teye posn: " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
                 std::cout << "\tfov     : " << yfov     << std::endl;
                 std::cout << "\taspect  : " << gltf_camera.perspective.aspectRatio << std::endl;
             }
             // Form camera objects
             if (gltf_camera.type == "orthographic") {
-                cray::OrthographicCamera* camera = new cray::OrthographicCamera(gltf_camera.name);
-                camera->setPosition(eye);
-                camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
-                camera->setXYscale(gltf_camera.orthographic.xmag, gltf_camera.orthographic.ymag);
-                int cidx = scene.addCamera(camera);
-                if constexpr (debug_cameras == true) {
-                    std::cout << "Added orthographic camera " << cidx << std::endl;
-                }
+                std::cerr << "Not creating an orthographic camera (only compound-eye cameras are supported now)\n";
                 return;
             } // else all other cameras are of type "perspective", but they can have extra specifier "panoramic" or "compound-eye"
 
             if (isObjectsExtraValueTrue (gltf_camera.extras, "panoramic")) {
-                if constexpr (debug_cameras == true) {
-                    std::cout << "This camera has special indicator 'panoramic' specified, adding panoramic camera..."<<std::endl;
-                }
-                cray::PanoramicCamera* camera = new cray::PanoramicCamera(gltf_camera.name);
-                camera->setPosition(eye);
-                camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
-                int cidx = scene.addCamera(camera);
-                if constexpr (debug_cameras == true) {
-                    std::cout << "Added panorama camera " << cidx << std::endl;
-                }
+                std::cerr << "Not creating a panoramic camera (only compound-eye cameras are supported now)\n";
                 return;
             }
 
             if (isObjectsExtraValueTrue (gltf_camera.extras, "compound-eye")) {
-                if constexpr (debug_cameras == true) {
+                if constexpr (cray::debug_cameras == true) {
                     std::cout << "This camera has special indicator 'compound-eye' specified, adding compound eye based camera..."<<std::endl;
                 }
                 std::string eyeDataPath = gltf_camera.extras.Get("compound-structure").Get<std::string>();
                 std::string projectionShader = gltf_camera.extras.Get("compound-projection").Get<std::string>();
-                if constexpr (debug_cameras == true) {
+                if constexpr (cray::debug_cameras == true) {
                     std::cout << "  Camera internal projection type: "<<projectionShader<<std::endl;
                     std::cout << "  Camera eye data path: "<<eyeDataPath<<std::endl;
                 }
@@ -291,7 +270,7 @@ namespace internal
                 std::string usedEyeDataPath; // Track the actual complete path that was used
                 std::string eye_data_path = {};
                 if (!eyeDataFile.is_open()) {
-                    if constexpr (debug_cameras == true) {
+                    if constexpr (cray::debug_cameras == true) {
                         std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative address..."<<std::endl;
                     }
                     // Try and load the file relatively to the gltf file
@@ -302,14 +281,14 @@ namespace internal
                         eye_data_path = relativeEyeDataPath;
                         return;
                     } else {
-                        if constexpr (debug_cameras == true) {
+                        if constexpr (cray::debug_cameras == true) {
                             std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
                         }
                         usedEyeDataPath = relativeEyeDataPath;
                         eye_data_path = usedEyeDataPath;
                     }
                 } else {
-                    if constexpr (debug_cameras == true) {
+                    if constexpr (cray::debug_cameras == true) {
                         std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
                     }
                     usedEyeDataPath = eyeDataPath;
@@ -337,11 +316,9 @@ namespace internal
                 cray::CompoundEye* camera = new cray::CompoundEye(gltf_camera.name, projectionShader, ommVector.size(), usedEyeDataPath);
                 camera->setPosition (eye);
                 camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
-                int cidx = scene.addCamera (camera);
                 camera->copyOmmatidia (ommVector.data());
-                scene.addCompoundCamera (cidx, camera, ommVector);
-
-                scene.eye_data_paths[cidx] = eye_data_path;
+                std::uint32_t cidx = scene.addCamera (camera, ommVector, eye_data_path);
+                std::cout <<  "  Added CompoundEye camera index " << cidx << std::endl;
 
                 eyeDataFile.close();
 
@@ -349,20 +326,13 @@ namespace internal
             }
 
             // Neither panoramic nor compound-eye, so create a plain PerspectiveCamera.
-            cray::PerspectiveCamera* camera = new cray::PerspectiveCamera (gltf_camera.name);
-            camera->setPosition (eye);
-            camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
-            camera->setYFOV (yfov);
-            int cidx = scene.addCamera (camera);
-            if constexpr (debug_cameras == true) {
-                std::cout << "Added perspective camera..." << cidx << std::endl;
-            }
+            std::cerr << "Not creating a perspective camera (only compound-eye cameras are supported now)\n";
 
         } else if (gltf_node.mesh != -1 && isObjectsExtraValueTrue (model.meshes[gltf_node.mesh].extras, "hitbox")) {
 
             // Process a hitbox mesh
             const auto& gltf_mesh = model.meshes[ gltf_node.mesh ];
-            if constexpr (debug_gltf == true) {
+            if constexpr (cray::debug_gltf == true) {
                 std::cerr << "Processing glTF mesh as Hitbox mesh: '" << gltf_mesh.name << "'\n";
                 std::cerr << "\tNum mesh primitive groups: " << gltf_mesh.primitives.size() << std::endl;
             }
@@ -379,7 +349,7 @@ namespace internal
         } else if (gltf_node.mesh != -1) {
 
             const auto& gltf_mesh = model.meshes[ gltf_node.mesh ];
-            if constexpr (debug_gltf == true) {
+            if constexpr (cray::debug_gltf == true) {
                 std::cerr << "Processing glTF mesh: '" << gltf_mesh.name << "'\n";
                 std::cerr << "\tNum mesh primitive groups: " << gltf_mesh.primitives.size() << std::endl;
             }
@@ -396,7 +366,7 @@ namespace internal
 
                 // Add the mesh to the mesh list
                 int m_idx = scene.addMesh (mesh);
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cout << "\tThis is m_meshes index " << m_idx << std::endl;
                 }
 
@@ -404,13 +374,13 @@ namespace internal
                 mesh->indices.push_back (bufferViewFromGLTF<uint32_t> (model, scene, gltf_primitive.indices));
                 mesh->material_idx.push_back (gltf_primitive.material);
                 mesh->transform = node_xform;
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\t\tNum triangles is indices.count/3: " << mesh->indices.back().count / 3 << std::endl;
                 }
                 assert (gltf_primitive.attributes.find ("POSITION") !=  gltf_primitive.attributes.end());
                 const int32_t pos_accessor_idx =  gltf_primitive.attributes.at ("POSITION");
                 mesh->positions.push_back (bufferViewFromGLTF<float3> (model, scene, pos_accessor_idx));
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\t\tNum vertices(positions count/3): " << mesh->positions.back().count / 3 << std::endl;
                 }
 
@@ -426,20 +396,20 @@ namespace internal
 
                 auto normal_accessor_iter = gltf_primitive.attributes.find ("NORMAL");
                 if (normal_accessor_iter != gltf_primitive.attributes.end()) {
-                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas vertex normals: true\n"; }
+                    if constexpr (cray::debug_gltf == true) { std::cerr << "\t\tHas vertex normals: true\n"; }
                     mesh->normals.push_back (bufferViewFromGLTF<float3> (model, scene, normal_accessor_iter->second));
                 } else {
-                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas vertex normals: false\n"; }
+                    if constexpr (cray::debug_gltf == true) { std::cerr << "\t\tHas vertex normals: false\n"; }
                     mesh->normals.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
                 }
 
                 auto texcoord_accessor_iter = gltf_primitive.attributes.find ("TEXCOORD_0");
 
                 if (texcoord_accessor_iter != gltf_primitive.attributes.end()) {
-                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas texcoords: true\n"; }
+                    if constexpr (cray::debug_gltf == true) { std::cerr << "\t\tHas texcoords: true\n"; }
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, texcoord_accessor_iter->second));
                 } else {
-                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas texcoords: false\n"; }
+                    if constexpr (cray::debug_gltf == true) { std::cerr << "\t\tHas texcoords: false\n"; }
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, -1));
                 }
 
@@ -447,7 +417,7 @@ namespace internal
 
                 if (vertex_colours_accessor_iter != gltf_primitive.attributes.end()) { // TODO: UNFIX
 
-                    if constexpr (debug_gltf == true) {
+                    if constexpr (cray::debug_gltf == true) {
                         std::cerr << "\t\tHas vertex colours: true (so we're using them)\n";
                     }
                     // TODO: Add support for vec3 vertex colours here.
@@ -468,7 +438,7 @@ namespace internal
                         switch(componentType)
                         {
                         case TINYGLTF_COMPONENT_TYPE_FLOAT:
-                            if constexpr (debug_gltf == true) {
+                            if constexpr (cray::debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is float.\n";
                             }
                             mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, vertex_colours_accessor_iter->second));
@@ -479,7 +449,7 @@ namespace internal
                             mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
                             break;
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                            if constexpr (debug_gltf == true) {
+                            if constexpr (cray::debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is unsigned short.\n";
                             }
                             mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, vertex_colours_accessor_iter->second));
@@ -490,7 +460,7 @@ namespace internal
                             mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, -1));
                             break;
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-                            if constexpr (debug_gltf == true) {
+                            if constexpr (cray::debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is unsigned byte.\n";
                             }
                             mesh->host_colors_uc4.push_back (bufferViewFromGLTF<uchar4> (model, scene, vertex_colours_accessor_iter->second));
@@ -501,7 +471,7 @@ namespace internal
                             mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
                             break;
                         default:
-                            if constexpr (debug_gltf == true) {
+                            if constexpr (cray::debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec4 component type is not supported.\n";
                             }
                             // We must populate the other buffers so that indices align
@@ -513,7 +483,7 @@ namespace internal
                             break;
                         }
                         mesh->host_color_types.push_back (componentType);
-                        if constexpr (debug_gltf == true) {
+                        if constexpr (cray::debug_gltf == true) {
                             std::cerr << "\t\tmesh->host_color_types.push_back(" << componentType << ");\n";
                         }
                         if (mesh->host_color_container == -1) {
@@ -525,7 +495,7 @@ namespace internal
 
                     } else if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC3) {
 
-                        if constexpr (debug_gltf == true) {
+                        if constexpr (cray::debug_gltf == true) {
                             std::cerr << "\t\t\tWarning: Vertex colours are of type vec3.\n";
                         }
                         // const tinygltf::BufferView& colour_buffer_view = model.bufferViews[ vertex_colours_gltf_accessor.bufferView ]; // unused
@@ -540,7 +510,7 @@ namespace internal
                         switch(componentType)
                         {
                         case TINYGLTF_COMPONENT_TYPE_FLOAT:
-                            if constexpr (debug_gltf == true) {
+                            if constexpr (cray::debug_gltf == true) {
                                 std::cerr << "\t\t\tColour vec3 component type is float.\n";
                             }
                             mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, vertex_colours_accessor_iter->second));
@@ -563,7 +533,7 @@ namespace internal
                             break;
                         }
                         mesh->host_color_types.push_back (componentType);
-                        if constexpr (debug_gltf == true) {
+                        if constexpr (cray::debug_gltf == true) {
                             std::cerr << "\t\tmesh->host_color_types.push_back(" << componentType << ");\n";
                         }
 
@@ -581,7 +551,7 @@ namespace internal
                         mesh->host_colors_f3.push_back (bufferViewFromGLTF<float3> (model, scene, -1));
                         mesh->host_colors_f4.push_back (bufferViewFromGLTF<float4> (model, scene, -1));
                         mesh->host_colors_us4.push_back (bufferViewFromGLTF<ushort4> (model, scene, -1));
-                        if constexpr (debug_gltf == true) {
+                        if constexpr (cray::debug_gltf == true) {
                             std::cerr << "\t\tmesh->host_color_types.push_back(-1);\n";
                         }
                         mesh->host_color_types.push_back (-1);
@@ -589,11 +559,11 @@ namespace internal
 
                 } else {
 
-                    if constexpr (debug_gltf == true) {
+                    if constexpr (cray::debug_gltf == true) {
                         std::cerr << "\t\tHas vertex colours: false\n";
                     }
                     mesh->host_color_types.push_back (-1);
-                    if constexpr (debug_gltf == true) {
+                    if constexpr (cray::debug_gltf == true) {
                         std::cerr << "\t\tmesh->host_color_types.push_back(-1);\n";
                     }
                     // We must populate the other buffers so that indices align
@@ -679,12 +649,12 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     }
 
     // Retrieve background shader information if it exists
-    if constexpr (debug_gltf == true) {
+    if constexpr (cray::debug_gltf == true) {
         std::cout << "Searching for background shader..." << std::endl;
     }
     for (auto modelScene : model.scenes) {
         std::string bgShader = modelScene.extras.Get("background-shader").Get<std::string>();
-        if constexpr (debug_gltf == true) {
+        if constexpr (cray::debug_gltf == true) {
             std::cout << "\tBackground shader string detected: \"" << bgShader << "\"" << std::endl;
         }
 
@@ -692,7 +662,7 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
             this->m_backgroundShader = "__miss__" + bgShader;
         }
     }
-    if constexpr (debug_gltf == true) {
+    if constexpr (cray::debug_gltf == true) {
             std::cout << "Background shader set to: \"" << this->m_backgroundShader << "\"" << std::endl;
     }
 
@@ -702,7 +672,7 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     //
     for (const auto& gltf_buffer : model.buffers) {
         const uint64_t buf_size = gltf_buffer.data.size();
-        if constexpr (debug_gltf == true) {
+        if constexpr (cray::debug_gltf == true) {
             std::cerr << "Processing glTF buffer '" << gltf_buffer.name << "'\n"
                       << "\tbyte size: " << buf_size << "\n"
                       << "\turi      : " << (buf_size > 128u ? gltf_buffer.uri.substr(0, 128) + std::string("...") : gltf_buffer.uri) << std::endl;
@@ -714,7 +684,7 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     // Images -- just load all up front for simplicity
     //
     for (const auto& gltf_image : model.images) {
-        if constexpr (debug_gltf == true) {
+        if constexpr (cray::debug_gltf == true) {
             std::cerr << "Processing image '" << gltf_image.name << "'\n"
                       << "\t(" << gltf_image.width << "x" << gltf_image.height << ")x" << gltf_image.component << "\n"
                       << "\tbits: " << gltf_image.bits << std::endl;
@@ -748,7 +718,7 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     //
     for (auto& gltf_material : model.materials) {
 
-        if constexpr (debug_gltf == true) {
+        if constexpr (cray::debug_gltf == true) {
             std::cerr << "Processing glTF material: '" << gltf_material.name << "'\n";
         }
 
@@ -758,23 +728,23 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
             if (base_color_it != gltf_material.values.end()) {
                 const tinygltf::ColorValue c = base_color_it->second.ColorFactor();
                 mtl.base_color = internal::make_float4_from_double (c[0], c[1], c[2], c[3]);
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\tBase color: (" << mtl.base_color.x << ", " << mtl.base_color.y << ", " << mtl.base_color.z << ")\n";
                 }
             } else {
-                if constexpr (debug_gltf == true) { std::cerr << "\tUsing default base color factor\n"; }
+                if constexpr (cray::debug_gltf == true) { std::cerr << "\tUsing default base color factor\n"; }
             }
         }
 
         {
             const auto base_color_it = gltf_material.values.find ("baseColorTexture");
             if (base_color_it != gltf_material.values.end()) {
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\tFound base color texture: " << base_color_it->second.TextureIndex() << "\n";
                 }
                 mtl.base_color_tex = this->getSampler (base_color_it->second.TextureIndex());
             } else {
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\tNo base color texture, mtl.base_color_tex = 0\n";
                 }
                 mtl.base_color_tex = 0;
@@ -785,9 +755,9 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
             const auto roughness_it = gltf_material.values.find ("roughnessFactor");
             if (roughness_it != gltf_material.values.end()) {
                 mtl.roughness = static_cast<float> (roughness_it->second.Factor());
-                if constexpr (debug_gltf == true) { std::cerr << "\tRoughness:  " << mtl.roughness <<  "\n"; }
+                if constexpr (cray::debug_gltf == true) { std::cerr << "\tRoughness:  " << mtl.roughness <<  "\n"; }
             } else {
-                if constexpr (debug_gltf == true) { std::cerr << "\tUsing default roughness factor\n"; }
+                if constexpr (cray::debug_gltf == true) { std::cerr << "\tUsing default roughness factor\n"; }
             }
         }
 
@@ -795,33 +765,33 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
             const auto metallic_it = gltf_material.values.find ("metallicFactor");
             if (metallic_it != gltf_material.values.end()) {
                 mtl.metallic = static_cast<float> (metallic_it->second.Factor());
-                if constexpr (debug_gltf == true) { std::cerr << "\tMetallic:  " << mtl.metallic <<  "\n"; }
+                if constexpr (cray::debug_gltf == true) { std::cerr << "\tMetallic:  " << mtl.metallic <<  "\n"; }
             } else {
-                if constexpr (debug_gltf == true) { std::cerr << "\tUsing default metallic factor\n"; }
+                if constexpr (cray::debug_gltf == true) { std::cerr << "\tUsing default metallic factor\n"; }
             }
         }
 
         {
             const auto metallic_roughness_it = gltf_material.values.find ("metallicRoughnessTexture");
             if (metallic_roughness_it != gltf_material.values.end()) {
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\tFound metallic roughness tex: " << metallic_roughness_it->second.TextureIndex() << "\n";
                 }
                 mtl.metallic_roughness_tex = this->getSampler (metallic_roughness_it->second.TextureIndex());
             } else {
-                if constexpr (debug_gltf == true) { std::cerr << "\tNo metallic roughness tex\n"; }
+                if constexpr (cray::debug_gltf == true) { std::cerr << "\tNo metallic roughness tex\n"; }
             }
         }
 
         {
             const auto normal_it = gltf_material.additionalValues.find ("normalTexture");
             if (normal_it != gltf_material.additionalValues.end()) {
-                if constexpr (debug_gltf == true) {
+                if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\tFound normal color tex: " << normal_it->second.TextureIndex() << "\n";
                 }
                 mtl.normal_tex = this->getSampler (normal_it->second.TextureIndex());
             } else {
-                if constexpr (debug_gltf == true) { std::cerr << "\tNo normal tex\n"; }
+                if constexpr (cray::debug_gltf == true) { std::cerr << "\tNo normal tex\n"; }
             }
         }
 
@@ -921,7 +891,7 @@ cudaTextureObject_t cray::MulticamScene::getSampler (int32_t sampler_index) cons
 
 void cray::MulticamScene::finalize()
 {
-    cray::GenericCamera* c = getCamera();
+    cray::CompoundEye* c = getCamera();
 
     createContext();
     buildMeshAccels();
@@ -944,8 +914,6 @@ void cray::MulticamScene::finalize()
 
     m_scene_aabb.invalidate();
     for (const auto& mesh: m_meshes) { m_scene_aabb.include (mesh->world_aabb); }
-
-    checkIfCurrentCameraIsCompound();
 }
 
 void cray::MulticamScene::cleanup()
@@ -954,69 +922,6 @@ void cray::MulticamScene::cleanup()
     CUDA_CHECK (cudaFree (reinterpret_cast<void*> (this->d_params)));
     cray::CompoundEye::FreeCompoundRecord();
     delete this->params;
-}
-
-//------------------------------------------------------------------------------
-//
-//  CAMERA FUNCTIONS
-//
-//------------------------------------------------------------------------------
-
-int cray::MulticamScene::addCamera (cray::GenericCamera* cameraPtr)
-{
-    int i = m_cameras.size();
-    m_cameras[i] = cameraPtr;
-    checkIfCurrentCameraIsCompound();
-    return i;
-}
-
-cray::GenericCamera* cray::MulticamScene::getCamera() const
-{
-    if (!m_cameras.empty()) {
-        try {
-            return m_cameras.at (currentCamera);
-        } catch (const std::out_of_range& e) {
-            return nullptr;
-        }
-    }
-    return nullptr;
-}
-
-void cray::MulticamScene::setCurrentCamera (const int index)
-{
-    const int s = static_cast<int>(getCameraCount());
-    currentCamera = (index % s + s) % s;
-    checkIfCurrentCameraIsCompound();
-}
-
-const size_t cray::MulticamScene::getCameraCount() const { return m_cameras.size(); }
-
-void cray::MulticamScene::nextCamera() { setCurrentCamera (currentCamera + 1); }
-
-void cray::MulticamScene::previousCamera() { setCurrentCamera (currentCamera - 1); }
-
-//------------------------------------------------------------------------------
-//
-//  COMPOUND EYE FUNCTIONS
-//
-//------------------------------------------------------------------------------
-uint32_t cray::MulticamScene::addCompoundCamera (int cam_idx, cray::CompoundEye* cameraPtr, std::vector<cray::Ommatidium>& ommVec)
-{
-    m_compoundEyes[cam_idx] = cameraPtr;
-    m_ommVecs[cam_idx] = ommVec;
-    if constexpr (debug_cameras == true) {
-        std::cout << "Inserted ommVec of size " << m_ommVecs[cam_idx].size()
-                  << " into m_ommVecs[" << cam_idx << "].\n";
-    }
-    return (m_compoundEyes.size() - 1);
-}
-
-void cray::MulticamScene::checkIfCurrentCameraIsCompound()
-{
-    GenericCamera* cam = getCamera();
-    bool out = false;
-    for (auto ce : m_compoundEyes) { out |= cam == ce.second; }
-    m_selectedCameraIsCompound = out;
 }
 
 //------------------------------------------------------------------------------
@@ -1655,7 +1560,7 @@ void cray::MulticamScene::reconfigureSBTforCurrentCamera (bool force)
     size_t sizeof_log = sizeof (log);
 
     // Here, we regenerate the raygen pipeline if the camera has changed types:
-    if (getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == std::numeric_limits<size_t>::max() || force) {
+    if (getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == std::numeric_limits<std::int32_t>::max() || force) {
         lastPipelinedCamera = currentCamera; // update the pointer
         raygen_prog_group_desc.raygen.entryFunctionName = c->getEntryFunctionName();
         if constexpr (debug_pipeline == true) {
