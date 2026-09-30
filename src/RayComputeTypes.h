@@ -55,7 +55,6 @@ namespace cray
 
     struct LaunchParams
     {
-        uchar4* frame_buffer;    // An output buffer for non-compound eye cameras
         std::int32_t max_depth;
         std::uint32_t frame;     // The current frame
         bool lighting;

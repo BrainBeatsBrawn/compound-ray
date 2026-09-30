@@ -51,9 +51,6 @@
 #include "RayComputeTypes.h"
 #include "cameras/GenericCameraDataTypes.h"
 #include "cameras/GenericCamera.h"
-#include "cameras/PerspectiveCamera.h"
-#include "cameras/PanoramicCamera.h"
-#include "cameras/OrthographicCamera.h"
 #include "cameras/CompoundEye.h"
 
 #include "curand_kernel.h"
@@ -72,6 +69,11 @@
 
 namespace cray
 {
+    // Compile time debugging choices
+    static constexpr bool debug_gltf = false;
+    static constexpr bool debug_cameras = false;
+    static constexpr bool debug_pipeline = false;
+
     class MulticamScene
     {
     public:
@@ -132,68 +134,66 @@ namespace cray
 
         std::string getEyeDataPath()
         {
-            if (this->isCompoundEyeActive()) { return this->eye_data_paths[this->getCameraIndex()]; }
+            try {
+                return this->eye_data_paths.at (this->getCameraIndex());
+            } catch (const std::out_of_range& e) {}
             return std::string("");
         }
 
         void setCurrentEyeSamplesPerOmmatidium (int s)
         {
-            if (this->isCompoundEyeActive()) {
-                ((cray::CompoundEye*)this->getCamera())->setSamplesPerOmmatidium (s);
+            if (this->getCamera() != nullptr) {
+                this->getCamera()->setSamplesPerOmmatidium (s);
             }
         }
 
         int getCurrentEyeSamplesPerOmmatidium()
         {
-            if (this->isCompoundEyeActive()) {
-                return (((cray::CompoundEye*)this->getCamera())->getSamplesPerOmmatidium());
+            if (this->getCamera() != nullptr) {
+                return this->getCamera()->getSamplesPerOmmatidium();
             }
             return -1;
         }
 
         void changeCurrentEyeSamplesPerOmmatidiumBy (int s)
         {
-            if (this->isCompoundEyeActive()) {
-                ((cray::CompoundEye*)this->getCamera())->changeSamplesPerOmmatidiumBy (s);
+            if (this->getCamera() != nullptr) {
+                this->getCamera()->changeSamplesPerOmmatidiumBy (s);
             }
         }
 
         size_t getCurrentEyeOmmatidialCount()
         {
-            if (this->isCompoundEyeActive()) {
-                return ((cray::CompoundEye*)this->getCamera())->getOmmatidialCount();
+            if (this->getCamera() != nullptr) {
+                return this->getCamera()->getOmmatidialCount();
             }
-            return 0;
+            return 0u;
         }
 
         static constexpr bool sum_average_with_getCameraData = false;
 
         void getCameraData (std::vector<std::array<float, 3>>& cameraData)
         {
-            if (this->isCompoundEyeActive() == true) {
+            if (this->getCamera() == nullptr) { return; }
 
-                if constexpr (sum_average_with_getCameraData == true) {
-                    // Alternative place to do the sample summing. Useful here, so that you can time
-                    // getCameraData() to work out how much time is taken to sum and transfer data to CPU
-                    ((cray::CompoundEye*)this->getCamera())->averageRecordFrame();
+            if constexpr (sum_average_with_getCameraData == true) {
+                // Alternative place to do the sample summing. Useful here, so that you can time
+                // getCameraData() to work out how much time is taken to sum and transfer data to CPU
+                this->getCamera()->averageRecordFrame();
+            }
+            size_t omcount = this->getCamera()->getOmmatidialCount();
+            cameraData.resize (omcount);
+            float3* _data =  this->getCamera()->getRecordFrame();
+            for (size_t i = 0; i < omcount; ++i) {
+                // copy _data[i] to cameraData[i] applying gamma correction
+                // 1/2.2 = 0.45454545
+                //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
+                // Check for nans while running; somewhere in the averaging code, we sometimes obtain a NaN
+                if (std::isnan(_data[i].x)) { // Only need to check one element for NaN
+                    cameraData[i] = { 0.0f, 0.0f, 0.0f };
+                } else {
+                    cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
                 }
-                size_t omcount = ((cray::CompoundEye*)this->getCamera())->getOmmatidialCount();
-                cameraData.resize (omcount);
-                float3* _data = ((cray::CompoundEye*)this->getCamera())->getRecordFrame();
-                for (size_t i = 0; i < omcount; ++i) {
-                    // copy _data[i] to cameraData[i] applying gamma correction
-                    // 1/2.2 = 0.45454545
-                    //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
-                    // Check for nans while running; somewhere in the averaging code, we sometimes obtain a NaN
-                    if (std::isnan(_data[i].x)) { // Only need to check one element for NaN
-                        cameraData[i] = { 0.0f, 0.0f, 0.0f };
-                    } else {
-                        cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
-                    }
-                }
-
-            } else {
-                throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
             }
         }
 
@@ -201,7 +201,9 @@ namespace cray
         {
             size_t cc = this->getCameraCount();
             for (size_t i = 0; i < cc; ++i) {
-                this->getCamera()->rotateLocallyAround (angle, make_float3(x,y,z));
+                if (this->getCamera() != nullptr) {
+                    this->getCamera()->rotateLocallyAround (angle, make_float3(x,y,z));
+                }
                 this->nextCamera();
             }
         }
@@ -218,8 +220,6 @@ namespace cray
         // getFramePointer()
         void launchFrame()
         {
-            this->params->frame_buffer = nullptr; // outputBuffer not supported in the class method launchFrame
-
             // d_params is a (no-longer global) pointer to GPU RAM, params is a (no-longer global) pointer to CPU-side RAM
             CUDA_CHECK (cudaMemcpyAsync (reinterpret_cast<void*>(this->d_params),
                                          this->params,
@@ -227,17 +227,15 @@ namespace cray
                                          cudaMemcpyHostToDevice,
                                          0)); // stream
 
-            if (this->hasCompoundEyes() && this->isCompoundEyeActive()) {
+            if (this->getCamera() != nullptr) {
                 cray::CompoundEye* camera = (cray::CompoundEye*) this->getCamera();
 
-                auto csbt = this->compoundSbt();
                 // Launch the ommatidial renderer
-                auto cpl = this->compoundPipeline();
-                auto ole = optixLaunch (cpl,                               // pipeline
+                auto ole = optixLaunch (m_compound_pipeline,
                                         0,                                 // stream
                                         reinterpret_cast<CUdeviceptr> (this->d_params), // pipelineParams
                                         sizeof (cray::LaunchParams),       // pipelineParamsSize
-                                        csbt,                              // shader buffer table
+                                        &this->m_compound_sbt,             // shader binding table
                                         camera->getOmmatidialCount(),      // launch width
                                         camera->getSamplesPerOmmatidium(), // launch height
                                         1);                                // launch depth
@@ -306,10 +304,6 @@ namespace cray
             return &this->m_meshes[idx]->normals;
         }
 
-        // Return index of the added camera
-        int addCamera (GenericCamera* cameraPtr);
-        // Returns the position of the compound camera in the array for later reference
-        uint32_t addCompoundCamera  (int camera_index, cray::CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
         uint32_t addMesh (std::shared_ptr<MeshGroup> mesh)
         {
             m_meshes.push_back (mesh);
@@ -330,26 +324,53 @@ namespace cray
         void cleanup();
 
         //// Camera functions
-        // Gets a pointer to the current camera (or nullptr if there is none)
-        GenericCamera* getCamera() const;
-        void setCurrentCamera (const int index);
-        const size_t getCameraCount() const;
-        const size_t getCameraIndex() const { return currentCamera; }
-        void nextCamera();
-        void previousCamera();
 
-        //// Compound eye functions (note: similar to others here)
-        const bool hasCompoundEyes() const { return ommatidialCameraCount() > 0; }
-        const uint32_t ommatidialCameraCount() const { return m_compoundEyes.size(); }
-        void checkIfCurrentCameraIsCompound(); // Updates flag accessed below
-        const bool isCompoundEyeActive() const { return m_selectedCameraIsCompound; }
-        void changeCompoundSampleRateBy(int change);
+        // Returns the position of the compound camera in the array for later reference
+        std::int32_t addCamera (cray::CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec, std::string& eye_data_path)
+        {
+            // New camera index. m_compoundEyes is a map with sequential index
+            auto cam_idx = static_cast<std::int32_t>(this->m_compoundEyes.size());
 
+            this->m_compoundEyes[cam_idx] = cameraPtr;
+            this->m_ommVecs[cam_idx] = ommVec;
+            this->eye_data_paths[cam_idx] = eye_data_path;
 
-        OptixPipeline pipeline() const { return m_pipeline; }
-        const OptixShaderBindingTable* sbt() const { return &m_sbt; }
-        OptixTraversableHandle traversableHandle() const { return m_ias_handle; }
-        sutil::Aabb  aabb() const { return m_scene_aabb; }
+            if constexpr (debug_cameras == true) {
+                std::cout << "Inserted ommVec of size " << m_ommVecs[cam_idx].size()
+                          << " into m_ommVecs[" << cam_idx << "] with eye_data_path " << eye_data_path << ".\n";
+            }
+            return cam_idx;
+        }
+
+        cray::CompoundEye* getCamera() const
+        {
+            if (!m_compoundEyes.empty()) {
+                try {
+                    return m_compoundEyes.at (this->currentCamera);
+                } catch (const std::out_of_range& e) {
+                    return nullptr;
+                }
+            }
+            return nullptr;
+        }
+
+        void setCurrentCamera (const std::int32_t index)
+        {
+            const std::int32_t s = this->getCameraCount();
+            this->currentCamera = (index % s + s) % s;
+        }
+
+        const std::int32_t getCameraCount() const { return static_cast<std::int32_t>(this->m_compoundEyes.size()); };
+
+        const std::int32_t getCameraIndex() const { return this->currentCamera; }
+
+        void nextCamera() { this->setCurrentCamera (this->currentCamera + 1); }
+
+        void previousCamera() { this->setCurrentCamera (this->currentCamera - 1); }
+
+        void changeCompoundSampleRateBy (int change);
+
+        sutil::Aabb aabb() const { return m_scene_aabb; }
         OptixDeviceContext context() const { return m_context; }
         const std::vector<MaterialData::Pbr>& materials() const { return m_materials; }
         const std::vector<std::shared_ptr<MeshGroup>>& meshes() const { return m_meshes; }
@@ -361,10 +382,6 @@ namespace cray
         // Changes the Shader Binding Table to reflect the current camera (assumes all camera records are allocated)
         void reconfigureSBTforCurrentCamera (bool force);
 
-        // OptixPipeline is a ptr to an opaque struct
-        OptixPipeline compoundPipeline() const { return m_compound_pipeline; }
-        const OptixShaderBindingTable* compoundSbt() const { return &m_compound_sbt; }
-
         // Scene manipulation
         bool isInsideHitGeometry (float3 worldPos, std::string name, bool debug = false);
         float3 getGeometryMaxBounds (std::string name);
@@ -374,14 +391,10 @@ namespace cray
 
         std::vector<sutil::hitscan::TriangleMesh> m_hitboxMeshes; // Stores all triangle meshes public, because why the hell not?
         // The CPU side vector of ommatidia used to create each CompoundEye in m_compoundEyes
-        std::map<int, std::vector<Ommatidium>> m_ommVecs;
+        std::map<std::int32_t, std::vector<Ommatidium>> m_ommVecs;
 
         // The eye data file, specified as "compound-structure" for compound eyes. One for each eye.
-        std::map<int, std::string> eye_data_paths;
-
-        // The newGuiEyeRenderer requires an additional optix pipeline for the panoramic
-        // rendering and ALSO to render compound eyes.
-        bool require_noncompound_pipeline = false;
+        std::map<std::int32_t, std::string> eye_data_paths;
 
         // Obtain a copy of the meshes for external program to do a simple rendering
         std::vector<std::shared_ptr<MeshGroup> > getMeshes() { return m_meshes; }
@@ -390,12 +403,12 @@ namespace cray
     private:
         void createPTXModule();
         void createProgramGroups();
-        void createPipeline();
         void createSBTmissAndHit (OptixShaderBindingTable& sbt);
-
         void createCompoundPipeline();
 
-        std::map<int, GenericCamera*>        m_cameras; // cameras is a map of pointers to Camera objects.
+        // A map of cameras/compound eyes. Contains pointers to all compound eyes (could be renamed back to m_cameras)
+        std::map<std::int32_t, cray::CompoundEye*> m_compoundEyes;
+
         std::vector<std::shared_ptr<MeshGroup> > m_meshes;
         std::vector<MaterialData::Pbr>       m_materials;
         std::vector<CUdeviceptr>             m_buffers;
@@ -404,36 +417,24 @@ namespace cray
         sutil::Aabb                          m_scene_aabb;
 
         OptixDeviceContext                   m_context                  = 0;
-        OptixShaderBindingTable              m_sbt                      = {};
-        OptixPipelineCompileOptions          m_pipeline_compile_options = {};
-        OptixPipeline                        m_pipeline                 = 0;
         OptixModule                          m_ptx_module               = 0;
-
-        // Compound eye stuff (A lot of these are stored precomp values so they don't have to be recomputed every frame)
-
-        // Contains pointers to all compound eyes (shared with the m_cameras map).
-        std::map<int, cray::CompoundEye*>    m_compoundEyes;
-
+        OptixShaderBindingTable              m_sbt                      = {};
         OptixShaderBindingTable              m_compound_sbt             = {};
         OptixPipeline                        m_compound_pipeline        = 0;
+        OptixPipelineCompileOptions          m_pipeline_compile_options = {};
+
         OptixProgramGroup                    m_compound_raygen_group    = 0;
-        bool                                 m_selectedCameraIsCompound = false;
-
-        OptixProgramGroup                    m_raygen_prog_group = 0;
-        OptixProgramGroupDesc                raygen_prog_group_desc = {};
-        OptixProgramGroupOptions             program_group_options = {};
-
-        OptixProgramGroup                    m_pinhole_raygen_prog_group= 0;
-        OptixProgramGroup                    m_ortho_raygen_prog_group  = 0;
         OptixProgramGroup                    m_radiance_miss_group      = 0;
         OptixProgramGroup                    m_occlusion_miss_group     = 0;
         OptixProgramGroup                    m_radiance_hit_group       = 0;
         OptixProgramGroup                    m_occlusion_hit_group      = 0;
+        OptixProgramGroupOptions             program_group_options      = {};
+
         OptixTraversableHandle               m_ias_handle               = 0;
         CUdeviceptr                          m_d_ias_output_buffer      = 0;
 
-        size_t                               currentCamera              = 0;
-        size_t                               lastPipelinedCamera        = std::numeric_limits<size_t>::max();
+        std::int32_t                        currentCamera               = 0;
+        std::int32_t                        lastPipelinedCamera         = std::numeric_limits<std::int32_t>::max();
     };
 } // namespace
 

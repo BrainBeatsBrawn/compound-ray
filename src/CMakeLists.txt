@@ -34,12 +34,6 @@ set(libcompoundray_sources
   ./MulticamScene.cpp
   ./cameras/GenericCamera.h
   ./cameras/GenericCamera.cpp
-  ./cameras/PerspectiveCamera.h
-  ./cameras/PerspectiveCamera.cpp
-  ./cameras/PanoramicCamera.h
-  ./cameras/PanoramicCamera.cpp
-  ./cameras/OrthographicCamera.h
-  ./cameras/OrthographicCamera.cpp
   ./cameras/CompoundEye.h
   ./cameras/CompoundEye.cpp
   ./cameras/DataRecordCamera.h
@@ -86,12 +80,6 @@ install(FILES
         cameras/CompoundEyeDataTypes.h
         cameras/GenericCamera.h
         cameras/GenericCameraDataTypes.h
-        cameras/OrthographicCamera.h
-        cameras/OrthographicCameraDataTypes.h
-        cameras/PanoramicCamera.h
-        cameras/PanoramicCameraDataTypes.h
-        cameras/PerspectiveCamera.h
-        cameras/PerspectiveCameraDataTypes.h
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compoundray/cameras)
 
 # Create the EXPORT so that compoundray has its own .cmake file and find_package(compoundray) should work

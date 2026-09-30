@@ -437,8 +437,7 @@ add_subdirectory(sutil)
 # The source code for the libcompoundray library
 add_subdirectory(src)
 
-# An example eye renderer gui program
-add_subdirectory(gui_example)
+# The example eye renderer gui program is https://github.com/BrainBeatsBrawn/craysim_minimal
 
 #################################################################
 
