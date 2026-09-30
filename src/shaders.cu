@@ -43,11 +43,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// For each camera Datatype:
-#include "cameras/PerspectiveCameraDataTypes.h"
-#include "cameras/PanoramicCameraDataTypes.h"
 #include "cameras/GenericCameraDataTypes.h"
-#include "cameras/OrthographicCameraDataTypes.h"
 #include "cameras/CompoundEyeDataTypes.h"
 
 // cuRand
