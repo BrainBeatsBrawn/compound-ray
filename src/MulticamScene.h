@@ -72,7 +72,7 @@ namespace cray
     // Compile time debugging choices
     static constexpr bool debug_gltf = false;
     static constexpr bool debug_cameras = false;
-    static constexpr bool debug_pipeline = false;
+    static constexpr bool debug_pipeline = true;
 
     class MulticamScene
     {
@@ -232,14 +232,12 @@ namespace cray
             if (this->getCamera() != nullptr) {
                 cray::CompoundEye* camera = (cray::CompoundEye*) this->getCamera();
 
-                auto csbt = this->compoundSbt();
                 // Launch the ommatidial renderer
-                auto cpl = this->compoundPipeline();
-                auto ole = optixLaunch (cpl,                               // pipeline
+                auto ole = optixLaunch (m_compound_pipeline,
                                         0,                                 // stream
                                         reinterpret_cast<CUdeviceptr> (this->d_params), // pipelineParams
                                         sizeof (cray::LaunchParams),       // pipelineParamsSize
-                                        csbt,                              // shader buffer table
+                                        &this->m_compound_sbt,             // shader binding table
                                         camera->getOmmatidialCount(),      // launch width
                                         camera->getSamplesPerOmmatidium(), // launch height
                                         1);                                // launch depth
@@ -372,15 +370,9 @@ namespace cray
 
         void previousCamera() { this->setCurrentCamera (this->currentCamera - 1); }
 
-        // const bool hasCompoundEyes() const { return this->getCameraCount() > 0; }
-        // const uint32_t ommatidialCameraCount() const { return m_compoundEyes.size(); } // getCameraCount()
-
         void changeCompoundSampleRateBy (int change);
 
-        OptixPipeline pipeline() const { return m_pipeline; }
-        const OptixShaderBindingTable* sbt() const { return &m_sbt; }
-        OptixTraversableHandle traversableHandle() const { return m_ias_handle; }
-        sutil::Aabb  aabb() const { return m_scene_aabb; }
+        sutil::Aabb aabb() const { return m_scene_aabb; }
         OptixDeviceContext context() const { return m_context; }
         const std::vector<MaterialData::Pbr>& materials() const { return m_materials; }
         const std::vector<std::shared_ptr<MeshGroup>>& meshes() const { return m_meshes; }
@@ -391,10 +383,6 @@ namespace cray
 
         // Changes the Shader Binding Table to reflect the current camera (assumes all camera records are allocated)
         void reconfigureSBTforCurrentCamera (bool force);
-
-        // OptixPipeline is a ptr to an opaque struct
-        OptixPipeline compoundPipeline() const { return m_compound_pipeline; }
-        const OptixShaderBindingTable* compoundSbt() const { return &m_compound_sbt; }
 
         // Scene manipulation
         bool isInsideHitGeometry (float3 worldPos, std::string name, bool debug = false);
@@ -410,10 +398,6 @@ namespace cray
         // The eye data file, specified as "compound-structure" for compound eyes. One for each eye.
         std::map<std::int32_t, std::string> eye_data_paths;
 
-        // The newGuiEyeRenderer requires an additional optix pipeline for the panoramic
-        // rendering and ALSO to render compound eyes.
-        static constexpr bool require_noncompound_pipeline = false;
-
         // Obtain a copy of the meshes for external program to do a simple rendering
         std::vector<std::shared_ptr<MeshGroup> > getMeshes() { return m_meshes; }
         std::vector<MaterialData::Pbr> getMaterials() { return m_materials; }
@@ -421,13 +405,12 @@ namespace cray
     private:
         void createPTXModule();
         void createProgramGroups();
-        void createPipeline();
         void createSBTmissAndHit (OptixShaderBindingTable& sbt);
-
         void createCompoundPipeline();
 
-        // Maybe we make m_cameras a map of the cameras that were defined int he gltf. Then, we only *enable* one or some of those cameras.
-        //std::map<int, GenericCamera*>        m_cameras; // cameras is a map of pointers to Camera objects.
+        // A map of cameras/compound eyes. Contains pointers to all compound eyes (could be renamed back to m_cameras)
+        std::map<std::int32_t, cray::CompoundEye*> m_compoundEyes;
+
         std::vector<std::shared_ptr<MeshGroup> > m_meshes;
         std::vector<MaterialData::Pbr>       m_materials;
         std::vector<CUdeviceptr>             m_buffers;
@@ -436,30 +419,19 @@ namespace cray
         sutil::Aabb                          m_scene_aabb;
 
         OptixDeviceContext                   m_context                  = 0;
-        OptixShaderBindingTable              m_sbt                      = {};
-        OptixPipelineCompileOptions          m_pipeline_compile_options = {};
-        OptixPipeline                        m_pipeline                 = 0;
         OptixModule                          m_ptx_module               = 0;
-
-        // Compound eye stuff (A lot of these are stored precomp values so they don't have to be recomputed every frame)
-
-        // Contains pointers to all compound eyes (could be renamed back to m_cameras)
-        std::map<std::int32_t, cray::CompoundEye*>    m_compoundEyes;
-
+        OptixShaderBindingTable              m_sbt                      = {};
         OptixShaderBindingTable              m_compound_sbt             = {};
         OptixPipeline                        m_compound_pipeline        = 0;
+        OptixPipelineCompileOptions          m_pipeline_compile_options = {};
+
         OptixProgramGroup                    m_compound_raygen_group    = 0;
-
-        OptixProgramGroup                    m_raygen_prog_group = 0;
-        OptixProgramGroupDesc                raygen_prog_group_desc = {};
-        OptixProgramGroupOptions             program_group_options = {};
-
-        OptixProgramGroup                    m_pinhole_raygen_prog_group= 0;
-        OptixProgramGroup                    m_ortho_raygen_prog_group  = 0;
         OptixProgramGroup                    m_radiance_miss_group      = 0;
         OptixProgramGroup                    m_occlusion_miss_group     = 0;
         OptixProgramGroup                    m_radiance_hit_group       = 0;
         OptixProgramGroup                    m_occlusion_hit_group      = 0;
+        OptixProgramGroupOptions             program_group_options      = {};
+
         OptixTraversableHandle               m_ias_handle               = 0;
         CUdeviceptr                          m_d_ias_output_buffer      = 0;
 

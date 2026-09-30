@@ -619,7 +619,7 @@ void cray::MulticamScene::initLaunchParams()
     this->params->miss_color = make_float3 (0.1f);
     CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&(this->d_params)), sizeof(cray::LaunchParams)));
 
-    this->params->handle = this->traversableHandle();
+    this->params->handle = this->m_ias_handle;
 }
 
 // Load a scene from filename. Apply root_transform (which may be identity, or a transform to
@@ -898,7 +898,6 @@ void cray::MulticamScene::finalize()
     buildInstanceAccel();
     createPTXModule();
     createProgramGroups();
-    createPipeline();
     createCompoundPipeline();
     // Create the standard SBT (shader binding table)
     createSBTmissAndHit (m_sbt);
@@ -909,7 +908,7 @@ void cray::MulticamScene::finalize()
     createSBTmissAndHit (m_compound_sbt);
 
     // Make sure the raygenRecord is pointed at and valid memory:
-    c->forcePackAndCopyRecord (m_raygen_prog_group);
+    c->forcePackAndCopyRecord (m_compound_raygen_group);
     m_sbt.raygenRecord = c->getRecordPtr();
 
     m_scene_aabb.invalidate();
@@ -1402,24 +1401,6 @@ void cray::MulticamScene::createProgramGroups()
                                                   &m_compound_raygen_group));
     }
 
-    {
-        raygen_prog_group_desc.kind                     = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
-        raygen_prog_group_desc.raygen.module            = m_ptx_module;
-        raygen_prog_group_desc.raygen.entryFunctionName = GenericCamera::DEFAULT_RAYGEN_PROGRAM;
-
-        if constexpr (debug_pipeline) {
-            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for DEFAULT_RAYGEN_PROGRAM "
-                      << raygen_prog_group_desc.raygen.entryFunctionName << " (m_raygen_prog_group)" << std::endl;
-        }
-        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
-                                                  &raygen_prog_group_desc,
-                                                  1, // num program groups
-                                                  &program_group_options,
-                                                  log,
-                                                  &sizeof_log,
-                                                  &m_raygen_prog_group));
-    }
-
     //
     // Miss
     //
@@ -1495,35 +1476,6 @@ void cray::MulticamScene::createProgramGroups()
     }
 }
 
-void cray::MulticamScene::createPipeline()
-{
-    if constexpr (debug_pipeline == true) {
-        std::cout << "MulticamScene::createPipeline(): Generating Projection pipeline..." << std::endl;
-    }
-    OptixProgramGroup program_groups[] =
-    {
-        m_raygen_prog_group,
-        m_radiance_miss_group,
-        m_occlusion_miss_group,
-        m_radiance_hit_group,
-        m_occlusion_hit_group
-    };
-
-    OptixPipelineLinkOptions pipeline_link_options = {};
-    pipeline_link_options.maxTraceDepth = 2;
-
-    char log[2048];
-    size_t sizeof_log = sizeof (log);
-    OPTIX_CHECK_LOG (optixPipelineCreate (m_context,
-                                          &m_pipeline_compile_options,
-                                          &pipeline_link_options,
-                                          program_groups,
-                                          sizeof (program_groups) / sizeof (program_groups[0]),
-                                          log,
-                                          &sizeof_log,
-                                          &m_pipeline));
-}
-
 void cray::MulticamScene::createCompoundPipeline()
 {
     if constexpr (debug_pipeline == true) {
@@ -1562,34 +1514,17 @@ void cray::MulticamScene::reconfigureSBTforCurrentCamera (bool force)
     // Here, we regenerate the raygen pipeline if the camera has changed types:
     if (getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == std::numeric_limits<std::int32_t>::max() || force) {
         lastPipelinedCamera = currentCamera; // update the pointer
-        raygen_prog_group_desc.raygen.entryFunctionName = c->getEntryFunctionName();
         if constexpr (debug_pipeline == true) {
-            std::cout<< "ALERT: Regenerating pipeline with raygen entry function '" << c->getEntryFunctionName() << "'.\n";
+            std::cout<< "ALERT: Reconnecting camera with entry function '" << c->getEntryFunctionName() << "'.\n";
         }
-        // THIS is where the projection shader is set up
-        optixProgramGroupDestroy (m_raygen_prog_group);
-        OPTIX_CHECK_LOG (optixProgramGroupCreate (m_context,
-                                                  &raygen_prog_group_desc,
-                                                  1, // num program groups
-                                                  &program_group_options,
-                                                  log,
-                                                  &sizeof_log,
-                                                  &m_raygen_prog_group));
-
-        c->forcePackAndCopyRecord (m_raygen_prog_group);
-        m_sbt.raygenRecord = c->getRecordPtr();
-
-        // Redirect the static compound eye pipeline record toward the current camera's record since the currently selected camera has changed
-        // TODO: The raygen group reference might not be needed here. Find out.
+        // Copy shader binding table record to the GPU device:
+        c->forcePackAndCopyRecord (m_compound_raygen_group);
+        // Redirect the CompoundEye's static compound eye pipeline record toward the current
+        // camera's record since the currently selected camera has changed
         cray::CompoundEye::RedirectCompoundDataPointer (m_compound_raygen_group, c->getRecordPtr());
-
-        optixPipelineDestroy (m_pipeline);
-        createPipeline();
-        //createCompoundPipeline(); // but only if something?
-
     } else {
         // Just sync the camera's on-device memory (but only on a host-side change):
-        c->packAndCopyRecordIfChanged (m_raygen_prog_group);
+        c->packAndCopyRecordIfChanged (m_compound_raygen_group);
     }
 }
 
