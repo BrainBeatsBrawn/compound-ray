@@ -72,7 +72,7 @@ namespace cray
     // Compile time debugging choices
     static constexpr bool debug_gltf = false;
     static constexpr bool debug_cameras = false;
-    static constexpr bool debug_pipeline = true;
+    static constexpr bool debug_pipeline = false;
 
     class MulticamScene
     {
@@ -220,8 +220,6 @@ namespace cray
         // getFramePointer()
         void launchFrame()
         {
-            this->params->frame_buffer = nullptr; // outputBuffer not supported in the class method launchFrame
-
             // d_params is a (no-longer global) pointer to GPU RAM, params is a (no-longer global) pointer to CPU-side RAM
             CUDA_CHECK (cudaMemcpyAsync (reinterpret_cast<void*>(this->d_params),
                                          this->params,

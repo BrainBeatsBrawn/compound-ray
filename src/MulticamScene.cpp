@@ -586,7 +586,6 @@ namespace internal
 
 void cray::MulticamScene::initLaunchParams()
 {
-    this->params->frame_buffer = nullptr;
     this->params->frame = 0;
     this->params->lighting = false;
 
