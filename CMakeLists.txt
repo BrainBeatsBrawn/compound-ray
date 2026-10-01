@@ -62,7 +62,7 @@
 
 cmake_minimum_required(VERSION 3.25.0 FATAL_ERROR)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 if(CMAKE_MAJOR_VERSION VERSION_GREATER_EQUAL "4")
   cmake_policy(VERSION 3.14)
@@ -120,14 +120,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # Tells CMake to build all the libraries as shared libraries by default.  This can be
-# overrided by individual libraries later.
+# overridden by individual libraries later.
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 ##########
 # Process our custom setup scripts here.
-
-# Enable C++11. Needs to be done before the include of ConfigCompilerFlags.cmake below.
-set(GCC_LIBSTDCPP11 ON)
 
 # Include all CMake Macros.
 include (Macros)
@@ -136,21 +133,8 @@ include (CompilerInfo)
 # Check for specific machine/compiler options.
 include (ConfigCompilerFlags)
 
-# Turn off the warning that NVCC issues when generating PTX from our CUDA samples.  This
-# is a custom extension to the FindCUDA code distributed by CMake.
-option(CUDA_REMOVE_GLOBAL_MEMORY_SPACE_WARNING "Suppress the \"Advisory: Cannot tell what pointer points to, assuming global memory space\" warning nvcc makes." ON)
-
-# For Xcode 5, gcc is actually clang, so we have to tell CUDA to treat the compiler as
-# clang, so that it doesn't mistake it for something else.
-if(USING_CLANG_C)
-  set(CUDA_HOST_COMPILER "clang" CACHE FILEPATH "Host side compiler used by NVCC")
-endif()
-
-# CUDA 8 is broken for generating dependencies during configure
-option(CUDA_GENERATE_DEPENDENCIES_DURING_CONFIGURE "Generate dependencies during configure time instead of only during build time." OFF)
-
-# Find at least a 5.0 version of CUDA.
-find_package(CUDA 5.0 REQUIRED)
+# Find at least a 12.0 version of CUDA.
+find_package(CUDA 12.0 REQUIRED)
 
 # Present the CUDA_64_BIT_DEVICE_CODE on the default set of options.
 mark_as_advanced(CLEAR CUDA_64_BIT_DEVICE_CODE)
@@ -193,30 +177,9 @@ if (CUDA_VERSION VERSION_LESS "3.0")
   endif()
 endif()
 
-if( APPLE )
-  # Undef'ing __BLOCKS__ for OSX builds.  This is due to a name clash between OSX 10.6
-  # C headers and CUDA headers
-  set(flag "-U__BLOCKS__")
-  list(FIND CUDA_NVCC_FLAGS ${flag} index)
-  if(index EQUAL -1)
-    list(APPEND CUDA_NVCC_FLAGS ${flag})
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-  endif()
-endif()
-
-if(CMAKE_CXX_STANDARD EQUAL 11)
-  set(EYE_RENDERER_NVRTC_CXX "-std=c++11")
-else()
-  set(EYE_RENDERER_NVRTC_CXX "")
-endif()
-set(CUDA_NVRTC_FLAGS ${EYE_RENDERER_NVRTC_CXX} "-arch compute_${ARCH_INT} -use_fast_math -lineinfo -default-device -rdc true -D__x86_64" CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
+set(CUDA_NVRTC_FLAGS "-arch compute_${ARCH_INT} -use_fast_math -lineinfo -default-device -rdc true -D__x86_64" CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
 
 mark_as_advanced(CUDA_NVRTC_FLAGS)
-
-# This passes a preprocessor definition to cl.exe when processing CUDA code.
-if(USING_WINDOWS_CL)
-  list(APPEND CUDA_NVCC_FLAGS --compiler-options /D_USE_MATH_DEFINES)
-endif()
 
 # Put all the runtime stuff in the same directory.  By default, CMake puts each targets'
 # output into their own directory.  We want all the targets to be put in the same
@@ -224,22 +187,6 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-
-# Create a flag for mac which will allow apps to add the local cuda toolkit
-# install path to the app's rpath.
-if( APPLE )
-  set( CUDA_TOOLKIT_RPATH_FLAG "-Wl,-rpath,${CUDA_TOOLKIT_ROOT_DIR}/lib" )
-endif()
-
-
-# Use a packaged GLFW. Only used by newGuiEyeRenderer, and not by the lib.
-find_package(glfw3 3.2...3.4 REQUIRED)
-# find_package(glfw3...) does not set any 'GLFW_LIBS' variable, so set one manually
-if(UNIX)
-  set(GLFW_LIB_NAME glfw)
-else()
-  set(GLFW_LIB_NAME glfw3)
-endif()
 
 # Locate the NVRT distribution.  Search the SDK first, then look in the system.
 set(OptiX_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../" CACHE PATH "Path to OptiX installed location.")
@@ -274,13 +221,9 @@ set(SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(CUDA_GENERATED_OUTPUT_DIR ${SAMPLES_PTX_DIR})
 
-if (WIN32)
-  string(REPLACE "/" "\\\\" SAMPLES_PTX_DIR ${SAMPLES_PTX_DIR})
-else (WIN32)
-  if ( USING_GNU_C AND NOT APPLE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DM_PI=3.14159265358979323846" )
-  endif()
-endif (WIN32)
+if(USING_GNU_C AND NOT APPLE)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DM_PI=3.14159265358979323846" )
+endif()
 
 set(SAMPLES_CUDA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cuda")
 
@@ -306,12 +249,13 @@ set(CUDA_NVRTC_OPTIONS "${CUDA_NVRTC_OPTIONS}")
 
 configure_file(sampleConfig.h.in sampleConfig.h @ONLY)
 
-# Path to sutil.h that all the samples need
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}
-                     "${CMAKE_BINARY_DIR}/include"
-                     ${CMAKE_CURRENT_BINARY_DIR}
-                     ${CUDA_INCLUDE_DIRS}
-                     )
+# Path to sutil.h
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  "${CMAKE_BINARY_DIR}/include"
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CUDA_INCLUDE_DIRS}
+)
 
 set(SAMPLES_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
 
@@ -389,9 +333,6 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
     add_executable(${target_name} ${source_files} ${generated_files} ${cmake_options})
   endif()
 
-  # We no longer link our version of the OptiX samples sutil library
-  #target_link_libraries(${target_name} compoundray_sutil)
-
   set_target_properties(
     ${target_name} PROPERTIES
     COMPILE_DEFINITIONS
@@ -411,35 +352,23 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   return(PROPAGATE ${target_ptx_files})
 endfunction()
 
-#########################################################
-#  List of subprojects (usually executables) in this project.
-#
-
-set(glad_target compoundray_glad) # Used only by gui_example
-
-set(sutil_target compoundray_sutil)
-
 # Extra link for your cuda toolkit in /usr/local
 link_directories(/usr/local/cuda/lib64)
 
 # add_subdirectory() for sutil, support and cuda should come before src
 #
-# Third-party support libraries.
+# Third-party support libraries. Now this is just tinygltf.
 add_subdirectory(support)
 # We'll install cuda headers in (e.g.) /usr/local/include/compoundray/cuda
 add_subdirectory(cuda)
-# NVidia's sutil library.  The rules to build it are found in the subdirectory.
+# NVidia's OptiX samples sutil library code.
 # Its headers will install to (e.g.) /usr/local/include/compoundray/sutil
 add_subdirectory(sutil)
-
-# Insect Eye related directories:
 
 # The source code for the libcompoundray library
 add_subdirectory(src)
 
 # The example eye renderer gui program is https://github.com/BrainBeatsBrawn/craysim_minimal
-
-#################################################################
 
 # For debugging of variables:
 option(DEBUG_VARIABLES OFF)
