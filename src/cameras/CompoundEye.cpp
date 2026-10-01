@@ -70,8 +70,8 @@ float3* cray::CompoundEye::getRecordFrame()
 #include "summing_kernel.h"
 void cray::CompoundEye::averageRecordFrame()
 {
-    uint32_t omc = this->getOmmatidialCount();
-    uint32_t spo = this->getSamplesPerOmmatidium();
+    std::uint32_t omc = this->getOmmatidialCount();
+    std::uint32_t spo = this->getSamplesPerOmmatidium();
     // This launches a CUDA kernel to do the reduction of all the samples in
     // d_compoundBuffer down to the averages, which end up in d_compoundAvgBuffer
     summing_kernel (reinterpret_cast<float3*>(specializedData.d_compoundBuffer),
@@ -251,7 +251,7 @@ void cray::CompoundEye::freeCompoundRenderingAvgBuffer()
     CUDA_SYNC_CHECK();
 }
 
-void cray::CompoundEye::setSamplesPerOmmatidium (int32_t s)
+void cray::CompoundEye::setSamplesPerOmmatidium (std::int32_t s)
 {
     specializedData.samplesPerOmmatidium = max (1, s);
     allocateOmmatidialRandomStates();
@@ -262,7 +262,7 @@ void cray::CompoundEye::setSamplesPerOmmatidium (int32_t s)
     }
 }
 
-void cray::CompoundEye::changeSamplesPerOmmatidiumBy(int32_t d)
+void cray::CompoundEye::changeSamplesPerOmmatidiumBy (std::int32_t d)
 {
     std::cout << "Changing samples per ommatidium from " << specializedData.samplesPerOmmatidium << " to "
               << (specializedData.samplesPerOmmatidium + d) << std::endl;

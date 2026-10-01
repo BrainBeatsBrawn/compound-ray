@@ -44,9 +44,13 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <fstream>
+#include <stdexcept>
 #include <limits>
+#include <array>
+#include <cmath>
+#include <sstream>
 #include <chrono>
+#include <map>
 
 #include "RayComputeTypes.h"
 #include "cameras/GenericCameraDataTypes.h"
@@ -85,7 +89,7 @@ namespace cray
             std::string name;
             sutil::Matrix4x4 transform;
 
-            std::vector<cuda::BufferView<uint32_t>> indices;
+            std::vector<cuda::BufferView<std::uint32_t>> indices;
             std::vector<cuda::BufferView<float3>> positions;
             std::vector<cuda::BufferView<float3>> normals;
             std::vector<cuda::BufferView<float2>> texcoords;
@@ -96,7 +100,7 @@ namespace cray
             std::vector<int> host_color_types; // -1 = doesn't use vertex colours, 5126 = float4, 5123 = ushort4, 5121 = uchar4
             int host_color_container = -1; // -1 for unknown. 3 for vec3 (and use host_colors_f3)  4 for vec4 (use host_colors_f4 or _us4 or _uc4)
 
-            std::vector<int32_t> material_idx;
+            std::vector<std::int32_t> material_idx;
 
             OptixTraversableHandle gas_handle = 0;
             CUdeviceptr d_gas_output = 0;
@@ -110,7 +114,7 @@ namespace cray
             std::string name;
             sutil::Matrix4x4 transform;
 
-            std::vector<std::shared_ptr<std::vector<uint32_t>>> indices;
+            std::vector<std::shared_ptr<std::vector<std::uint32_t>>> indices;
             std::vector<std::shared_ptr<std::vector<float3>>> positions;
 
             sutil::Aabb object_aabb;
@@ -189,7 +193,7 @@ namespace cray
                 // 1/2.2 = 0.45454545
                 //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
                 // Check for nans while running; somewhere in the averaging code, we sometimes obtain a NaN
-                if (std::isnan(_data[i].x)) { // Only need to check one element for NaN
+                if (std::isnan (_data[i].x)) { // Only need to check one element for NaN
                     cameraData[i] = { 0.0f, 0.0f, 0.0f };
                 } else {
                     cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
@@ -304,21 +308,21 @@ namespace cray
             return &this->m_meshes[idx]->normals;
         }
 
-        uint32_t addMesh (std::shared_ptr<MeshGroup> mesh)
+        std::uint32_t addMesh (std::shared_ptr<MeshGroup> mesh)
         {
             m_meshes.push_back (mesh);
             return (this->m_meshes.size() - 1u);
         }
         void addMaterial (const MaterialData::Pbr& mtl) { m_materials.push_back (mtl); }
-        void addBuffer (const uint64_t buf_size, const void* data);
-        void addImage (const int32_t width, const int32_t height, const int32_t bits_per_component,
-                       const int32_t num_components, const void* data);
+        void addBuffer (const std::uint64_t buf_size, const void* data);
+        void addImage (const std::int32_t width, const std::int32_t height, const std::int32_t bits_per_component,
+                       const std::int32_t num_components, const void* data);
         void addSampler (cudaTextureAddressMode address_s, cudaTextureAddressMode address_t,
-                         cudaTextureFilterMode  filter_mode, const int32_t image_idx);
+                         cudaTextureFilterMode  filter_mode, const std::int32_t image_idx);
 
-        CUdeviceptr getBuffer (int32_t buffer_index) const;
-        cudaArray_t getImage (int32_t image_index) const;
-        cudaTextureObject_t getSampler (int32_t sampler_index) const;
+        CUdeviceptr getBuffer (std::int32_t buffer_index) const;
+        cudaArray_t getImage (std::int32_t image_index) const;
+        cudaTextureObject_t getSampler (std::int32_t sampler_index) const;
 
         void finalize();
         void cleanup();
@@ -376,7 +380,7 @@ namespace cray
         const std::vector<std::shared_ptr<MeshGroup>>& meshes() const { return m_meshes; }
 
         void createContext();
-        void buildMeshAccels (uint32_t triangle_input_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
+        void buildMeshAccels (std::uint32_t triangle_input_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
         void buildInstanceAccel (int rayTypeCount = cray::RAY_TYPE_COUNT);
 
         // Changes the Shader Binding Table to reflect the current camera (assumes all camera records are allocated)
