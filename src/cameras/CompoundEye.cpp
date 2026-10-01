@@ -6,8 +6,8 @@ cray::RaygenRecord<cray::RecordPointer> cray::CompoundEye::s_compoundRecordPtrRe
 
 CUdeviceptr cray::CompoundEye::s_d_compoundRecordPtrRecord = (CUdeviceptr){};
 
-cray::CompoundEye::CompoundEye (const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath)
-    : cray::DataRecordCamera<cray::CompoundEyeData>(name), shaderName(NAME_PREFIX + shaderName)
+cray::CompoundEye::CompoundEye (const std::string name, size_t ommatidialCount, const std::string& eyeDataPath)
+    : cray::DataRecordCamera<cray::CompoundEyeData>(name)
 {
     // Assign VRAM for compound eye structure configuration
     reconfigureOmmatidialCount (ommatidialCount);
@@ -24,15 +24,10 @@ cray::CompoundEye::~CompoundEye()
     // Free VRAM of the compound eye's rendering buffer
 }
 
-void cray::CompoundEye::setShaderName (const std::string shaderName)
-{
-    this->shaderName = NAME_PREFIX + shaderName;
-}
-
 void cray::CompoundEye::setOmmatidia (cray::Ommatidium* ommatidia, size_t count)
 {
     reconfigureOmmatidialCount(count); // Change the count and buffers (if required)
-    copyOmmatidia(ommatidia); // Actually copy the data in
+    copyOmmatidia (ommatidia); // Actually copy the data in
 }
 
 void cray::CompoundEye::reconfigureOmmatidialCount (size_t count)
@@ -70,8 +65,8 @@ float3* cray::CompoundEye::getRecordFrame()
 #include "summing_kernel.h"
 void cray::CompoundEye::averageRecordFrame()
 {
-    uint32_t omc = this->getOmmatidialCount();
-    uint32_t spo = this->getSamplesPerOmmatidium();
+    std::uint32_t omc = this->getOmmatidialCount();
+    std::uint32_t spo = this->getSamplesPerOmmatidium();
     // This launches a CUDA kernel to do the reduction of all the samples in
     // d_compoundBuffer down to the averages, which end up in d_compoundAvgBuffer
     summing_kernel (reinterpret_cast<float3*>(specializedData.d_compoundBuffer),
@@ -84,7 +79,7 @@ void cray::CompoundEye::zeroRecordFrame()
     CUDA_SYNC_CHECK();
 }
 
-void cray::CompoundEye::copyOmmatidia (cray::Ommatidium* ommatidia)
+void cray::CompoundEye::copyOmmatidia (const cray::Ommatidium* ommatidia)
 {
     CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(specializedData.d_ommatidialArray),
                             ommatidia,
@@ -251,7 +246,7 @@ void cray::CompoundEye::freeCompoundRenderingAvgBuffer()
     CUDA_SYNC_CHECK();
 }
 
-void cray::CompoundEye::setSamplesPerOmmatidium (int32_t s)
+void cray::CompoundEye::setSamplesPerOmmatidium (std::int32_t s)
 {
     specializedData.samplesPerOmmatidium = max (1, s);
     allocateOmmatidialRandomStates();
@@ -262,7 +257,7 @@ void cray::CompoundEye::setSamplesPerOmmatidium (int32_t s)
     }
 }
 
-void cray::CompoundEye::changeSamplesPerOmmatidiumBy(int32_t d)
+void cray::CompoundEye::changeSamplesPerOmmatidiumBy (std::int32_t d)
 {
     std::cout << "Changing samples per ommatidium from " << specializedData.samplesPerOmmatidium << " to "
               << (specializedData.samplesPerOmmatidium + d) << std::endl;

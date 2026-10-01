@@ -45,19 +45,28 @@
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#if defined( WIN32 )
-#pragma warning( push )
-#pragma warning( disable : 4267 )
+#if defined(WIN32)
+#pragma warning(push)
+#pragma warning(disable : 4267)
 #endif
 #include <support/tinygltf/tiny_gltf.h>
-#if defined( WIN32 )
-#pragma warning( pop )
+#if defined(WIN32)
+#pragma warning(pop)
 #endif
 
 #include <cassert>
 #include <cstdlib>
-#include <iomanip>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <limits>
+#include <algorithm>
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <iomanip>
+#include <vector>
+#include <map>
 
 namespace internal
 {
@@ -71,10 +80,8 @@ namespace internal
         return make_float4 (static_cast<float> (x), static_cast<float> (y), static_cast<float> (z), static_cast<float> (w));
     }
 
-    typedef sutil::Record<cray::HitGroupData> HitGroupRecord;
-
     static constexpr bool debug_allow_context_log = false;
-    void context_log_cb (unsigned int level, const char* tag, const char* message, void* /*cbdata */)
+    void context_log_cb (std::uint32_t level, const char* tag, const char* message, void* /*cbdata */)
     {
         if constexpr (debug_allow_context_log) {
             std::cerr << "[" << std::setw (2) << level << "][" << std::setw (12) << tag << "]: "
@@ -85,6 +92,7 @@ namespace internal
     static constexpr bool debug_bufferview = false;
     static constexpr bool debug_bufferview_byteoffsets = false;
     static constexpr bool debug_bufferview_full = false;
+
     /*
      * This function obtains a CUDA BufferView of the data that is associated with the glTF accessor
      * in @model with index @accessor_idx. The glTF accessor provides access to/additional metadata
@@ -93,15 +101,15 @@ namespace internal
      * that underlies the BufferViews.
      */
     template<typename T>
-    cuda::BufferView<T> bufferViewFromGLTF (const tinygltf::Model& model, cray::MulticamScene& scene, const int32_t accessor_idx)
+    cuda::BufferView<T> bufferViewFromGLTF (const tinygltf::Model& model, cray::MulticamScene& scene, const std::int32_t accessor_idx)
     {
         if (accessor_idx == -1) { return cuda::BufferView<T>(); }
 
         const tinygltf::Accessor& gltf_accessor      = model.accessors[accessor_idx];
         const tinygltf::BufferView& gltf_buffer_view = model.bufferViews[gltf_accessor.bufferView];
 
-        const int32_t elmt_cmpt_byte_size = tinygltf::GetComponentSizeInBytes(gltf_accessor.componentType);
-        const int32_t cmpts_in_type  = tinygltf::GetNumComponentsInType(gltf_accessor.type);
+        const std::int32_t elmt_cmpt_byte_size = tinygltf::GetComponentSizeInBytes(gltf_accessor.componentType);
+        const std::int32_t cmpts_in_type  = tinygltf::GetNumComponentsInType(gltf_accessor.type);
 
         if constexpr (debug_bufferview_full) {
             std::cout << "elmt_cmpt_byte_size from accessor.componentType: " << elmt_cmpt_byte_size << std::endl;
@@ -126,10 +134,10 @@ namespace internal
             std::cout << "data pointer % 16: " << (static_cast<size_t>(buffer_view.data) % 16) << std::endl;
         }
 
-        buffer_view.byte_stride    = static_cast<uint16_t>(gltf_buffer_view.byteStride);
+        buffer_view.byte_stride    = static_cast<std::uint16_t>(gltf_buffer_view.byteStride);
         // A cuda::BufferView::count is a count of objects of type T (which is the one that really makes sense)
-        buffer_view.count          = static_cast<uint32_t>(gltf_accessor.count);
-        buffer_view.elmt_byte_size = static_cast<uint16_t>(elmt_cmpt_byte_size * cmpts_in_type);
+        buffer_view.count          = static_cast<std::uint32_t>(gltf_accessor.count);
+        buffer_view.elmt_byte_size = static_cast<std::uint16_t>(elmt_cmpt_byte_size * cmpts_in_type);
 
         if constexpr (debug_bufferview) {
             std::cout << "Returning buffer_view with .count: " << buffer_view.count
@@ -150,28 +158,10 @@ namespace internal
 
         if (v.IsString()) {
             std::string valueStr = v.Get<std::string>();
-            std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(), [](unsigned char c){ return std::tolower(c); });
+            std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(), [](std::uint8_t c){ return std::tolower(c); });
             return (valueStr.compare("true") == 0);
         }
         return false;
-    }
-
-    const std::vector<std::string> splitString (const std::string& s, const std::string& deliminator)
-    {
-        std::vector<std::string> output;
-        const size_t delimSize = deliminator.size();
-        size_t lastDelimLoc = 0;
-        size_t delimLoc = s.find (deliminator, 0);
-        while (delimLoc != std::string::npos) {
-            if (delimLoc != lastDelimLoc) {
-                output.push_back (s.substr (lastDelimLoc, delimLoc - lastDelimLoc));
-            }
-            lastDelimLoc = delimLoc + delimSize;
-            delimLoc = s.find (deliminator, lastDelimLoc);
-        }
-        // Push either the whole thing if it's not found, or the last segment if there were deliminators
-        output.push_back (s.substr (lastDelimLoc, s.size()));
-        return output;
     }
 
     // Global function called from loadScene
@@ -250,28 +240,26 @@ namespace internal
                     std::cout << "This camera has special indicator 'compound-eye' specified, adding compound eye based camera..."<<std::endl;
                 }
                 std::string eyeDataPath = gltf_camera.extras.Get("compound-structure").Get<std::string>();
-                std::string projectionShader = gltf_camera.extras.Get("compound-projection").Get<std::string>();
+
+                // For now, any compound-projection shader name specified in the glTF is ignored
+                // (__raygen__ommatidium is the shader used for all CompoundEyes)
+                //std::string projectionShader = gltf_camera.extras.Get("compound-projection").Get<std::string>();
+
                 if constexpr (cray::debug_cameras == true) {
-                    std::cout << "  Camera internal projection type: "<<projectionShader<<std::endl;
-                    std::cout << "  Camera eye data path: "<<eyeDataPath<<std::endl;
+                    std::cout << "glTF specifies camera eye data path: " << eyeDataPath << std::endl;
                 }
 
                 if (eyeDataPath == "") {
                     std::cerr << "ERROR: Eye data path empty or non-existant." << std::endl;
                     return;
                 }
-                if (projectionShader == "") {
-                    std::cerr << "ERROR: Projection shader specifier empty or non-existant." << std::endl;
-                    return;
-                }
 
-                // Try and load the file as an absolute (or relative to the execution of the eye)
+                // Determine the right file path: Try and load the file as an absolute (or relative to the execution of the eye)
                 std::ifstream eyeDataFile(eyeDataPath, std::ifstream::in);
-                std::string usedEyeDataPath; // Track the actual complete path that was used
-                std::string eye_data_path = {};
+                std::string eye_data_path = {}; // The full path (may be glTFdir + eyeDataPath)
                 if (!eyeDataFile.is_open()) {
                     if constexpr (cray::debug_cameras == true) {
-                        std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative address..."<<std::endl;
+                        std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative path..." << std::endl;
                     }
                     // Try and load the file relatively to the gltf file
                     std::string relativeEyeDataPath = glTFdir + eyeDataPath; // Just append the eye data path
@@ -282,45 +270,26 @@ namespace internal
                         return;
                     } else {
                         if constexpr (cray::debug_cameras == true) {
-                            std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
+                            std::cout << "Successfully opened " << relativeEyeDataPath << std::endl;
                         }
-                        usedEyeDataPath = relativeEyeDataPath;
-                        eye_data_path = usedEyeDataPath;
+                        eye_data_path = relativeEyeDataPath;
                     }
                 } else {
                     if constexpr (cray::debug_cameras == true) {
-                        std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
+                        std::cout << "Successfully opened " << eyeDataPath << std::endl;
                     }
-                    usedEyeDataPath = eyeDataPath;
-                    eye_data_path = usedEyeDataPath;
+                    eye_data_path = eyeDataPath;
                 }
+                eyeDataFile.close();
 
-                // Read the lines of the file
-                std::string line;
-                std::vector<cray::Ommatidium> ommVector;// Stores the ommatidia
-                size_t ommCount = 0;
-                while (std::getline(eyeDataFile, line)) {
-                    std::vector<std::string> splitData = splitString (line, " ");// position, direction, angle, offset
-                    cray::Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
-                    ommVector.push_back(o);
-                    ommCount++;
-                }
-                std::cout <<  "  Loaded " << ommCount << " ommatidia." << std::endl;
+                std::vector<cray::Ommatidium> ommVector = cray::read_eye_file (eye_data_path);
 
-                if (ommCount == 0) {
+                if (ommVector.size() == 0) {
                     std::cerr << "  ERROR: Zero ommatidia loaded. Are you specifying the right path? (Check previous 'Reading from...' output)" << std::endl;
                     return;
                 }
 
-                // Create a new compound eye
-                cray::CompoundEye* camera = new cray::CompoundEye(gltf_camera.name, projectionShader, ommVector.size(), usedEyeDataPath);
-                camera->setPosition (eye);
-                camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
-                camera->copyOmmatidia (ommVector.data());
-                std::uint32_t cidx = scene.addCamera (camera, ommVector, eye_data_path);
-                std::cout <<  "  Added CompoundEye camera index " << cidx << std::endl;
-
-                eyeDataFile.close();
+                scene.addCamera (gltf_camera.name, &ommVector, eye_data_path, eye, rightAxis, upAxis, forwardAxis);
 
                 return;
             }
@@ -365,20 +334,20 @@ namespace internal
                 auto mesh = std::make_shared<cray::MulticamScene::MeshGroup>();
 
                 // Add the mesh to the mesh list
-                int m_idx = scene.addMesh (mesh);
+                std::int32_t m_idx = scene.addMesh (mesh);
                 if constexpr (cray::debug_gltf == true) {
                     std::cout << "\tThis is m_meshes index " << m_idx << std::endl;
                 }
 
                 mesh->name = gltf_mesh.name;
-                mesh->indices.push_back (bufferViewFromGLTF<uint32_t> (model, scene, gltf_primitive.indices));
+                mesh->indices.push_back (bufferViewFromGLTF<std::uint32_t> (model, scene, gltf_primitive.indices));
                 mesh->material_idx.push_back (gltf_primitive.material);
                 mesh->transform = node_xform;
                 if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\t\tNum triangles is indices.count/3: " << mesh->indices.back().count / 3 << std::endl;
                 }
                 assert (gltf_primitive.attributes.find ("POSITION") !=  gltf_primitive.attributes.end());
-                const int32_t pos_accessor_idx =  gltf_primitive.attributes.at ("POSITION");
+                const std::int32_t pos_accessor_idx =  gltf_primitive.attributes.at ("POSITION");
                 mesh->positions.push_back (bufferViewFromGLTF<float3> (model, scene, pos_accessor_idx));
                 if constexpr (cray::debug_gltf == true) {
                     std::cerr << "\t\tNum vertices(positions count/3): " << mesh->positions.back().count / 3 << std::endl;
@@ -431,7 +400,7 @@ namespace internal
 
                         // Determine the type and component type of the vertex_colours_gltf_accessor
                         // const int numComponents = tinygltf::GetNumComponentsInType(vertex_colours_gltf_accessor.type); // currently unused
-                        int componentType = vertex_colours_gltf_accessor.componentType;
+                        std::int32_t componentType = vertex_colours_gltf_accessor.componentType;
 
                         // TODO: Consider using `isObjectsExtraValueTrue(model.meshes[gltf_node.mesh].extras, "vertex-colours") here
                         //       to determine whether to use vertex colours or not.
@@ -503,7 +472,7 @@ namespace internal
 
                         // Determine the type and component type of the vertex_colours_gltf_accessor
                         // const int numComponents = tinygltf::GetNumComponentsInType(vertex_colours_gltf_accessor.type); // unused
-                        int componentType = vertex_colours_gltf_accessor.componentType;
+                        std::int32_t componentType = vertex_colours_gltf_accessor.componentType;
 
                         // TODO: Consider using `isObjectsExtraValueTrue(model.meshes[gltf_node.mesh].extras, "vertex-colours") here
                         //       to determine whether to use vertex colours or not.
@@ -576,7 +545,7 @@ namespace internal
 
         } else if (!gltf_node.children.empty()) {
 
-            for (int32_t child : gltf_node.children) {
+            for (std::int32_t child : gltf_node.children) {
                 processGLTFNode (scene, model, model.nodes[child], node_xform, glTFdir);
             }
         }
@@ -609,7 +578,7 @@ void cray::MulticamScene::initLaunchParams()
     lights[3].position  = this->aabb().center() + make_float3 (1.0f, -6.0f, 0.0f);
     lights[3].falloff   = Light::Falloff::QUADRATIC;
 
-    this->params->lights.count  = static_cast<uint32_t> (lights.size());
+    this->params->lights.count  = static_cast<std::uint32_t> (lights.size());
 
     CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&this->params->lights.data), lights.size() * sizeof(Light::Point)));
     CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(this->params->lights.data), lights.data(),
@@ -670,7 +639,7 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     // Process buffer data first -- buffer views will reference this list
     //
     for (const auto& gltf_buffer : model.buffers) {
-        const uint64_t buf_size = gltf_buffer.data.size();
+        const std::uint64_t buf_size = gltf_buffer.data.size();
         if constexpr (cray::debug_gltf == true) {
             std::cerr << "Processing glTF buffer '" << gltf_buffer.name << "'\n"
                       << "\tbyte size: " << buf_size << "\n"
@@ -800,9 +769,9 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     //
     // Process nodes
     //
-    std::vector<int32_t> root_nodes (model.nodes.size(), 1);
+    std::vector<std::int32_t> root_nodes (model.nodes.size(), 1);
     for (auto& gltf_node : model.nodes) {
-        for (int32_t child : gltf_node.children) { root_nodes[child] = 0; }
+        for (std::int32_t child : gltf_node.children) { root_nodes[child] = 0; }
     }
 
     for (size_t i = 0; i < root_nodes.size(); ++i) {
@@ -812,7 +781,7 @@ cray::MulticamScene::loadScene (const std::string& filename, const sutil::Matrix
     }
 }
 
-void cray::MulticamScene::addBuffer (const uint64_t buf_size, const void* data)
+void cray::MulticamScene::addBuffer (const std::uint64_t buf_size, const void* data)
 {
     CUdeviceptr buffer = 0;
     CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&buffer), buf_size));
@@ -820,20 +789,20 @@ void cray::MulticamScene::addBuffer (const uint64_t buf_size, const void* data)
     m_buffers.push_back (buffer);
 }
 
-void cray::MulticamScene::addImage (const int32_t width,
-                                    const int32_t height,
-                                    const int32_t bits_per_component,
-                                    const int32_t num_components,
+void cray::MulticamScene::addImage (const std::int32_t width,
+                                    const std::int32_t height,
+                                    const std::int32_t bits_per_component,
+                                    const std::int32_t num_components,
                                     const void* data)
 {
     // Allocate CUDA array in device memory
-    int32_t pitch = 0;
+    std::int32_t pitch = 0;
     cudaChannelFormatDesc channel_desc;
     if (bits_per_component == 8) {
-        pitch = width * num_components * sizeof(uint8_t);
+        pitch = width * num_components * sizeof(std::uint8_t);
         channel_desc = cudaCreateChannelDesc<uchar4>();
     } else if (bits_per_component == 16) {
-        pitch = width * num_components * sizeof(uint16_t);
+        pitch = width * num_components * sizeof(std::uint16_t);
         channel_desc = cudaCreateChannelDesc<ushort4>();
     } else {
         throw sutil::Exception ("Unsupported bits/component in glTF image");
@@ -857,7 +826,7 @@ void cray::MulticamScene::addImage (const int32_t width,
 void cray::MulticamScene::addSampler (cudaTextureAddressMode address_s,
                                       cudaTextureAddressMode address_t,
                                       cudaTextureFilterMode  filter,
-                                      const int32_t          image_idx)
+                                      const std::int32_t     image_idx)
 {
     cudaResourceDesc res_desc = {};
     res_desc.resType          = cudaResourceTypeArray;
@@ -882,11 +851,11 @@ void cray::MulticamScene::addSampler (cudaTextureAddressMode address_s,
     m_samplers.push_back (cuda_tex);
 }
 
-CUdeviceptr cray::MulticamScene::getBuffer (int32_t buffer_index) const { return m_buffers[buffer_index]; }
+CUdeviceptr cray::MulticamScene::getBuffer (std::int32_t buffer_index) const { return m_buffers[buffer_index]; }
 
-cudaArray_t cray::MulticamScene::getImage (int32_t image_index) const { return m_images[image_index]; }
+cudaArray_t cray::MulticamScene::getImage (std::int32_t image_index) const { return m_images[image_index]; }
 
-cudaTextureObject_t cray::MulticamScene::getSampler (int32_t sampler_index) const { return m_samplers[sampler_index]; }
+cudaTextureObject_t cray::MulticamScene::getSampler (std::int32_t sampler_index) const { return m_samplers[sampler_index]; }
 
 void cray::MulticamScene::finalize()
 {
@@ -1002,7 +971,7 @@ namespace internal
     };
 }  // namespace
 
-void cray::MulticamScene::buildMeshAccels (uint32_t triangle_input_flags)
+void cray::MulticamScene::buildMeshAccels (std::uint32_t triangle_input_flags)
 {
     // Problem:
     // The memory requirements of a compacted GAS are unknown prior to building the GAS.
@@ -1117,7 +1086,7 @@ void cray::MulticamScene::buildMeshAccels (uint32_t triangle_input_flags)
 
         OptixAccelBufferSizes gas_buffer_sizes;
         OPTIX_CHECK (optixAccelComputeMemoryUsage (m_context, &accel_options, buildInputs.data(),
-                                                   static_cast<unsigned int> (num_subMeshes), &gas_buffer_sizes));
+                                                   static_cast<std::uint32_t> (num_subMeshes), &gas_buffer_sizes));
 
         totalTempOutputSize += gas_buffer_sizes.outputSizeInBytes;
         GASInfo g = { std::move (buildInputs), gas_buffer_sizes, mesh };
@@ -1196,7 +1165,7 @@ void cray::MulticamScene::buildMeshAccels (uint32_t triangle_input_flags)
             OPTIX_CHECK (optixAccelBuild (m_context, 0,   // CUDA stream
                                           &accel_options,
                                           info.buildInputs.data(),
-                                          static_cast<unsigned int> (info.buildInputs.size()),
+                                          static_cast<std::uint32_t> (info.buildInputs.size()),
                                           d_temp.get(),
                                           d_temp.byteSize(),
                                           d_temp_output.get (tempOutputAlignmentOffset),
@@ -1273,33 +1242,26 @@ void cray::MulticamScene::buildMeshAccels (uint32_t triangle_input_flags)
     }
 }
 
-
-///TODO
-struct Instance
-{
-    float transform[12];
-};
-
-void cray::MulticamScene::buildInstanceAccel (int rayTypeCount)
+void cray::MulticamScene::buildInstanceAccel (std::int32_t rayTypeCount)
 {
     const size_t num_instances = m_meshes.size();
 
     std::vector<OptixInstance> optix_instances (num_instances);
 
-    unsigned int sbt_offset = 0;
+    std::uint32_t sbt_offset = 0;
     for (size_t i = 0; i < m_meshes.size(); ++i) {
         auto  mesh = m_meshes[i];
         auto& optix_instance = optix_instances[i];
         memset (&optix_instance, 0, sizeof (OptixInstance));
 
         optix_instance.flags = OPTIX_INSTANCE_FLAG_NONE;
-        optix_instance.instanceId = static_cast<unsigned int> (i);
+        optix_instance.instanceId = static_cast<std::uint32_t> (i);
         optix_instance.sbtOffset = sbt_offset;
         optix_instance.visibilityMask = 1;
         optix_instance.traversableHandle = mesh->gas_handle;
         memcpy (optix_instance.transform, mesh->transform.getData(), sizeof (float) * 12);
 
-        sbt_offset += static_cast<unsigned int> (mesh->indices.size()) * rayTypeCount;  // one sbt record per GAS build input per RAY_TYPE
+        sbt_offset += static_cast<std::uint32_t> (mesh->indices.size()) * rayTypeCount;  // one sbt record per GAS build input per RAY_TYPE
     }
 
     const size_t instances_size_in_bytes = sizeof (OptixInstance) * num_instances;
@@ -1310,7 +1272,7 @@ void cray::MulticamScene::buildInstanceAccel (int rayTypeCount)
     OptixBuildInput instance_input = {};
     instance_input.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
     instance_input.instanceArray.instances = d_instances;
-    instance_input.instanceArray.numInstances = static_cast<unsigned int> (num_instances);
+    instance_input.instanceArray.numInstances = static_cast<std::uint32_t> (num_instances);
 
     OptixAccelBuildOptions accel_options = {};
     accel_options.buildFlags                  = OPTIX_BUILD_FLAG_NONE;
@@ -1348,7 +1310,7 @@ void cray::MulticamScene::createPTXModule()
 {
 
     OptixModuleCompileOptions module_compile_options = {};
-    module_compile_options.optLevel   = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
+    module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
 
     m_pipeline_compile_options = {};
     m_pipeline_compile_options.usesMotionBlur = false;
@@ -1514,7 +1476,7 @@ void cray::MulticamScene::reconfigureSBTforCurrentCamera (bool force)
     if (getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == std::numeric_limits<std::int32_t>::max() || force) {
         lastPipelinedCamera = currentCamera; // update the pointer
         if constexpr (debug_pipeline == true) {
-            std::cout<< "ALERT: Reconnecting camera with entry function '" << c->getEntryFunctionName() << "'.\n";
+            std::cout << "ALERT: Reconnecting camera with entry function '" << c->getEntryFunctionName() << "'.\n";
         }
         // Copy shader binding table record to the GPU device:
         c->forcePackAndCopyRecord (m_compound_raygen_group);
@@ -1544,16 +1506,16 @@ void cray::MulticamScene::createSBTmissAndHit (OptixShaderBindingTable& sbt)
                                 ms_sbt,
                                 miss_record_size * cray::RAY_TYPE_COUNT,
                                 cudaMemcpyHostToDevice));
-        sbt.missRecordStrideInBytes = static_cast<uint32_t> (miss_record_size);
+        sbt.missRecordStrideInBytes = static_cast<std::uint32_t> (miss_record_size);
         sbt.missRecordCount = cray::RAY_TYPE_COUNT;
     }
 
     // Hitgroup Records
     {
-        std::vector<internal::HitGroupRecord> hitgroup_records;
+        std::vector<sutil::Record<cray::HitGroupData>> hitgroup_records;
         for (const auto& mesh : m_meshes) {
             for (size_t i = 0; i < mesh->material_idx.size(); ++i) {
-                internal::HitGroupRecord rec = {};
+                sutil::Record<cray::HitGroupData> rec = {};
                 OPTIX_CHECK (optixSbtRecordPackHeader (m_radiance_hit_group, &rec));
                 rec.data.geometry_data.type = GeometryData::TRIANGLE_MESH;
                 rec.data.geometry_data.triangle_mesh.positions = mesh->positions[i];
@@ -1568,7 +1530,7 @@ void cray::MulticamScene::createSBTmissAndHit (OptixShaderBindingTable& sbt)
                 rec.data.geometry_data.triangle_mesh.dev_colors_us4 = mesh->host_colors_us4[i];
                 rec.data.geometry_data.triangle_mesh.dev_colors_uc4 = mesh->host_colors_uc4[i];
 
-                const int32_t mat_idx = mesh->material_idx[i];
+                const std::int32_t mat_idx = mesh->material_idx[i];
                 if (mat_idx >= 0) {
                     rec.data.material_data.pbr = m_materials[mat_idx];
                 } else {
@@ -1581,7 +1543,7 @@ void cray::MulticamScene::createSBTmissAndHit (OptixShaderBindingTable& sbt)
             }
         }
 
-        const size_t hitgroup_record_size = sizeof (internal::HitGroupRecord);
+        const size_t hitgroup_record_size = sizeof (sutil::Record<cray::HitGroupData>);
         CUDA_CHECK (cudaMalloc (reinterpret_cast<void**> (&sbt.hitgroupRecordBase), hitgroup_record_size * hitgroup_records.size()));
 
         CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*> (sbt.hitgroupRecordBase),
@@ -1589,8 +1551,8 @@ void cray::MulticamScene::createSBTmissAndHit (OptixShaderBindingTable& sbt)
                                 hitgroup_record_size*hitgroup_records.size(),
                                 cudaMemcpyHostToDevice));
 
-        sbt.hitgroupRecordStrideInBytes = static_cast<unsigned int> (hitgroup_record_size);
-        sbt.hitgroupRecordCount = static_cast<unsigned int> (hitgroup_records.size());
+        sbt.hitgroupRecordStrideInBytes = static_cast<std::uint32_t> (hitgroup_record_size);
+        sbt.hitgroupRecordCount = static_cast<std::uint32_t> (hitgroup_records.size());
     }
 }
 
@@ -1602,7 +1564,7 @@ bool cray::MulticamScene::isInsideHitGeometry (float3 worldPos, std::string name
     // Search through each of the m_hitboxMeshes until we find the hitbox mesh we care about
     sutil::hitscan::TriangleMesh* hitboxMesh = nullptr;
 
-    for (unsigned int i = 0u; i<m_hitboxMeshes.size(); i++) {
+    for (std::uint32_t i = 0u; i<m_hitboxMeshes.size(); i++) {
         if (m_hitboxMeshes[i].name == name) {
             hitboxMesh = &m_hitboxMeshes[i];
             break;
@@ -1629,13 +1591,13 @@ bool cray::MulticamScene::isInsideHitGeometry (float3 worldPos, std::string name
 // TODO: Each of these below (and the one above) should share a "get geometry by name" method.
 float3 cray::MulticamScene::getGeometryMaxBounds (std::string name)
 {
-    for (unsigned int i = 0u; i < m_hitboxMeshes.size(); i++) {
+    for (std::uint32_t i = 0u; i < m_hitboxMeshes.size(); i++) {
         if (m_hitboxMeshes[i].name == name) {
             return m_hitboxMeshes[i].worldAabb.m_max;
         }
     }
 
-    for (unsigned int i = 0u; i < m_meshes.size(); i++) {
+    for (std::uint32_t i = 0u; i < m_meshes.size(); i++) {
         if (m_meshes[i]->name == name) {
             return m_meshes[i]->world_aabb.m_max;
         }
@@ -1646,13 +1608,13 @@ float3 cray::MulticamScene::getGeometryMaxBounds (std::string name)
 
 float3 cray::MulticamScene::getGeometryMinBounds(std::string name)
 {
-    for (unsigned int i = 0u; i < m_hitboxMeshes.size(); i++) {
+    for (std::uint32_t i = 0u; i < m_hitboxMeshes.size(); i++) {
         if (m_hitboxMeshes[i].name == name) {
             return m_hitboxMeshes[i].worldAabb.m_min;
         }
     }
 
-    for (unsigned int i = 0u; i < m_meshes.size(); i++) {
+    for (std::uint32_t i = 0u; i < m_meshes.size(); i++) {
         if (m_meshes[i]->name == name) {
             return m_meshes[i]->world_aabb.m_min;
         }

@@ -44,9 +44,14 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <fstream>
+#include <stdexcept>
 #include <limits>
+#include <array>
+#include <cmath>
+#include <sstream>
 #include <chrono>
+#include <map>
+#include <fstream>
 
 #include "RayComputeTypes.h"
 #include "cameras/GenericCameraDataTypes.h"
@@ -71,8 +76,55 @@ namespace cray
 {
     // Compile time debugging choices
     static constexpr bool debug_gltf = false;
-    static constexpr bool debug_cameras = false;
+    static constexpr bool debug_cameras = true;
     static constexpr bool debug_pipeline = false;
+
+    namespace local
+    {
+        const std::vector<std::string> splitString (const std::string& s, const std::string& delim)
+        {
+            std::vector<std::string> output;
+            const size_t delimSize = delim.size();
+            size_t lastDelimLoc = 0;
+            size_t delimLoc = s.find (delim, 0);
+            while (delimLoc != std::string::npos) {
+                if (delimLoc != lastDelimLoc) {
+                    output.push_back (s.substr (lastDelimLoc, delimLoc - lastDelimLoc));
+                }
+                lastDelimLoc = delimLoc + delimSize;
+                delimLoc = s.find (delim, lastDelimLoc);
+            }
+            // Push either the whole thing if it's not found, or the last segment if there were delims
+            output.push_back (s.substr (lastDelimLoc, s.size()));
+            return output;
+        }
+    }
+
+    std::vector<cray::Ommatidium> read_eye_file (const std::string& eye_data_path)
+    {
+        std::vector<cray::Ommatidium> ommVector = {};
+
+        // Read the lines of the file
+        std::ifstream eyeDataFile (eye_data_path, std::ifstream::in);
+        if (eyeDataFile.is_open() == false) { return ommVector; }
+
+        std::string line;
+        size_t ommCount = 0;
+        while (std::getline (eyeDataFile, line)) {
+            std::vector<std::string> splitData = cray::local::splitString (line, " "); // position, direction, angle, offset
+            cray::Ommatidium o = {
+                { std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2]) },
+                { std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5]) },
+                std::stof(splitData[6]), std::stof(splitData[7])
+            };
+            ommVector.push_back(o);
+            ommCount++;
+        }
+        std::cout <<  "Loaded " << ommCount << " ommatidia." << std::endl;
+        eyeDataFile.close();
+
+        return ommVector;
+    }
 
     class MulticamScene
     {
@@ -85,7 +137,7 @@ namespace cray
             std::string name;
             sutil::Matrix4x4 transform;
 
-            std::vector<cuda::BufferView<uint32_t>> indices;
+            std::vector<cuda::BufferView<std::uint32_t>> indices;
             std::vector<cuda::BufferView<float3>> positions;
             std::vector<cuda::BufferView<float3>> normals;
             std::vector<cuda::BufferView<float2>> texcoords;
@@ -96,7 +148,7 @@ namespace cray
             std::vector<int> host_color_types; // -1 = doesn't use vertex colours, 5126 = float4, 5123 = ushort4, 5121 = uchar4
             int host_color_container = -1; // -1 for unknown. 3 for vec3 (and use host_colors_f3)  4 for vec4 (use host_colors_f4 or _us4 or _uc4)
 
-            std::vector<int32_t> material_idx;
+            std::vector<std::int32_t> material_idx;
 
             OptixTraversableHandle gas_handle = 0;
             CUdeviceptr d_gas_output = 0;
@@ -110,7 +162,7 @@ namespace cray
             std::string name;
             sutil::Matrix4x4 transform;
 
-            std::vector<std::shared_ptr<std::vector<uint32_t>>> indices;
+            std::vector<std::shared_ptr<std::vector<std::uint32_t>>> indices;
             std::vector<std::shared_ptr<std::vector<float3>>> positions;
 
             sutil::Aabb object_aabb;
@@ -189,7 +241,7 @@ namespace cray
                 // 1/2.2 = 0.45454545
                 //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
                 // Check for nans while running; somewhere in the averaging code, we sometimes obtain a NaN
-                if (std::isnan(_data[i].x)) { // Only need to check one element for NaN
+                if (std::isnan (_data[i].x)) { // Only need to check one element for NaN
                     cameraData[i] = { 0.0f, 0.0f, 0.0f };
                 } else {
                     cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
@@ -304,35 +356,53 @@ namespace cray
             return &this->m_meshes[idx]->normals;
         }
 
-        uint32_t addMesh (std::shared_ptr<MeshGroup> mesh)
+        std::uint32_t addMesh (std::shared_ptr<MeshGroup> mesh)
         {
             m_meshes.push_back (mesh);
             return (this->m_meshes.size() - 1u);
         }
         void addMaterial (const MaterialData::Pbr& mtl) { m_materials.push_back (mtl); }
-        void addBuffer (const uint64_t buf_size, const void* data);
-        void addImage (const int32_t width, const int32_t height, const int32_t bits_per_component,
-                       const int32_t num_components, const void* data);
+        void addBuffer (const std::uint64_t buf_size, const void* data);
+        void addImage (const std::int32_t width, const std::int32_t height, const std::int32_t bits_per_component,
+                       const std::int32_t num_components, const void* data);
         void addSampler (cudaTextureAddressMode address_s, cudaTextureAddressMode address_t,
-                         cudaTextureFilterMode  filter_mode, const int32_t image_idx);
+                         cudaTextureFilterMode  filter_mode, const std::int32_t image_idx);
 
-        CUdeviceptr getBuffer (int32_t buffer_index) const;
-        cudaArray_t getImage (int32_t image_index) const;
-        cudaTextureObject_t getSampler (int32_t sampler_index) const;
+        CUdeviceptr getBuffer (std::int32_t buffer_index) const;
+        cudaArray_t getImage (std::int32_t image_index) const;
+        cudaTextureObject_t getSampler (std::int32_t sampler_index) const;
 
         void finalize();
         void cleanup();
 
         //// Camera functions
 
+        // Create a new compound eye
         // Returns the position of the compound camera in the array for later reference
-        std::int32_t addCamera (cray::CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec, std::string& eye_data_path)
+        std::int32_t addCamera (const std::string& cam_name,
+                                const std::vector<Ommatidium>* ommVec,
+                                const std::string& eye_data_path,
+                                const float3& position,
+                                const float3& rightAxis,
+                                const float3& upAxis,
+                                const float3& forwardAxis)
+        {
+            cray::CompoundEye* camera = new cray::CompoundEye (cam_name, ommVec->size(), eye_data_path);
+            camera->setPosition (position);
+            camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
+            camera->copyOmmatidia (ommVec->data()); // Copies ommVec data to GPU
+            return this->addCamera (camera, ommVec, eye_data_path);
+        }
+
+        // Create a new compound eye
+        // Returns the position of the compound camera in the array for later reference
+        std::int32_t addCamera (cray::CompoundEye* cameraPtr, const std::vector<Ommatidium>* ommVec, const std::string& eye_data_path)
         {
             // New camera index. m_compoundEyes is a map with sequential index
             auto cam_idx = static_cast<std::int32_t>(this->m_compoundEyes.size());
 
             this->m_compoundEyes[cam_idx] = cameraPtr;
-            this->m_ommVecs[cam_idx] = ommVec;
+            this->m_ommVecs[cam_idx] = *ommVec; // copies ommVec data into a Multicam class member attribute.
             this->eye_data_paths[cam_idx] = eye_data_path;
 
             if constexpr (debug_cameras == true) {
@@ -340,6 +410,15 @@ namespace cray
                           << " into m_ommVecs[" << cam_idx << "] with eye_data_path " << eye_data_path << ".\n";
             }
             return cam_idx;
+        }
+
+        void removeCameras()
+        {
+            std::int32_t sz = getCameraCount();
+            for (std::int32_t i = 0; i < sz; ++i) { delete this->m_compoundEyes[i]; }
+            this->m_compoundEyes.clear();
+            this->m_ommVecs.clear();
+            this->eye_data_paths.clear();
         }
 
         cray::CompoundEye* getCamera() const
@@ -376,7 +455,7 @@ namespace cray
         const std::vector<std::shared_ptr<MeshGroup>>& meshes() const { return m_meshes; }
 
         void createContext();
-        void buildMeshAccels (uint32_t triangle_input_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
+        void buildMeshAccels (std::uint32_t triangle_input_flags = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
         void buildInstanceAccel (int rayTypeCount = cray::RAY_TYPE_COUNT);
 
         // Changes the Shader Binding Table to reflect the current camera (assumes all camera records are allocated)
