@@ -26,73 +26,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# For compoundray, build a library of the sutil features that we use.
-set(sources
-    Aabb.h
-    Camera.cpp
-    Camera.h
-    CUDAOutputBuffer.h
-    Exception.h
-    Matrix.h
-    PPMLoader.cpp
-    PPMLoader.h
-    Preprocessor.h
-    Quaternion.h
-    Record.h
-    sutilapi.h
-    sutil.cpp
-    sutil.h
-    Trackball.cpp
-    Trackball.h
-    vec_math.h
-    hitscanprocessing.h
-    hitscanprocessing.cpp
-    )
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-if(NOT CUDA_NVRTC_ENABLED)
-  CUDA_COMPILE_PTX(ptx_files ${sources})
-endif()
-
-# Make the library.
-add_library(${sutil_target} ${sources})
-
-if( WIN32 )
-  target_compile_definitions( ${sutil_target} PUBLIC GLAD_GLAPI_EXPORT )
-endif()
-
-target_link_libraries(${sutil_target} LINK_PRIVATE ${GLFW_LIB_NAME} ${CUDA_LIBRARIES})
-
-target_include_directories( ${sutil_target} PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>" )
-
-# Use gcc rather than g++ to link if we are linking statically against libgcc_s and libstdc++
-if(USING_GNU_C OR USING_GNU_CXX)
-  if(GCC_LIBSTDCPP_HACK)
-    set_target_properties(${sutil_target} PROPERTIES LINKER_LANGUAGE "C")
-    target_link_libraries(${sutil_target} LINK_PRIVATE ${STATIC_LIBSTDCPP})
-  endif()
-endif()
-
-if(CUDA_NVRTC_ENABLED)
-  target_link_libraries(${sutil_target} LINK_PRIVATE ${CUDA_nvrtc_LIBRARY})
-endif()
-if(WIN32)
-  target_link_libraries(${sutil_target} LINK_PRIVATE winmm.lib)
-endif()
-
-# Make the list of sources available to the parent directory for installation needs.
-set(sutil_sources "${sources}" PARENT_SCOPE)
-
-set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
-
-# NB: install() of libcompoundray_sutil.so is carried out in
-# libEyeRenderer/CMakeLists.txt as libEyeRender.so is exported along
-# with compoundray_sutil
-
-# Install headers
+# Install sutil headers
 install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h
         hitscanprocessing.h Matrix.h PPMLoader.h Preprocessor.h
         Quaternion.h Record.h sutilapi.h sutil.h Trackball.h vec_math.h

@@ -27,8 +27,9 @@
 #
 
 include_directories(".")
+include_directories("../sutil")
 
-set(libcompoundray_sources
+set(compoundray_sources
   ./RayComputeTypes.h
   ./MulticamScene.h
   ./MulticamScene.cpp
@@ -40,6 +41,31 @@ set(libcompoundray_sources
   ./shaders.cu
   ./summing_kernel.cu
 )
+
+set(sutil_sources
+  ../sutil/Aabb.h
+  ../sutil/Camera.cpp
+  ../sutil/Camera.h
+  ../sutil/CUDAOutputBuffer.h
+  ../sutil/Exception.h
+  ../sutil/Matrix.h
+  ../sutil/PPMLoader.cpp
+  ../sutil/PPMLoader.h
+  ../sutil/Preprocessor.h
+  ../sutil/Quaternion.h
+  ../sutil/Record.h
+  ../sutil/sutilapi.h
+  ../sutil/sutil.cpp
+  ../sutil/sutil.h
+  ../sutil/Trackball.cpp
+  ../sutil/Trackball.h
+  ../sutil/vec_math.h
+  ../sutil/hitscanprocessing.h
+  ../sutil/hitscanprocessing.cpp
+)
+
+# Compile our own code and the OptiX samples utilities (sutil) into one library (which will be libcompoundray.so)
+set(libcompoundray_sources ${sutil_sources} ${compoundray_sources})
 
 # Mark a specific source file to be CUDA! From https://forums.developer.nvidia.com/t/how-to-compile-cuda-c-files-and-nvidia-optix-files-inside-the-same-visual-studio-project/31821/2
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/summing_kernel.cu
@@ -63,7 +89,7 @@ target_link_libraries(${compoundray_target} -lcudart -lrt -ldl)
 install(FILES ${compoundray_ptx_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 # Install EyeRender3, compoundray and its dependencies giving it the export name compoundray-config
-install(TARGETS ${compoundray_target} ${sutil_target}
+install(TARGETS ${compoundray_target}
         EXPORT compoundray-config
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
@@ -83,7 +109,7 @@ install(FILES
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compoundray/cameras)
 
 # Create the EXPORT so that compoundray has its own .cmake file and find_package(compoundray) should work
-export(TARGETS ${compoundray_target} ${sutil_target}
+export(TARGETS ${compoundray_target}
     NAMESPACE compoundray::
     FILE "${CMAKE_CURRENT_BINARY_DIR}/compoundray-config.cmake"
 )
