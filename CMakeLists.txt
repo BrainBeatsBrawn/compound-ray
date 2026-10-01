@@ -389,8 +389,8 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
     add_executable(${target_name} ${source_files} ${generated_files} ${cmake_options})
   endif()
 
-  # We link our version of the OptiX samples sutil library
-  target_link_libraries(${target_name} compoundray_sutil)
+  # We no longer link our version of the OptiX samples sutil library
+  #target_link_libraries(${target_name} compoundray_sutil)
 
   set_target_properties(
     ${target_name} PROPERTIES
