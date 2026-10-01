@@ -1280,13 +1280,6 @@ void cray::MulticamScene::buildMeshAccels (std::uint32_t triangle_input_flags)
     }
 }
 
-
-///TODO
-struct Instance
-{
-    float transform[12];
-};
-
 void cray::MulticamScene::buildInstanceAccel (std::int32_t rayTypeCount)
 {
     const size_t num_instances = m_meshes.size();
