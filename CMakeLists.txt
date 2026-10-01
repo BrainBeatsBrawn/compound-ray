@@ -72,7 +72,7 @@ endif()
 
 # This sets up the name of our project.  For our purposes the main thing this controls is
 # the name of the VS solution file.
-project(Eye-Renderer-Three)
+project(compoundray)
 
 # Let's use CMAKE_INSTALL_LIBDIR, DATADIR, etc
 if(UNIX)
