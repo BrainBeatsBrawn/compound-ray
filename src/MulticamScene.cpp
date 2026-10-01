@@ -92,6 +92,7 @@ namespace internal
     static constexpr bool debug_bufferview = false;
     static constexpr bool debug_bufferview_byteoffsets = false;
     static constexpr bool debug_bufferview_full = false;
+
     /*
      * This function obtains a CUDA BufferView of the data that is associated with the glTF accessor
      * in @model with index @accessor_idx. The glTF accessor provides access to/additional metadata
@@ -161,24 +162,6 @@ namespace internal
             return (valueStr.compare("true") == 0);
         }
         return false;
-    }
-
-    const std::vector<std::string> splitString (const std::string& s, const std::string& deliminator)
-    {
-        std::vector<std::string> output;
-        const size_t delimSize = deliminator.size();
-        size_t lastDelimLoc = 0;
-        size_t delimLoc = s.find (deliminator, 0);
-        while (delimLoc != std::string::npos) {
-            if (delimLoc != lastDelimLoc) {
-                output.push_back (s.substr (lastDelimLoc, delimLoc - lastDelimLoc));
-            }
-            lastDelimLoc = delimLoc + delimSize;
-            delimLoc = s.find (deliminator, lastDelimLoc);
-        }
-        // Push either the whole thing if it's not found, or the last segment if there were deliminators
-        output.push_back (s.substr (lastDelimLoc, s.size()));
-        return output;
     }
 
     // Global function called from loadScene
@@ -257,28 +240,26 @@ namespace internal
                     std::cout << "This camera has special indicator 'compound-eye' specified, adding compound eye based camera..."<<std::endl;
                 }
                 std::string eyeDataPath = gltf_camera.extras.Get("compound-structure").Get<std::string>();
-                std::string projectionShader = gltf_camera.extras.Get("compound-projection").Get<std::string>();
+
+                // For now, any compound-projection shader name specified in the glTF is ignored
+                // (__raygen__ommatidium is the shader used for all CompoundEyes)
+                //std::string projectionShader = gltf_camera.extras.Get("compound-projection").Get<std::string>();
+
                 if constexpr (cray::debug_cameras == true) {
-                    std::cout << "  Camera internal projection type: "<<projectionShader<<std::endl;
-                    std::cout << "  Camera eye data path: "<<eyeDataPath<<std::endl;
+                    std::cout << "glTF specifies camera eye data path: " << eyeDataPath << std::endl;
                 }
 
                 if (eyeDataPath == "") {
                     std::cerr << "ERROR: Eye data path empty or non-existant." << std::endl;
                     return;
                 }
-                if (projectionShader == "") {
-                    std::cerr << "ERROR: Projection shader specifier empty or non-existant." << std::endl;
-                    return;
-                }
 
-                // Try and load the file as an absolute (or relative to the execution of the eye)
+                // Determine the right file path: Try and load the file as an absolute (or relative to the execution of the eye)
                 std::ifstream eyeDataFile(eyeDataPath, std::ifstream::in);
-                std::string usedEyeDataPath; // Track the actual complete path that was used
-                std::string eye_data_path = {};
+                std::string eye_data_path = {}; // The full path (may be glTFdir + eyeDataPath)
                 if (!eyeDataFile.is_open()) {
                     if constexpr (cray::debug_cameras == true) {
-                        std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative address..."<<std::endl;
+                        std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative path..." << std::endl;
                     }
                     // Try and load the file relatively to the gltf file
                     std::string relativeEyeDataPath = glTFdir + eyeDataPath; // Just append the eye data path
@@ -289,45 +270,26 @@ namespace internal
                         return;
                     } else {
                         if constexpr (cray::debug_cameras == true) {
-                            std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
+                            std::cout << "Successfully opened " << relativeEyeDataPath << std::endl;
                         }
-                        usedEyeDataPath = relativeEyeDataPath;
-                        eye_data_path = usedEyeDataPath;
+                        eye_data_path = relativeEyeDataPath;
                     }
                 } else {
                     if constexpr (cray::debug_cameras == true) {
-                        std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
+                        std::cout << "Successfully opened " << eyeDataPath << std::endl;
                     }
-                    usedEyeDataPath = eyeDataPath;
-                    eye_data_path = usedEyeDataPath;
+                    eye_data_path = eyeDataPath;
                 }
+                eyeDataFile.close();
 
-                // Read the lines of the file
-                std::string line;
-                std::vector<cray::Ommatidium> ommVector;// Stores the ommatidia
-                size_t ommCount = 0;
-                while (std::getline(eyeDataFile, line)) {
-                    std::vector<std::string> splitData = splitString (line, " ");// position, direction, angle, offset
-                    cray::Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
-                    ommVector.push_back(o);
-                    ommCount++;
-                }
-                std::cout <<  "  Loaded " << ommCount << " ommatidia." << std::endl;
+                std::vector<cray::Ommatidium> ommVector = cray::read_eye_file (eye_data_path);
 
-                if (ommCount == 0) {
+                if (ommVector.size() == 0) {
                     std::cerr << "  ERROR: Zero ommatidia loaded. Are you specifying the right path? (Check previous 'Reading from...' output)" << std::endl;
                     return;
                 }
 
-                // Create a new compound eye
-                cray::CompoundEye* camera = new cray::CompoundEye(gltf_camera.name, projectionShader, ommVector.size(), usedEyeDataPath);
-                camera->setPosition (eye);
-                camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
-                camera->copyOmmatidia (ommVector.data());
-                std::uint32_t cidx = scene.addCamera (camera, ommVector, eye_data_path);
-                std::cout << "  Added CompoundEye camera index " << cidx << std::endl;
-
-                eyeDataFile.close();
+                scene.addCamera (gltf_camera.name, &ommVector, eye_data_path, eye, rightAxis, upAxis, forwardAxis);
 
                 return;
             }
@@ -1348,7 +1310,7 @@ void cray::MulticamScene::createPTXModule()
 {
 
     OptixModuleCompileOptions module_compile_options = {};
-    module_compile_options.optLevel   = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
+    module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
 
     m_pipeline_compile_options = {};
     m_pipeline_compile_options.usesMotionBlur = false;

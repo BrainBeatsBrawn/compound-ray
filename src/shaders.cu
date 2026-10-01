@@ -192,7 +192,7 @@ __device__ float3 generateOffsetRay (const float ommatidialAxisAngle, const floa
 
 /*
  * The ommatidium raycaster. This is selected in MulticamScene.cpp where an "ommatidial raygen
- * group" (a program group) is created. The entryFunctionName is set to "__raygen_ommatidium" which
+ * group" (a program group) is created. The entryFunctionName is set to "__raygen__ommatidium" which
  * results in this OptiX program being used. This function is part of a "compoundPipeline" in
  * MulticamScene which is launched by MulticamScene::launchFrame IF the scene has compoundeye
  * cameras and the current camera is of type cray::CompoundEye.

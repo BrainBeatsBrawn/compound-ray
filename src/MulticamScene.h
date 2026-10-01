@@ -51,6 +51,7 @@
 #include <sstream>
 #include <chrono>
 #include <map>
+#include <fstream>
 
 #include "RayComputeTypes.h"
 #include "cameras/GenericCameraDataTypes.h"
@@ -75,8 +76,55 @@ namespace cray
 {
     // Compile time debugging choices
     static constexpr bool debug_gltf = false;
-    static constexpr bool debug_cameras = false;
+    static constexpr bool debug_cameras = true;
     static constexpr bool debug_pipeline = false;
+
+    namespace local
+    {
+        const std::vector<std::string> splitString (const std::string& s, const std::string& delim)
+        {
+            std::vector<std::string> output;
+            const size_t delimSize = delim.size();
+            size_t lastDelimLoc = 0;
+            size_t delimLoc = s.find (delim, 0);
+            while (delimLoc != std::string::npos) {
+                if (delimLoc != lastDelimLoc) {
+                    output.push_back (s.substr (lastDelimLoc, delimLoc - lastDelimLoc));
+                }
+                lastDelimLoc = delimLoc + delimSize;
+                delimLoc = s.find (delim, lastDelimLoc);
+            }
+            // Push either the whole thing if it's not found, or the last segment if there were delims
+            output.push_back (s.substr (lastDelimLoc, s.size()));
+            return output;
+        }
+    }
+
+    std::vector<cray::Ommatidium> read_eye_file (const std::string& eye_data_path)
+    {
+        std::vector<cray::Ommatidium> ommVector = {};
+
+        // Read the lines of the file
+        std::ifstream eyeDataFile (eye_data_path, std::ifstream::in);
+        if (eyeDataFile.is_open() == false) { return ommVector; }
+
+        std::string line;
+        size_t ommCount = 0;
+        while (std::getline (eyeDataFile, line)) {
+            std::vector<std::string> splitData = cray::local::splitString (line, " "); // position, direction, angle, offset
+            cray::Ommatidium o = {
+                { std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2]) },
+                { std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5]) },
+                std::stof(splitData[6]), std::stof(splitData[7])
+            };
+            ommVector.push_back(o);
+            ommCount++;
+        }
+        std::cout <<  "Loaded " << ommCount << " ommatidia." << std::endl;
+        eyeDataFile.close();
+
+        return ommVector;
+    }
 
     class MulticamScene
     {
@@ -329,14 +377,32 @@ namespace cray
 
         //// Camera functions
 
+        // Create a new compound eye
         // Returns the position of the compound camera in the array for later reference
-        std::int32_t addCamera (cray::CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec, std::string& eye_data_path)
+        std::int32_t addCamera (const std::string& cam_name,
+                                const std::vector<Ommatidium>* ommVec,
+                                const std::string& eye_data_path,
+                                const float3& position,
+                                const float3& rightAxis,
+                                const float3& upAxis,
+                                const float3& forwardAxis)
+        {
+            cray::CompoundEye* camera = new cray::CompoundEye (cam_name, ommVec->size(), eye_data_path);
+            camera->setPosition (position);
+            camera->setLocalSpace (rightAxis, upAxis, forwardAxis);
+            camera->copyOmmatidia (ommVec->data()); // Copies ommVec data to GPU
+            return this->addCamera (camera, ommVec, eye_data_path);
+        }
+
+        // Create a new compound eye
+        // Returns the position of the compound camera in the array for later reference
+        std::int32_t addCamera (cray::CompoundEye* cameraPtr, const std::vector<Ommatidium>* ommVec, const std::string& eye_data_path)
         {
             // New camera index. m_compoundEyes is a map with sequential index
             auto cam_idx = static_cast<std::int32_t>(this->m_compoundEyes.size());
 
             this->m_compoundEyes[cam_idx] = cameraPtr;
-            this->m_ommVecs[cam_idx] = ommVec;
+            this->m_ommVecs[cam_idx] = *ommVec; // copies ommVec data into a Multicam class member attribute.
             this->eye_data_paths[cam_idx] = eye_data_path;
 
             if constexpr (debug_cameras == true) {
@@ -344,6 +410,15 @@ namespace cray
                           << " into m_ommVecs[" << cam_idx << "] with eye_data_path " << eye_data_path << ".\n";
             }
             return cam_idx;
+        }
+
+        void removeCameras()
+        {
+            std::int32_t sz = getCameraCount();
+            for (std::int32_t i = 0; i < sz; ++i) { delete this->m_compoundEyes[i]; }
+            this->m_compoundEyes.clear();
+            this->m_ommVecs.clear();
+            this->eye_data_paths.clear();
         }
 
         cray::CompoundEye* getCamera() const
