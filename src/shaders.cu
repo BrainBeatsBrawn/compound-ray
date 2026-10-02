@@ -412,8 +412,15 @@ extern "C" __global__ void __closesthit__radiance()
     }
 
     // There are four lights in compound ray apparently, hardcoded in. traceOcclusion for any to get a crash...
-    for (int i = 0; i < params.lights.count; ++i) { // or .lights.count()
-
+    // Light sampling: with many lights, shade lights_per_hit of them chosen uniformly at random and scale by
+    // count / lights_per_hit, so the expected result equals shading every light.
+    const std::uint32_t n_lights = params.lights.count;
+    const std::uint32_t n_shaded = (params.lights_per_hit == 0u || params.lights_per_hit >= n_lights) ? n_lights : params.lights_per_hit;
+    const float light_weight = n_shaded > 0u ? static_cast<float> (n_lights) / static_cast<float> (n_shaded) : 0.0f;
+    const uint3 li = optixGetLaunchIndex();
+    unsigned int seed = tea<4> (li.x + optixGetLaunchDimensions().x * li.y, params.frame);
+    for (std::uint32_t s = 0; s < n_shaded; ++s) {
+        const std::uint32_t i = (n_shaded == n_lights) ? s : min (static_cast<std::uint32_t> (rnd (seed) * n_lights), n_lights - 1u);
         Light::Point light = params.lights[i];
         // TODO: optimize
         const float L_dist = length (light.position - geom.P);
@@ -434,7 +441,7 @@ extern "C" __global__ void __closesthit__radiance()
                 const float D = ggxNormal (N_dot_H, alpha);
                 const float3 diff = (1.0f - F) * diff_color / M_PIf;
                 const float3 spec = F * G_vis * D;
-                result += light.color * light.intensity * N_dot_L * (diff + spec);
+                result += light_weight * light.color * light.intensity * N_dot_L * (diff + spec);
             }
         }
     }

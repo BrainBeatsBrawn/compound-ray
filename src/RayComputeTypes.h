@@ -59,6 +59,7 @@ namespace cray
         std::uint32_t frame;     // The current frame
         bool lighting;
         cuda::BufferView<Light::Point> lights;
+        std::uint32_t lights_per_hit; // 0: shade every light; N: N lights chosen at random per hit, reweighted
         float3 miss_color;
         OptixTraversableHandle handle;
     };
