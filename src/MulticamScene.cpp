@@ -579,6 +579,7 @@ void cray::MulticamScene::initLaunchParams()
     lights[3].falloff   = Light::Falloff::QUADRATIC;
 
     this->params->lights.count  = static_cast<std::uint32_t> (lights.size());
+    this->params->lights.elmt_byte_size = sizeof (Light::Point); // stride; 0 makes every index read lights[0]
 
     CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&this->params->lights.data), lights.size() * sizeof(Light::Point)));
     CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(this->params->lights.data), lights.data(),
