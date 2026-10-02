@@ -171,7 +171,9 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
             }
 
             lgeom.Ng = normalize( cross( P1-P0, P2-P0 ) );
-            lgeom.Ng = optixTransformNormalFromObjectToWorldSpace( lgeom.Ng );
+            // Renormalise: the inverse-transpose scales normals by 1/scale under non-unit transforms (e.g. 100x for
+            // an asset authored in centimetres under a metre stage), which inflated N.L and broke the specular terms.
+            lgeom.Ng = normalize( optixTransformNormalFromObjectToWorldSpace( lgeom.Ng ) );
 
             float3 N0, N1, N2;
             if( mesh_data.normals ) // May return false if the memory address for normals is not correctly aligned
