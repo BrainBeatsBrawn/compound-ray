@@ -53,6 +53,24 @@ namespace cray
         RAY_TYPE_COUNT = 2
     };
 
+    // A light in physical units, used when LaunchParams::physical is set.
+    enum PhysLightType : std::int32_t
+    {
+        PHYS_LIGHT_POINT = 0,    // radiance = intensity (W/sr per unit colour); quadratic falloff
+        PHYS_LIGHT_RECT = 1,     // radiance = emitted radiance; centre position, half-edge vectors u and v, emits along normal
+        PHYS_LIGHT_DISTANT = 2   // radiance = irradiance on a surface facing it; normal = direction the light travels
+    };
+
+    struct PhysLight
+    {
+        float3 position;
+        float3 u;
+        float3 v;
+        float3 normal;
+        float3 radiance;
+        std::int32_t type;
+    };
+
     struct LaunchParams
     {
         std::int32_t max_depth;
@@ -60,6 +78,9 @@ namespace cray
         bool lighting;
         cuda::BufferView<Light::Point> lights;
         std::uint32_t lights_per_hit; // 0: shade every light; N: N lights chosen at random per hit, reweighted
+        // Physical mode: no implicit ambient, viewer-facing normals, sRGB textures linearised, phys_lights only
+        bool physical;
+        cuda::BufferView<PhysLight> phys_lights;
         float3 miss_color;
         OptixTraversableHandle handle;
     };

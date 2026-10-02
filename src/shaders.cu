@@ -270,6 +270,7 @@ extern "C" __global__ void __raygen__ommatidium()
 
 extern "C" __global__ void __miss__default_background()
 {
+    if (params.physical) { setPayloadResult (make_float3 (0.0f)); return; }  // no sky in physical mode
     const float3 dir = normalize (optixGetWorldRayDirection());
     setPayloadResult (make_float3 ((atan2 (dir.z, dir.x) + M_PIf) / (M_PIf * 2.0f), (asin (dir.y) + M_PIf / 2.0f) / M_PIf, 0.0f));
     const float border = 0.01;
@@ -278,11 +279,12 @@ extern "C" __global__ void __miss__default_background()
     }
 }
 
-extern "C" __global__ void __miss__white() { setPayloadResult (make_float3 (1.0f)); }
+extern "C" __global__ void __miss__white() { setPayloadResult (make_float3 (params.physical ? 0.0f : 1.0f)); }
 extern "C" __global__ void __miss__black() { setPayloadResult (make_float3 (0.0f)); }
 
 extern "C" __global__ void __miss__simple_sky()
 {
+    if (params.physical) { setPayloadResult (make_float3 (0.0f)); return; }  // no sky in physical mode
     const float3 dir = normalize (optixGetWorldRayDirection());
     const float mix = min (max (0.0f, (asin (dir.y) * 2.0f) / M_PIf), 1.0f);
     const float3 upper = make_float3 (1.0f, 31.0f, 117.0f) / 255.0f;
@@ -294,6 +296,7 @@ extern "C" __global__ void __miss__simple_sky()
 // direction is either (0,0,0) or contains a NaN, then set black
 extern "C" __global__ void __miss__simple_sky_black_down()
 {
+    if (params.physical) { setPayloadResult (make_float3 (0.0f)); return; }  // no sky in physical mode
     const float3 p = optixGetWorldRayDirection();
 
     if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)) {
@@ -324,11 +327,13 @@ __device__ void coloured_miss_coloured_down (const float3& clr_miss, const float
 
 extern "C" __global__ void __miss__white_but_black_down()
 {
+    if (params.physical) { setPayloadResult (make_float3 (0.0f)); return; }  // no sky in physical mode
     coloured_miss_coloured_down (make_float3 (1.0f), make_float3 (0.0f));
 }
 
 extern "C" __global__ void __miss__lightgrey_but_black_down()
 {
+    if (params.physical) { setPayloadResult (make_float3 (0.0f)); return; }  // no sky in physical mode
     coloured_miss_coloured_down (make_float3 (0.95f), make_float3 (0.0f));
 }
 
@@ -367,6 +372,11 @@ extern "C" __global__ void __closesthit__radiance()
         if (mbc) {
             float4 my_tex = tex2D<float4> (mbc, geom.UV.x, geom.UV.y);
             float3 my_tex3 = make_float3 (my_tex);
+            if (params.physical) {
+                // sRGB-encoded base colour texture -> linear, scaled by the material's base colour factor
+                my_tex3 = make_float3 (powf (my_tex3.x, 2.2f), powf (my_tex3.y, 2.2f), powf (my_tex3.z, 2.2f))
+                          * make_float3 (hit_group_data->material_data.pbr.base_color);
+            }
             base_color = my_tex3;
         } else {
             // This obtains the colour we want when there is no base_color_tex
@@ -384,7 +394,7 @@ extern "C" __global__ void __closesthit__radiance()
         return;
     }
 
-    result = base_color;
+    result = params.physical ? make_float3 (0.0f) : base_color;
 
     float metallic  = hit_group_data->material_data.pbr.metallic;
     float roughness = hit_group_data->material_data.pbr.roughness;
@@ -409,6 +419,58 @@ extern "C" __global__ void __closesthit__radiance()
     if (hit_group_data->material_data.pbr.normal_tex) {
         const float4 NN = 2.0f * tex2D<float4> (hit_group_data->material_data.pbr.normal_tex, geom.UV.x, geom.UV.y) - make_float4 (1.0f);
         N = normalize (NN.x * normalize (geom.dpdu) + NN.y * normalize (geom.dpdv) + NN.z * geom.N);
+    }
+
+    if (params.physical) {
+        // Surfaces are lit from whichever side the ray arrives (double-sided, as RTX shades them)
+        const float3 V = -normalize (optixGetWorldRayDirection());
+        if (dot (N, V) < 0.0f) { N = -N; }
+        const float N_dot_V = dot (N, V);
+        const std::uint32_t n_lights = params.phys_lights.count;
+        const std::uint32_t n_shaded = (params.lights_per_hit == 0u || params.lights_per_hit >= n_lights) ? n_lights : params.lights_per_hit;
+        const float light_weight = n_shaded > 0u ? static_cast<float> (n_lights) / static_cast<float> (n_shaded) : 0.0f;
+        const uint3 li = optixGetLaunchIndex();
+        unsigned int seed = tea<4> (li.x + optixGetLaunchDimensions().x * li.y, params.frame);
+        for (std::uint32_t s = 0; s < n_shaded; ++s) {
+            const std::uint32_t i = (n_shaded == n_lights) ? s : min (static_cast<std::uint32_t> (rnd (seed) * n_lights), n_lights - 1u);
+            const cray::PhysLight light = params.phys_lights[i];
+            // Direction to the light, shadow-ray length and irradiance on a surface facing the light
+            float3 L;
+            float L_dist;
+            float3 E;
+            if (light.type == cray::PHYS_LIGHT_DISTANT) {
+                L = -light.normal;
+                L_dist = 1e16f;
+                E = light.radiance;
+            } else {
+                // One uniform sample on the rectangle per hit; the eye's N jittered samples per ommatidium
+                // average these, so penumbrae converge as the ommatidial sample count rises
+                float3 y = light.position;
+                float area_cos = 1.0f;
+                if (light.type == cray::PHYS_LIGHT_RECT) {
+                    y += (2.0f * rnd (seed) - 1.0f) * light.u + (2.0f * rnd (seed) - 1.0f) * light.v;
+                }
+                const float3 d = y - geom.P;
+                L_dist = length (d);
+                L = d / L_dist;
+                if (light.type == cray::PHYS_LIGHT_RECT) {
+                    const float cos_l = dot (light.normal, -L);
+                    if (cos_l <= 0.0f) { continue; }
+                    area_cos = 4.0f * length (cross (light.u, light.v)) * cos_l;  // A cos(theta_light)
+                }
+                E = light.radiance * (area_cos / (L_dist * L_dist));
+            }
+            const float N_dot_L = dot (N, L);
+            if (N_dot_L <= 0.0f || N_dot_V <= 0.0f) { continue; }
+            if (traceOcclusion (params.handle, geom.P + 1e-3f * N, L, 1e-3f, L_dist - 2e-3f)) { continue; }
+            const float3 H = normalize (L + V);
+            const float3 F = schlick (spec_color, dot (V, H));
+            const float3 diff = (1.0f - F) * diff_color / M_PIf;
+            const float3 spec = F * vis (N_dot_L, N_dot_V, alpha) * ggxNormal (dot (N, H), alpha);
+            result += light_weight * E * N_dot_L * (diff + spec);
+        }
+        setPayloadResult (result);
+        return;
     }
 
     // There are four lights in compound ray apparently, hardcoded in. traceOcclusion for any to get a crash...
