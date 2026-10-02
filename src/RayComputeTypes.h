@@ -81,6 +81,7 @@ namespace cray
         // Physical mode: no implicit ambient, viewer-facing normals, sRGB textures linearised, phys_lights only
         bool physical;
         cuda::BufferView<PhysLight> phys_lights;
+        std::uint32_t indirect_bounces; // physical mode: diffuse bounces (one cosine-weighted ray per hit per bounce)
         float3 miss_color;
         OptixTraversableHandle handle;
     };

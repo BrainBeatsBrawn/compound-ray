@@ -1453,7 +1453,7 @@ void cray::MulticamScene::createCompoundPipeline()
     };
 
     OptixPipelineLinkOptions pipeline_link_options = {};
-    pipeline_link_options.maxTraceDepth = 2;
+    pipeline_link_options.maxTraceDepth = 4; // eye ray, up to two physical-mode bounces, shadow ray
 
     char log[2048];
     size_t sizeof_log = sizeof (log);

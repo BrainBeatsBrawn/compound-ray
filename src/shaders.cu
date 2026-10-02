@@ -73,7 +73,9 @@ __device__ float vis (const float N_dot_L, const float N_dot_V, const float alph
     const float alpha_sq = alpha * alpha;
     const float ggx0 = N_dot_L * sqrtf (N_dot_V * N_dot_V * (1.0f - alpha_sq) + alpha_sq);
     const float ggx1 = N_dot_V * sqrtf (N_dot_L * N_dot_L * (1.0f - alpha_sq) + alpha_sq);
-    return 2.0f * N_dot_L * N_dot_V / (ggx0 + ggx1);
+    // Height-correlated Smith visibility V = G2 / (4 N.L N.V); the shaders multiply F * V * D. (This returned G2
+    // itself, 2 N.L N.V / (ggx0 + ggx1), making specular 4 N.L N.V times too strong.)
+    return 0.5f / (ggx0 + ggx1);
 }
 
 __device__ float ggxNormal (const float N_dot_H, const float alpha)
@@ -98,7 +100,7 @@ static __forceinline__ __device__ void traceRadiance (OptixTraversableHandle han
                                                       float                  tmax,
                                                       cray::PayloadRadiance* payload)
 {
-    uint32_t u0 = 0u, u1 = 0u, u2 = 0u, u3 = 0u;
+    uint32_t u0 = 0u, u1 = 0u, u2 = 0u, u3 = static_cast<uint32_t> (payload->depth);  // depth in, as well as out
     optixTrace (handle,
                 ray_origin, ray_direction,
                 tmin,
@@ -429,8 +431,10 @@ extern "C" __global__ void __closesthit__radiance()
         const std::uint32_t n_lights = params.phys_lights.count;
         const std::uint32_t n_shaded = (params.lights_per_hit == 0u || params.lights_per_hit >= n_lights) ? n_lights : params.lights_per_hit;
         const float light_weight = n_shaded > 0u ? static_cast<float> (n_lights) / static_cast<float> (n_shaded) : 0.0f;
+        const uint32_t depth = optixGetPayload_3();
         const uint3 li = optixGetLaunchIndex();
-        unsigned int seed = tea<4> (li.x + optixGetLaunchDimensions().x * li.y, params.frame);
+        // Decorrelate the bounce's random numbers from the hit that spawned it
+        unsigned int seed = tea<4> (li.x + optixGetLaunchDimensions().x * li.y, params.frame + 7919u * depth);
         for (std::uint32_t s = 0; s < n_shaded; ++s) {
             const std::uint32_t i = (n_shaded == n_lights) ? s : min (static_cast<std::uint32_t> (rnd (seed) * n_lights), n_lights - 1u);
             const cray::PhysLight light = params.phys_lights[i];
@@ -468,6 +472,21 @@ extern "C" __global__ void __closesthit__radiance()
             const float3 diff = (1.0f - F) * diff_color / M_PIf;
             const float3 spec = F * vis (N_dot_L, N_dot_V, alpha) * ggxNormal (dot (N, H), alpha);
             result += light_weight * E * N_dot_L * (diff + spec);
+        }
+        // Indirect diffuse: one cosine-weighted bounce per hit while the ray is shallower than indirect_bounces.
+        // For a Lambertian lobe the cosine pdf cancels: estimate = diffuse colour x radiance arriving from the bounce.
+        if (depth < params.indirect_bounces) {
+            const float r1 = rnd (seed), r2 = rnd (seed);
+            const float phi = 2.0f * M_PIf * r1, sin_t = sqrtf (r2), cos_t = sqrtf (1.0f - r2);
+            const float3 T = normalize (fabsf (N.x) > 0.5f ? cross (N, make_float3 (0.0f, 1.0f, 0.0f)) : cross (N, make_float3 (1.0f, 0.0f, 0.0f)));
+            const float3 B = cross (N, T);
+            const float3 dir = normalize (sin_t * cosf (phi) * T + sin_t * sinf (phi) * B + cos_t * N);
+            cray::PayloadRadiance bounce;
+            bounce.result = make_float3 (0.0f);
+            bounce.importance = 1.0f;
+            bounce.depth = static_cast<std::int32_t> (depth + 1u);
+            traceRadiance (params.handle, geom.P + 1e-3f * N, dir, 1e-3f, 1e16f, &bounce);
+            result += diff_color * bounce.result;
         }
         setPayloadResult (result);
         return;
