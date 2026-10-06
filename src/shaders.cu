@@ -216,36 +216,52 @@ extern "C" __global__ void __raygen__ommatidium()
     const float3 relativeOmmatidialAxis = ommatidium.relativeDirection;
     const float3 relativeOmmatidialPosition = ommatidium.relativePosition;
 
-    // A local copy of the cuRand state (to be) stored in shared memory
-    curandState localState;
-    // A reference to the original cuRand state stored in shared memory
-    curandState& sharedState = ((curandState*)(posedData.specializedData.d_randomStates))[id];
-    if (!posedData.specializedData.randomsConfigured) {
-        curand_init (42, id, 0, &localState); // Initialize the state if it needs to be
-    } else {
-        localState = sharedState; // Pull down the random state of this ommatidium
-    }
-
-    // Calculate the s.d. to scale a standard normal random value up to so that it matches the acceptance angle
-    const float standardDeviation = ommatidium.acceptanceAngleRadians / FWHM_SD_RATIO;
-    // Angle away from the ommatidial axis
-    float splayAngle = curand_normal (&localState) * standardDeviation;
-    // Angle around the ommatidial axis (note that it only needs to rotate through 180 degrees because splayAngle can be negative)
-    float ommatidialAxisAngle = curand_uniform (&localState) * M_PIf;
-    // Copy the RNG state back into the buffer for use next time
-    sharedState = localState;
-    // Generate a pair of angles away from the ommatidial axis
-    const float3 relativeDir = generateOffsetRay (ommatidialAxisAngle, splayAngle, relativeOmmatidialAxis);
-    // Move the start of the ray into the eye along the ommatidial axis by focalPointOffset
-    const float3 relativePos = relativeOmmatidialPosition - normalize (relativeOmmatidialAxis) * ommatidium.focalPointOffset;
-    // Transform ray information into world-space
-    const float3 ray_origin = posedData.position + posedData.localSpace.xAxis * relativePos.x + posedData.localSpace.yAxis * relativePos.y + posedData.localSpace.zAxis * relativePos.z;
-    const float3 ray_direction = posedData.localSpace.xAxis * relativeDir.x + posedData.localSpace.yAxis * relativeDir.y + posedData.localSpace.zAxis * relativeDir.z;
-
     cray::PayloadRadiance payload;
     payload.result = make_float3 (0.0f);
     payload.importance = 1.0f;
     payload.depth = 0.0f;
+
+    // Move the start of the ray into the eye along the ommatidial axis by focalPointOffset
+    const float3 relativePos = relativeOmmatidialPosition - normalize (relativeOmmatidialAxis) * ommatidium.focalPointOffset;
+    // Ray origin into world-space
+    const float3 ray_origin = posedData.position + posedData.localSpace.xAxis * relativePos.x + posedData.localSpace.yAxis * relativePos.y + posedData.localSpace.zAxis * relativePos.z;
+    float3 ray_direction;
+
+    // If we are making ONE sample per ommatidium, just use the central direction (with no
+    // directional randomness). If we are making two or more samples per ommatidium, use a random
+    // number generator to randomize the direction of the sample
+    //
+    if (posedData.specializedData.samplesPerOmmatidium == 1u) { // 1 sample per ommatidium
+
+        // ray direction is ommatidium direction
+        ray_direction = posedData.localSpace.xAxis * relativeOmmatidialAxis.x + posedData.localSpace.yAxis * relativeOmmatidialAxis.y + posedData.localSpace.zAxis * relativeOmmatidialAxis.z;
+
+    } else { // >1 sample per ommatidium
+
+        // A local copy of the cuRand state (to be) stored in shared memory
+        curandState localState;
+        // A reference to the original cuRand state stored in shared memory
+        curandState& sharedState = ((curandState*)(posedData.specializedData.d_randomStates))[id];
+        if (!posedData.specializedData.randomsConfigured) {
+            curand_init (42, id, 0, &localState); // Initialize the state if it needs to be
+        } else {
+            localState = sharedState; // Pull down the random state of this ommatidium
+        }
+
+        // Calculate the s.d. to scale a standard normal random value up to so that it matches the acceptance angle
+        const float standardDeviation = ommatidium.acceptanceAngleRadians / FWHM_SD_RATIO;
+        // Angle away from the ommatidial axis
+        float splayAngle = curand_normal (&localState) * standardDeviation;
+        // Angle around the ommatidial axis (note that it only needs to rotate through 180 degrees because splayAngle can be negative)
+        float ommatidialAxisAngle = curand_uniform (&localState) * M_PIf;
+        // Copy the RNG state back into the buffer for use next time
+        sharedState = localState;
+
+        // Generate a pair of angles away from the ommatidial axis
+        const float3 relativeDir = generateOffsetRay (ommatidialAxisAngle, splayAngle, relativeOmmatidialAxis);
+        // Transform ray direction into world-space
+        ray_direction = posedData.localSpace.xAxis * relativeDir.x + posedData.localSpace.yAxis * relativeDir.y + posedData.localSpace.zAxis * relativeDir.z;
+    }
 
     traceRadiance (params.handle,
                    ray_origin,
