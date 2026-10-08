@@ -79,7 +79,8 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
 {
     float3 sum = make_float3(0.0f, 0.0f, 0.0f);
     // The y axis of our threads/threadblocks indexes which of the n_arrays this sum relates to
-    int omm_id = blockIdx.y * blockDim.y  + threadIdx.y;
+    // Pixels are spread over grid y and z, because gridDim.y is limited to 65535
+    int omm_id = (blockIdx.z * gridDim.y + blockIdx.y) * blockDim.y + threadIdx.y;
     // This gives a memory offset to get to the right part of the input memory
     int thread_offset = omm_id * n_elements;
     // (if you needed to do array index checking, the data size is n_arrays * n_elements)
@@ -132,7 +133,10 @@ __host__ void summing_kernel (float3* d_omm, float3* d_sums, int n_pixels, int n
     if (d_omm == nullptr || d_sums == nullptr) { return; }
     int tx = std::min ((n_samples / warpthreads) * warpthreads + (n_samples % warpthreads) ? warpthreads : 0, threadsperblock);
     dim3 blockdim(tx, 1);
-    dim3 griddim(1, n_pixels / blockdim.y + (n_pixels % blockdim.y ? 1 : 0));
+    constexpr int max_grid_y = 65535;
+    const int n_blocks = n_pixels / blockdim.y + (n_pixels % blockdim.y ? 1 : 0);
+    const int grid_y = std::min (n_blocks, max_grid_y);
+    dim3 griddim(1, grid_y, (n_blocks + grid_y - 1) / grid_y);
     reduceit_arrays<<<griddim, blockdim>>>(d_omm, d_sums, n_pixels, n_samples);
     gpuAssert (cudaDeviceSynchronize(), __FILE__, __LINE__);
 }
